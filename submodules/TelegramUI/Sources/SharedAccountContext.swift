@@ -932,10 +932,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                     appliedVoip = self.voipNotificationToken
                     |> distinctUntilChanged(isEqual: { $0 == $1 })
                     |> mapToSignal { token -> Signal<Never, NoError> in
-                        guard let token = token else {
+//                        guard let token = token else {
                             return .complete()
-                        }
-                        return account.engine.accountData.registerNotificationToken(token: token, type: .voip, sandbox: sandbox, otherAccountUserIds: (account.account.testingEnvironment ? activeTestingUserIds : activeProductionUserIds).filter({ $0 != account.account.peerId.id }), excludeMutedChats: !settings.includeMuted)
+//                        }
+//                        return account.engine.accountData.registerNotificationToken(token: token, type: .voip, sandbox: sandbox, otherAccountUserIds: (account.account.testingEnvironment ? activeTestingUserIds : activeProductionUserIds).filter({ $0 != account.account.peerId.id }), excludeMutedChats: !settings.includeMuted)
                     }
                 }
                 

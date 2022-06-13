@@ -1456,6 +1456,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }
     }
     
+/*
     public func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
         Logger.shared.log("App \(self.episodeId) PushRegistry", "pushRegistry didReceiveIncomingPushWith \(payload.dictionaryPayload)")
         
@@ -1636,6 +1637,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         
         completion()
     }
+*/
     
     public func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushTokenFor type: PKPushType) {
         Logger.shared.log("App \(self.episodeId)", "invalidated token for \(type)")
