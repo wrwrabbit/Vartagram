@@ -39,7 +39,7 @@ class BuildConfiguration:
         self.enable_watch = enable_watch
         self.is_non_dev_account = is_non_dev_account
 
-    def write_to_variables_file(self, bazel_path, use_xcode_managed_codesigning, aps_environment, path):
+    def write_to_variables_file(self, bazel_path, use_xcode_managed_codesigning, aps_environment, test_build_show_version, path):
         string = ''
         string += 'telegram_bazel_path = "{}"\n'.format(bazel_path)
         string += 'telegram_use_xcode_managed_codesigning = {}\n'.format('True' if use_xcode_managed_codesigning else 'False')
@@ -58,6 +58,7 @@ class BuildConfiguration:
         string += 'telegram_enable_icloud = {}\n'.format(self.enable_icloud)
         string += 'telegram_enable_watch = {}\n'.format(self.enable_watch)
         string += 'telegram_is_non_dev_account = {}\n'.format(self.is_non_dev_account)
+        string += 'telegram_test_build_show_version = "{}"\n'.format(test_build_show_version)
 
         if os.path.exists(path):
             os.remove(path)

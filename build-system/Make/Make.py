@@ -45,6 +45,7 @@ class BazelCommandLine:
         self.show_actions = False
         self.enable_sandbox = False
         self.disable_provisioning_profiles = False
+        self.override_app_version = None
 
         self.common_args = [
             # https://docs.bazel.build/versions/master/command-line-reference.html
@@ -148,6 +149,9 @@ class BazelCommandLine:
 
     def set_disable_provisioning_profiles(self):
         self.disable_provisioning_profiles = True
+
+    def set_override_app_version(self, override_app_version):
+        self.override_app_version = override_app_version
 
     def set_configuration(self, configuration):
         if configuration == 'debug_universal':
@@ -280,7 +284,7 @@ class BazelCommandLine:
     def get_define_arguments(self):
         return [
             '--define=buildNumber={}'.format(self.build_number),
-            '--define=telegramVersion={}'.format(self.build_environment.app_version),
+            '--define=telegramVersion={}'.format(self.build_environment.app_version if self.override_app_version is None else self.override_app_version),
             '--define=originalVersion={}'.format(self.build_environment.original_version),
             '--define=originalBuild={}'.format(self.build_environment.original_build)
         ]
@@ -511,7 +515,7 @@ def resolve_configuration(base_path, bazel_command_line: BazelCommandLine, argum
         sys.exit(1)
 
     if bazel_command_line is not None:
-        build_configuration.write_to_variables_file(bazel_path=bazel_command_line.bazel, use_xcode_managed_codesigning=codesigning_data.use_xcode_managed_codesigning, aps_environment=codesigning_data.aps_environment, path=configuration_repository_path + '/variables.bzl')
+        build_configuration.write_to_variables_file(bazel_path=bazel_command_line.bazel, use_xcode_managed_codesigning=codesigning_data.use_xcode_managed_codesigning, aps_environment=codesigning_data.aps_environment, test_build_show_version='' if bazel_command_line.override_app_version is None else bazel_command_line.build_environment.app_version, path=configuration_repository_path + '/variables.bzl')
 
     provisioning_profile_files = []
     for file_name in os.listdir(provisioning_path):
@@ -594,6 +598,9 @@ def build(bazel, arguments):
         bazel_command_line.add_cache_dir(arguments.cacheDir)
     elif arguments.cacheHost is not None:
         bazel_command_line.add_remote_cache(arguments.cacheHost)
+
+    if arguments.overrideAppVersion is not None:
+        bazel_command_line.set_override_app_version(arguments.overrideAppVersion)
 
     resolve_configuration(
         base_path=os.getcwd(),
@@ -924,6 +931,11 @@ if __name__ == '__main__':
         required=False,
         help='Store IPA and DSYM at the specified path after a successful build.',
         metavar='arguments'
+    )
+    buildParser.add_argument(
+        '--overrideAppVersion',
+        required=False,
+        help='Override app version.',
     )
 
     remote_build_parser = subparsers.add_parser('remote-build', help='Build the app using a remote environment.')
