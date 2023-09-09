@@ -719,6 +719,11 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
             }
         }))
     }
+    
+    func setup(number: String, syncContacts: Bool) {
+        self.phoneAndCountryNode.phoneInputNode.number = number
+        self.contactSyncNode.switchNode.isOn = syncContacts
+    }
 }
 
 final class PhoneConfirmationController: ViewController {
