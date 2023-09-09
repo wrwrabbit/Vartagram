@@ -57,6 +57,7 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
     weak var confirmationController: PhoneConfirmationController?
     
     private let termsDisposable = MetaDisposable()
+    private var loadServerCountryCodesDisposable: Disposable?
     
     private let hapticFeedback = HapticFeedback()
     
@@ -99,6 +100,7 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
     
     deinit {
         self.termsDisposable.dispose()
+        self.loadServerCountryCodesDisposable?.dispose()
     }
     
     @objc private func cancelPressed() {
@@ -179,7 +181,7 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
         }
         
         if let account = self.account {
-            loadServerCountryCodes(accountManager: sharedContext.accountManager, engine: TelegramEngineUnauthorized(account: account), completion: { [weak self] in
+            self.loadServerCountryCodesDisposable = loadServerCountryCodes(accountManager: sharedContext.accountManager, engine: TelegramEngineUnauthorized(account: account), completion: { [weak self] in
                 if let strongSelf = self {
                     strongSelf.controllerNode.updateCountryCode()
                 }

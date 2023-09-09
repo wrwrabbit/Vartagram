@@ -230,8 +230,9 @@ func deleteAccountDataController(context: AccountContext, mode: DeleteAccountDat
     var activateInputImpl: (() -> Void)?
     var dismissInputImpl: (() -> Void)?
     
+    var loadServerCountryCodesDisposable: Disposable?
     if case .phone = mode {
-        loadServerCountryCodes(accountManager: context.sharedContext.accountManager, engine: context.engine, completion: {
+        loadServerCountryCodesDisposable = loadServerCountryCodes(accountManager: context.sharedContext.accountManager, engine: context.engine, completion: {
             updateCodeImpl?()
         })
     }
@@ -351,6 +352,9 @@ func deleteAccountDataController(context: AccountContext, mode: DeleteAccountDat
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: deleteAccountDataEntries(presentationData: presentationData, mode: mode, peers: peers), style: .blocks, focusItemTag: focusItemTag, footerItem: footerItem)
 
         return (controllerState, (listState, arguments))
+    }
+    |> afterDisposed {
+        loadServerCountryCodesDisposable?.dispose()
     }
 
     let controller = ItemListController(context: context, state: signal, tabBarItem: nil)

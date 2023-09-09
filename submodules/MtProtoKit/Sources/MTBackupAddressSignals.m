@@ -85,6 +85,8 @@ static NSData *base64_decode(NSString *str) {
     
     id<EncryptionProvider> encryptionProvider = currentContext.encryptionProvider;
     
+    __weak MTContext *weakCurrentContext = currentContext;
+    
     NSMutableArray *signals = [[NSMutableArray alloc] init];
     for (NSArray *hostAndHostname in hosts) {
         NSString *host = hostAndHostname[0];
@@ -143,7 +145,8 @@ static NSData *base64_decode(NSString *str) {
                     NSMutableData *finalData = [[NSMutableData alloc] initWithData:result];
                     [finalData setLength:256];
                     MTBackupDatacenterData *datacenterData = MTIPDataDecode(encryptionProvider, finalData, phoneNumber);
-                    if (datacenterData != nil && [self checkIpData:datacenterData timestamp:(int32_t)[currentContext globalTime] source:@"resolveGoogle"]) {
+                    __strong MTContext *strongCurrentContext = weakCurrentContext;
+                    if (datacenterData != nil && strongCurrentContext != nil && [self checkIpData:datacenterData timestamp:(int32_t)[strongCurrentContext globalTime] source:@"resolveGoogle"]) {
                         return [MTSignal single:datacenterData];
                     }
                 }
@@ -184,6 +187,8 @@ static NSString *makeRandomPadding() {
     NSArray *hosts = @[
         @[@"mozilla.cloudflare-dns.com", @""],
     ];
+    
+    __weak MTContext *weakCurrentContext = currentContext;
     
     NSMutableArray *signals = [[NSMutableArray alloc] init];
     for (NSArray *hostAndHostname in hosts) {
@@ -244,7 +249,8 @@ static NSString *makeRandomPadding() {
                     NSMutableData *finalData = [[NSMutableData alloc] initWithData:result];
                     [finalData setLength:256];
                     MTBackupDatacenterData *datacenterData = MTIPDataDecode(encryptionProvider, finalData, phoneNumber);
-                    if (datacenterData != nil && [self checkIpData:datacenterData timestamp:(int32_t)[currentContext globalTime] source:@"resolveCloudflare"]) {
+                    __strong MTContext *strongCurrentContext = weakCurrentContext;
+                    if (datacenterData != nil && strongCurrentContext != nil && [self checkIpData:datacenterData timestamp:(int32_t)[strongCurrentContext globalTime] source:@"resolveCloudflare"]) {
                         return [MTSignal single:datacenterData];
                     }
                 }
@@ -346,6 +352,7 @@ static NSString *makeRandomPadding() {
         return [[MTBlockDisposable alloc] initWithBlock:^{
             [requestService removeRequestByInternalId:requestId];
             [mtProto pause];
+            [context removeAllAuthTokens];
         }];
     }];
 }
@@ -354,12 +361,14 @@ static NSString *makeRandomPadding() {
     NSMutableArray *signals = [[NSMutableArray alloc] init];
     [signals addObject:[self fetchBackupIpsResolveGoogle:isTestingEnvironment phoneNumber:phoneNumber currentContext:currentContext addressOverride:currentContext.apiEnvironment.accessHostOverride]];
     [signals addObject:[self fetchBackupIpsResolveCloudflare:isTestingEnvironment phoneNumber:phoneNumber currentContext:currentContext addressOverride:currentContext.apiEnvironment.accessHostOverride]];
+    __weak MTContext *weakCurrentContext = currentContext;
     if (additionalSource != nil) {
         [signals addObject:[additionalSource mapToSignal:^MTSignal *(MTBackupDatacenterData *datacenterData) {
             if (![datacenterData isKindOfClass:[MTBackupDatacenterData class]]) {
                 return [MTSignal complete];
             }
-            if (datacenterData != nil && [self checkIpData:datacenterData timestamp:(int32_t)[currentContext globalTime] source:@"resolveExternal"]) {
+            __strong MTContext *strongCurrentContext = weakCurrentContext;
+            if (datacenterData != nil && strongCurrentContext != nil && [self checkIpData:datacenterData timestamp:(int32_t)[strongCurrentContext globalTime] source:@"resolveExternal"]) {
                 return [MTSignal single:datacenterData];
             } else {
                 return [MTSignal complete];
@@ -368,11 +377,12 @@ static NSString *makeRandomPadding() {
     }
     
     return [[[MTSignal mergeSignals:signals] take:1] mapToSignal:^MTSignal *(MTBackupDatacenterData *data) {
-        if (data != nil && data.addressList.count != 0) {
+        __strong MTContext *strongCurrentContext = weakCurrentContext;
+        if (data != nil && data.addressList.count != 0 && strongCurrentContext != nil) {
             NSMutableArray *signals = [[NSMutableArray alloc] init];
             NSTimeInterval delay = 0.0;
             for (MTBackupDatacenterAddress *address in data.addressList) {
-                MTSignal *signal = [self fetchConfigFromAddress:address currentContext:currentContext mainDatacenterId:mainDatacenterId];
+                MTSignal *signal = [self fetchConfigFromAddress:address currentContext:strongCurrentContext mainDatacenterId:mainDatacenterId];
                 if (delay > DBL_EPSILON) {
                     signal = [signal delay:delay onQueue:[[MTQueue alloc] init]];
                 }

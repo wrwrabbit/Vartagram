@@ -6,7 +6,7 @@ import MtProtoKit
 
 private final class UnauthorizedUpdateMessageService: NSObject, MTMessageService {
     let pipe: ValuePipe<[Api.Update]> = ValuePipe()
-    var mtProto: MTProto?
+    weak var mtProto: MTProto?
     
     override init() {
         super.init()
