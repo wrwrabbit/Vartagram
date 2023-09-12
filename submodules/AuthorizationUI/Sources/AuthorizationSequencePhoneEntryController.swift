@@ -303,7 +303,8 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
                         let syncContacts = strongSelf.controllerNode.syncContacts
                         
                         strongSelf.inProgress = true
-                        strongSelf.dismissConfirmation()
+                        strongSelf.confirmationController?.dismiss()
+                        strongSelf.confirmationController = nil
                         
                         let _ = (strongSelf.sharedContext.accountManager.transaction { transaction -> AccountRecordId? in
                             return transaction.createAuth([.environment(AccountEnvironmentAttribute(environment: .test))])?.id

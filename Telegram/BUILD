@@ -624,12 +624,12 @@ plist_fragment(
     <key>TelegramOriginalBuild</key>
     <string>{originalBuild}</string>
     """
-    + "" if telegram_test_build_show_version == "" else """
+    + ("" if telegram_test_build_show_version == "" else """
     <key>TestBuildShowVersion</key>
     <string>{telegram_test_build_show_version}</string>
     """.format(
         telegram_test_build_show_version = telegram_test_build_show_version,
-    )
+    ))
 )
 
 plist_fragment(
