@@ -2375,10 +2375,11 @@ public final class SqliteValueBox: ValueBox {
                 return EmptyDisposable
             }
             |> then (
-                fileSizeChangeNotifier(path: fullpath, queue: queue)
-                |> map { _ in
-                    return fileSize(fullpath, useTotalFileAllocatedSize: true) ?? 0
-                }
+                .never()
+//                fileSizeChangeNotifier(path: fullpath, queue: queue)
+//                |> map { _ in
+//                    return fileSize(fullpath, useTotalFileAllocatedSize: true) ?? 0
+//                }
             )
             |> distinctUntilChanged
         })
