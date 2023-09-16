@@ -16,7 +16,7 @@ private final class PtgSettingsControllerArguments {
     let switchShowChannelCreationDate: (Bool) -> Void
     let switchSuppressForeignAgentNotice: (Bool) -> Void
     let switchEnableLiveText: (Bool) -> Void
-    let switchPreferAppleVoiceToText: (Bool) -> Void
+    let changeVoiceToTextPremiumAccountsImplementation: () -> Void
     let changeDefaultCameraForVideos: () -> Void
     let switchEnableQuickReaction: (Bool) -> Void
     let switchHideReactionsInChannels: (Bool) -> Void
@@ -33,7 +33,7 @@ private final class PtgSettingsControllerArguments {
         switchShowChannelCreationDate: @escaping (Bool) -> Void,
         switchSuppressForeignAgentNotice: @escaping (Bool) -> Void,
         switchEnableLiveText: @escaping (Bool) -> Void,
-        switchPreferAppleVoiceToText: @escaping (Bool) -> Void,
+        changeVoiceToTextPremiumAccountsImplementation: @escaping () -> Void,
         changeDefaultCameraForVideos: @escaping () -> Void,
         switchEnableQuickReaction: @escaping (Bool) -> Void,
         switchHideReactionsInChannels: @escaping (Bool) -> Void,
@@ -49,7 +49,7 @@ private final class PtgSettingsControllerArguments {
         self.switchShowChannelCreationDate = switchShowChannelCreationDate
         self.switchSuppressForeignAgentNotice = switchSuppressForeignAgentNotice
         self.switchEnableLiveText = switchEnableLiveText
-        self.switchPreferAppleVoiceToText = switchPreferAppleVoiceToText
+        self.changeVoiceToTextPremiumAccountsImplementation = changeVoiceToTextPremiumAccountsImplementation
         self.changeDefaultCameraForVideos = changeDefaultCameraForVideos
         self.switchEnableQuickReaction = switchEnableQuickReaction
         self.switchHideReactionsInChannels = switchHideReactionsInChannels
@@ -67,7 +67,7 @@ private enum PtgSettingsSection: Int32 {
     case showProfileData
     case experimental
     case channels
-    case preferAppleVoiceToText
+    case voiceToText
     case defaultCameraForVideos
     case addContextMenus
 }
@@ -81,8 +81,9 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
     case enableLiveText(String, Bool)
     case enableLiveTextInfo(String)
     
-    case preferAppleVoiceToText(String, Bool, Bool)
-    case preferAppleVoiceToTextInfo(String)
+    case voiceToTextHeader(String)
+    case voiceToTextPremiumAccountsImplementation(String, String, Bool)
+    case voiceToTextInfo(String)
 
     case defaultCameraForVideos(String, String)
     
@@ -107,8 +108,8 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             return PtgSettingsSection.showProfileData.rawValue
         case .enableQuickReaction, .enableQuickReactionInfo, .enableLiveText, .enableLiveTextInfo:
             return PtgSettingsSection.experimental.rawValue
-        case .preferAppleVoiceToText, .preferAppleVoiceToTextInfo:
-            return PtgSettingsSection.preferAppleVoiceToText.rawValue
+        case .voiceToTextHeader, .voiceToTextPremiumAccountsImplementation, .voiceToTextInfo:
+            return PtgSettingsSection.voiceToText.rawValue
         case .defaultCameraForVideos:
             return PtgSettingsSection.defaultCameraForVideos.rawValue
         case .channelAppearanceHeader, .hideReactionsInChannels, .hideCommentsInChannels, .hideShareButtonInChannels, .useFullWidthInChannels, .jumpToNextUnreadChannel, .hideSignatureInChannels, .suppressForeignAgentNotice:
@@ -156,10 +157,12 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             return 16
         case .defaultCameraForVideos:
             return 17
-        case .preferAppleVoiceToText:
+        case .voiceToTextHeader:
             return 18
-        case .preferAppleVoiceToTextInfo:
+        case .voiceToTextPremiumAccountsImplementation:
             return 19
+        case .voiceToTextInfo:
+            return 20
         }
     }
     
@@ -186,11 +189,11 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             return ItemListSwitchItem(presentationData: presentationData, title: title, value: value, sectionId: self.section, style: .blocks, updated: { updatedValue in
                 arguments.switchEnableLiveText(updatedValue)
             })
-        case let .enableQuickReactionInfo(text), let .enableLiveTextInfo(text), let .preferAppleVoiceToTextInfo(text):
+        case let .enableQuickReactionInfo(text), let .enableLiveTextInfo(text), let .voiceToTextInfo(text):
             return ItemListTextItem(presentationData: presentationData, text: .markdown(text), sectionId: self.section)
-        case let .preferAppleVoiceToText(title, value, enabled):
-            return ItemListSwitchItem(presentationData: presentationData, title: title, value: value, enabled: enabled, sectionId: self.section, style: .blocks, updated: { updatedValue in
-                arguments.switchPreferAppleVoiceToText(updatedValue)
+        case let .voiceToTextPremiumAccountsImplementation(title, value, enabled):
+            return ItemListDisclosureItem(presentationData: presentationData, title: title, enabled: enabled, label: value, sectionId: self.section, style: .blocks, action: {
+                arguments.changeVoiceToTextPremiumAccountsImplementation()
             })
         case let .defaultCameraForVideos(title, value):
             return ItemListDisclosureItem(presentationData: presentationData, title: title, label: value, sectionId: self.section, style: .blocks, action: {
@@ -216,7 +219,7 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             return ItemListSwitchItem(presentationData: presentationData, title: title, value: value, sectionId: self.section, style: .blocks, updated: { updatedValue in
                 arguments.switchUseFullWidthInChannels(updatedValue)
             })
-        case let .channelAppearanceHeader(text), let .addContextMenuHeader(text):
+        case let .channelAppearanceHeader(text), let .addContextMenuHeader(text), let .voiceToTextHeader(text):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
         case let .addContextMenuSaveMessage(title, value):
             return ItemListSwitchItem(presentationData: presentationData, title: title, value: value, sectionId: self.section, style: .blocks, updated: { updatedValue in
@@ -274,8 +277,9 @@ private func ptgSettingsControllerEntries(presentationData: PresentationData, se
     entries.append(.defaultCameraForVideos(presentationData.strings.PtgSettings_DefaultCameraForVideos, settings.useRearCameraByDefault ? presentationData.strings.PtgSettings_DefaultCameraForVideos_Rear : presentationData.strings.PtgSettings_DefaultCameraForVideos_Front))
     
     if experimentalSettings.localTranscription {
-        entries.append(.preferAppleVoiceToText(presentationData.strings.PtgSettings_PreferAppleVoiceToText, settings.preferAppleVoiceToText || !hasPremiumAccounts, hasPremiumAccounts))
-        entries.append(.preferAppleVoiceToTextInfo(presentationData.strings.PtgSettings_PreferAppleVoiceToTextHelp))
+        entries.append(.voiceToTextHeader(presentationData.strings.PtgSettings_VoiceToTextHeader.uppercased()))
+        entries.append(.voiceToTextPremiumAccountsImplementation(presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation, settings.preferAppleVoiceToText ? presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Apple : presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Telegram, hasPremiumAccounts))
+        entries.append(.voiceToTextInfo(presentationData.strings.PtgSettings_VoiceToTextHelp))
     }
     
     return entries
@@ -309,10 +313,28 @@ public func ptgSettingsController(context: AccountContext) -> ViewController {
                 return PreferencesEntry(settings)
             })
         }).start()
-    }, switchPreferAppleVoiceToText: { value in
-        updateSettings(context, statePromise) { settings in
-            return settings.withUpdated(preferAppleVoiceToText: value)
+    }, changeVoiceToTextPremiumAccountsImplementation: {
+        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        let actionSheet = ActionSheetController(presentationData: presentationData)
+        var items: [ActionSheetItem] = []
+        
+        for value in [false, true] {
+            items.append(ActionSheetButtonItem(title: value ? presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Apple : presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Telegram, color: .accent, action: { [weak actionSheet] in
+                actionSheet?.dismissAnimated()
+                
+                updateSettings(context, statePromise) { settings in
+                    return settings.withUpdated(preferAppleVoiceToText: value)
+                }
+            }))
         }
+        
+        actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
+            ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
+                actionSheet?.dismissAnimated()
+            })
+        ])])
+        
+        presentControllerImpl?(actionSheet, ViewControllerPresentationArguments(presentationAnimation: .modalSheet))
     }, changeDefaultCameraForVideos: {
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         let actionSheet = ActionSheetController(presentationData: presentationData)

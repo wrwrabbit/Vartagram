@@ -356,7 +356,7 @@ public class ItemListDisclosureItemNode: ListViewItemNode, ItemListItemNode {
             }
             if case .text = item.labelStyle, !item.label.isEmpty {
                 // should be enough for at least one letter
-                labelConstrain = max(25.0, labelConstrain)
+                labelConstrain = max(27.0, labelConstrain)
             }
             
             switch item.labelStyle {
