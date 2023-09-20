@@ -41,6 +41,13 @@ public final class Database {
         let res = sqlite3_open_v2(location, &self.handle, flags, nil)
         if res != SQLITE_OK {
             postboxLog("sqlite3_open_v2: \(res)")
+            #if TEST_BUILD
+            if let handle = self.handle {
+                postboxLog("sqlite3_open_v2 sys err: \(sqlite3_system_errno(handle))")
+            } else {
+                postboxLog("sqlite3_open_v2 sys err: unknown")
+            }
+            #endif
             return nil
         }
     }
