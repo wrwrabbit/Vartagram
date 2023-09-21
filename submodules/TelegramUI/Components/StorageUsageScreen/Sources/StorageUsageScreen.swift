@@ -2330,7 +2330,7 @@ final class StorageUsageScreenComponent: Component {
             }
             
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
-            controller.present(UndoOverlayController(presentationData: presentationData, content: .succeed(text: presentationData.strings.ClearCache_Success("\(dataSizeString(size, formatting: DataSizeStringFormatting(presentationData: presentationData)))", stringForDeviceType()).string), elevatedLayout: false, action: { _ in return false }), in: .current)
+            controller.present(UndoOverlayController(presentationData: presentationData, content: .succeed(text: presentationData.strings.ClearCache_Success("\(dataSizeString(size, formatting: DataSizeStringFormatting(presentationData: presentationData)))", stringForDeviceType()).string, timeout: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
         }
         
         private func reloadStats(firstTime: Bool, completion: @escaping () -> Void) {
@@ -3383,6 +3383,10 @@ final class StorageUsageScreenComponent: Component {
                     }
                 }
                 */
+                
+                if case .separator = subItems.last {
+                    subItems.removeLast()
+                }
                 
                 if let sourceLabelView = sourceView.labelView {
                     let items: Signal<ContextController.Items, NoError> = .single(ContextController.Items(content: .list(subItems)))

@@ -1345,7 +1345,9 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
                                     strongSelf.isPlayingPromise.set(false)
                                     strongSelf.isPlaying = false
                                     if strongSelf.isCentral == true {
-                                        strongSelf.updateControlsVisibility(true)
+                                        if !item.isSecret {
+                                            strongSelf.updateControlsVisibility(true)
+                                        }
                                     }
                                 }
                         }
@@ -1482,7 +1484,9 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
                         if strongSelf.actionAtEnd == .stop && strongSelf.isCentral == true {
                             strongSelf.isPlayingPromise.set(false)
                             strongSelf.isPlaying = false
-                            strongSelf.updateControlsVisibility(true)
+                            if !item.isSecret {
+                                strongSelf.updateControlsVisibility(true)
+                            }
                         }
                     }
                 }
@@ -1687,6 +1691,12 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
                 self.hideStatusNodeUntilCentrality = false
                 self.statusButtonNode.isHidden = self.hideStatusNodeUntilCentrality || self.statusNodeShouldBeHidden
                 videoNode.playOnceWithSound(playAndRecord: false, seek: seek, actionAtEnd: self.actionAtEnd)
+                
+                Queue.mainQueue().after(1.0, {
+                    if let item = self.item, item.isSecret, !self.isPlaying {
+                        videoNode.playOnceWithSound(playAndRecord: false, seek: .start, actionAtEnd: self.actionAtEnd)
+                    }
+                })
             }
         }
     }
@@ -2770,6 +2780,11 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
         }
 
         self.playbackRatePromise.set(self.playbackRate ?? 1.0)
+    }
+    
+    public func seekToStart() {
+        self.videoNode?.seek(0.0)
+        self.videoNode?.play()
     }
     
     override var keyShortcuts: [KeyShortcut] {

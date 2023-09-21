@@ -633,7 +633,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, UIScroll
     func setMessage(_ message: Message, displayInfo: Bool = true, translateToLanguage: String? = nil, peerIsCopyProtected: Bool = false) {
         self.currentMessage = message
         
-        let canDelete: Bool
+        var canDelete: Bool
         var canShare = !message.containsSecretMedia
 
         var canFullscreen = false
@@ -715,6 +715,10 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, UIScroll
         if message.isCopyProtected() || peerIsCopyProtected {
             canShare = false
             canEdit = false
+        }
+        
+        if message.containsSecretMedia {
+            canDelete = false
         }
         
         var authorNameText: String?
@@ -885,6 +889,10 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, UIScroll
             displayCaption = !self.textNode.isHidden && !isLandscape
         } else {
             displayCaption = !self.textNode.isHidden
+        }
+        
+        if metrics.isTablet {
+            self.fullscreenButton.isHidden = true
         }
         
         var textFrame = CGRect()

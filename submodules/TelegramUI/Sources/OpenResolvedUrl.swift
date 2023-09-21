@@ -562,16 +562,10 @@ func openResolvedUrlImpl(_ resolvedUrl: ResolvedUrl, context: AccountContext, ur
             }
         case let .premiumOffer(reference):
             dismissInput()
-            let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId))
-            |> deliverOnMainQueue).start(next: { peer in
-                let isPremium = peer?.isPremium ?? false
-                if !isPremium {
-                    let controller = PremiumIntroScreen(context: context, source: .deeplink(reference))
-                    if let navigationController = navigationController {
-                        navigationController.pushViewController(controller, animated: true)
-                    }
-                }
-            })
+            let controller = PremiumIntroScreen(context: context, source: .deeplink(reference))
+            if let navigationController = navigationController {
+                navigationController.pushViewController(controller, animated: true)
+            }
         case let .joinVoiceChat(peerId, invite):
             let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
             |> deliverOnMainQueue).start(next: { peer in
@@ -630,7 +624,7 @@ func openResolvedUrlImpl(_ resolvedUrl: ResolvedUrl, context: AccountContext, ur
                     return (chooseTypes?.isEmpty ?? true) ? nil : chooseTypes
                 }
                 
-                if let bot = attachMenuBots.first(where: { $0.peer.id == peerId }) {
+                if let bot = attachMenuBots.first(where: { $0.peer.id == peerId }), !bot.flags.contains(.notActivated) {
                     let choose = filterChooseTypes(choose, peerTypes: bot.peerTypes)
                     
                     if let choose = choose {
@@ -679,8 +673,7 @@ func openResolvedUrlImpl(_ resolvedUrl: ResolvedUrl, context: AccountContext, ur
                     |> deliverOnMainQueue).start(next: { bot in
                         let choose = filterChooseTypes(choose, peerTypes: bot.peerTypes)
                         
-                        let botPeer = EnginePeer(bot.peer)
-                        let controller = addWebAppToAttachmentController(context: context, peerName: botPeer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), icons: bot.icons, requestWriteAccess: bot.flags.contains(.requiresWriteAccess), completion: { allowWrite in
+                        let controller = webAppTermsAlertController(context: context, updatedPresentationData: updatedPresentationData, bot: bot, completion: { allowWrite in
                             let _ = (context.engine.messages.addBotToAttachMenu(botId: peerId, allowWrite: allowWrite)
                             |> deliverOnMainQueue).start(error: { _ in
                                 presentError(presentationData.strings.WebApp_AddToAttachmentUnavailableError)
@@ -709,7 +702,7 @@ func openResolvedUrlImpl(_ resolvedUrl: ResolvedUrl, context: AccountContext, ur
                                             guard let navigationController else {
                                                 return
                                             }
-                                            let _ = context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), attachBotStart: ChatControllerInitialAttachBotStart(botId: botPeer.id, payload: payload, justInstalled: true), useExisting: true))
+                                            let _ = context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), attachBotStart: ChatControllerInitialAttachBotStart(botId: bot.peer.id, payload: payload, justInstalled: true), useExisting: true))
                                         }
                                         navigationController.pushViewController(controller)
                                     }
@@ -721,7 +714,7 @@ func openResolvedUrlImpl(_ resolvedUrl: ResolvedUrl, context: AccountContext, ur
                                                 return
                                             }
                                             
-                                            let _ = context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(chatPeer), attachBotStart: ChatControllerInitialAttachBotStart(botId: botPeer.id, payload: payload, justInstalled: true), useExisting: true))
+                                            let _ = context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(chatPeer), attachBotStart: ChatControllerInitialAttachBotStart(botId: bot.peer.id, payload: payload, justInstalled: true), useExisting: true))
                                         })
                                     }
                                 }

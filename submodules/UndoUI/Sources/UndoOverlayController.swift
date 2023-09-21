@@ -11,7 +11,7 @@ public enum UndoOverlayContent {
     case archivedChat(peerId: Int64, title: String, text: String, undo: Bool)
     case hidArchive(title: String, text: String, undo: Bool)
     case revealedArchive(title: String, text: String, undo: Bool)
-    case succeed(text: String)
+    case succeed(text: String, timeout: Double?)
     case info(title: String?, text: String, timeout: Double?)
     case emoji(name: String, text: String)
     case swipeToReply(title: String, text: String)
@@ -128,11 +128,7 @@ public final class UndoOverlayController: ViewController {
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
         
-        let navigationBarHeight = self.navigationLayout(layout: layout).navigationFrame.maxY
-        var nodeLayout = layout
-        nodeLayout.intrinsicInsets.top = max(nodeLayout.intrinsicInsets.top, navigationBarHeight)
-        
-        (self.displayNode as! UndoOverlayControllerNode).containerLayoutUpdated(layout: nodeLayout, transition: transition)
+        (self.displayNode as! UndoOverlayControllerNode).containerLayoutUpdated(layout: layout, transition: transition)
     }
     
     override public func dismiss(completion: (() -> Void)? = nil) {

@@ -1487,7 +1487,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_ContextMenuForward, icon: { theme in
                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.actionSheet.primaryTextColor)
                 }, action: { _, f in
-                    interfaceInteraction.forwardMessages(selectAll ? messages : [message])
+                    interfaceInteraction.forwardMessages(selectAll || isImage ? messages : [message])
                     f(.dismissWithoutContent)
                 })))
                 
@@ -1495,7 +1495,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                     actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_ContextMenuSaveMessage, icon: { theme in
                         return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Fave"), color: theme.actionSheet.primaryTextColor)
                     }, action: { _, f in
-                        interfaceInteraction.saveMessages(selectAll ? messages : [message])
+                        interfaceInteraction.saveMessages(selectAll || isImage ? messages : [message])
                         f(.default)
                     })))
                 }
@@ -1505,7 +1505,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                         return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Share"), color: theme.actionSheet.primaryTextColor)
                     }, action: { _, f in
 //                        controllerInteraction.openMessageShareMenu(message.id)
-                        interfaceInteraction.shareMessages(selectAll ? messages : [message])
+                        interfaceInteraction.shareMessages(selectAll || isImage ? messages : [message])
                         f(.default)
                     })))
                 }
