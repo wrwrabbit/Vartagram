@@ -295,7 +295,7 @@ public class BrowserScreen: ViewController {
                 }
                 strongSelf.contentState = state
                 strongSelf.requestLayout(transition: .immediate)
-            })
+            }).strict()
             
             self.content?.onScrollingUpdate = { [weak self] update in
                 self?.onContentScrollingUpdate(update)
@@ -539,7 +539,7 @@ public class BrowserScreen: ViewController {
                         action(.default)
                     }))]
                 
-                let contextController = ContextController(account: self.context.account, presentationData: self.presentationData, source: source, items: .single(ContextController.Items(content: .list(items))))
+                let contextController = ContextController(presentationData: self.presentationData, source: source, items: .single(ContextController.Items(content: .list(items))))
                 self.controller?.present(contextController, in: .window(.root))
             })
         }

@@ -427,6 +427,7 @@ official_apple_pay_merchants = [
     "merchant.org.telegram.billinenet.test",
     "merchant.org.telegram.billinenet.prod",
     "merchant.org.telegram.portmone.test",
+    "merchant.org.telegram.ecommpay.test",
 ]
 
 official_bundle_ids = [
@@ -1212,7 +1213,8 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
-        "//submodules/TelegramUI:TelegramUI"
+        "//submodules/TelegramUI:TelegramUI",
+        "//submodules/TelegramUI/Components/ShareExtensionContext"
     ],
 )
 

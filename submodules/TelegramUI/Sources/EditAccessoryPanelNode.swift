@@ -19,6 +19,7 @@ import TextNodeWithEntities
 import AnimationCache
 import MultiAnimationRenderer
 import TextFormat
+import AccessoryPanelNode
 
 final class EditAccessoryPanelNode: AccessoryPanelNode {
     let dateTimeFormat: PresentationDateTimeFormat

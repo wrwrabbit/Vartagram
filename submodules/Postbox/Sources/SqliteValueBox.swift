@@ -199,8 +199,11 @@ public final class SqliteValueBox: ValueBox {
     private var fullTextMatchGlobalStatements: [Int32 : SqlitePreparedStatement] = [:]
     private var fullTextMatchCollectionStatements: [Int32 : SqlitePreparedStatement] = [:]
     private var fullTextMatchCollectionTagsStatements: [Int32 : SqlitePreparedStatement] = [:]
+    private var preparedPageCountStatement: SqlitePreparedStatement?
     
     private var secureDeleteEnabled: Bool = false
+    
+    private var pageSize: Int?
     
     private let checkpoints = MetaDisposable()
     
@@ -455,6 +458,8 @@ public final class SqliteValueBox: ValueBox {
         assert(resultCode)
         resultCode = database.execute("PRAGMA cipher_memory_security = OFF")
         assert(resultCode)
+        
+        self.pageSize = Int(self.runPragma(database, "page_size"))
 
         // limit .wal file size to 1000 pages, so db size does not grow too much
         resultCode = database.execute("PRAGMA journal_size_limit=4096000")
@@ -1548,6 +1553,32 @@ public final class SqliteValueBox: ValueBox {
         return resultStatement
     }
     
+    public func getDatabaseSize() -> Int {
+        precondition(self.queue.isCurrent())
+        
+        guard let pageSize = self.pageSize else {
+            return 0
+        }
+        
+        let preparedStatement: SqlitePreparedStatement
+        if let current = self.preparedPageCountStatement {
+            preparedStatement = current
+        } else {
+            var statement: OpaquePointer? = nil
+            let status = sqlite3_prepare_v2(database.handle, "PRAGMA page_count", -1, &statement, nil)
+            precondition(status == SQLITE_OK)
+            preparedStatement = SqlitePreparedStatement(statement: statement)
+            self.preparedPageCountStatement = preparedStatement
+        }
+        
+        preparedStatement.reset()
+        
+        let _ = preparedStatement.step(handle: database.handle, pathToRemoveOnError: self.removeDatabaseOnError ? self.databasePath : nil)
+        let value = preparedStatement.int64At(0)
+        
+        return Int(value) * pageSize
+    }
+    
     public func get(_ table: ValueBoxTable, key: ValueBoxKey) -> ReadBuffer? {
         precondition(self.queue.isCurrent())
         if let _ = self.tables[table.id] {
@@ -2254,6 +2285,11 @@ public final class SqliteValueBox: ValueBox {
             statement.destroy()
         }
         self.fullTextMatchCollectionTagsStatements.removeAll()
+        
+        if let preparedPageCountStatement = self.preparedPageCountStatement {
+            self.preparedPageCountStatement = nil
+            preparedPageCountStatement.destroy()
+        }
     }
     
     public func removeAllFromTable(_ table: ValueBoxTable) {

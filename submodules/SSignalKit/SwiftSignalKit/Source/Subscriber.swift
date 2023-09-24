@@ -1,18 +1,32 @@
 import Foundation
 
-public final class Subscriber<T, E> {
+/*
+#if DEBUG
+// Signals keep themselves in memory until terminated (dispose, putError, putCompletion)
+private final class LiveSubscribers {
+    var dict: [ObjectIdentifier: AnyObject] = [:]
+}
+private let liveSubscribers = Atomic<LiveSubscribers>(value: LiveSubscribers())
+#endif
+*/
+
+public final class Subscriber<T, E>: CustomStringConvertible {
     private var next: ((T) -> Void)!
     private var error: ((E) -> Void)!
     private var completed: (() -> Void)!
     
     private let lock = createOSUnfairLock()
     private var terminated = false
-    internal var disposable: Disposable!
+    internal var disposable: Disposable?
     
     public init(next: ((T) -> Void)! = nil, error: ((E) -> Void)! = nil, completed: (() -> Void)! = nil) {
         self.next = next
         self.error = error
         self.completed = completed
+    }
+    
+    public var description: String {
+        return "Subscriber { next: \(self.next == nil ? "nil" : "hasValue"), error: \(self.error == nil ? "nil" : "hasValue"), completed: \(self.completed == nil ? "nil" : "hasValue"), disposable: \(self.disposable == nil ? "nil" : "hasValue"), terminated: \(self.terminated) }"
     }
     
     deinit {
@@ -31,6 +45,14 @@ public final class Subscriber<T, E> {
     }
     
     internal func assignDisposable(_ disposable: Disposable) {
+        /*
+        #if DEBUG
+        liveSubscribers.with { impl in
+            //let _ = impl.dict[ObjectIdentifier(self)] = self
+        }
+        #endif
+        */
+        
         var dispose = false
         self.lock.lock()
         if self.terminated {
@@ -76,7 +98,17 @@ public final class Subscriber<T, E> {
             withExtendedLifetime(completed, {})
         }
         
-        withExtendedLifetime(disposable, {})
+        if let disposable = disposable {
+            withExtendedLifetime(disposable, {})
+        }
+        
+        /*
+        #if DEBUG
+        liveSubscribers.with { impl in
+            let _ = impl.dict.removeValue(forKey: ObjectIdentifier(self))
+        }
+        #endif
+        */
     }
     
     public func putNext(_ next: T) {
@@ -111,7 +143,6 @@ public final class Subscriber<T, E> {
             self.terminated = true
             disposeDisposable = self.disposable
             self.disposable = nil
-            
         }
         self.lock.unlock()
         
@@ -129,6 +160,14 @@ public final class Subscriber<T, E> {
         if let disposeDisposable = disposeDisposable {
             disposeDisposable.dispose()
         }
+        
+        /*
+        #if DEBUG
+        liveSubscribers.with { impl in
+            let _ = impl.dict.removeValue(forKey: ObjectIdentifier(self))
+        }
+        #endif
+        */
     }
     
     public func putCompletion() {
@@ -173,5 +212,13 @@ public final class Subscriber<T, E> {
         if let disposeDisposable = disposeDisposable {
             disposeDisposable.dispose()
         }
+        
+        /*
+        #if DEBUG
+        liveSubscribers.with { impl in
+            let _ = impl.dict.removeValue(forKey: ObjectIdentifier(self))
+        }
+        #endif
+        */
     }
 }

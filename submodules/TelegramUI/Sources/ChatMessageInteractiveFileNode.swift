@@ -1713,6 +1713,7 @@ final class ChatMessageInteractiveFileNode: ASDisplayNode {
             streamingState = .none
             
             if case .progress = state {
+            } else if case .check = state {
             } else {
                 let adjustedProgress: CGFloat = 0.027
                 state = .progress(value: CGFloat(adjustedProgress), cancelEnabled: true, appearance: .init(inset: 1.0, lineWidth: 2.0))
@@ -1939,7 +1940,9 @@ final class ChatMessageInteractiveFileNode: ASDisplayNode {
                     self?.updateIsTextSelectionActive?(value)
                 }, present: { [weak self] c, a in
                     self?.arguments?.controllerInteraction.presentGlobalOverlayController(c, a)
-                }, rootNode: rootNode, performAction: { [weak self] text, action in
+                }, rootNode: { [weak rootNode] in
+                    return rootNode
+                }, performAction: { [weak self] text, action in
                     guard let strongSelf = self, let item = strongSelf.arguments else {
                         return
                     }

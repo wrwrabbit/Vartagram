@@ -23,7 +23,7 @@ public func |> <T, U>(value: T, function: ((T) -> U)) -> U {
     return function(value)
 }
 
-private final class SubscriberDisposable<T, E> : Disposable {
+private final class SubscriberDisposable<T, E>: Disposable, CustomStringConvertible {
     private let lock = createOSUnfairLock()
     private weak var subscriber: Subscriber<T, E>?
     private var disposable: Disposable?
@@ -54,6 +54,10 @@ private final class SubscriberDisposable<T, E> : Disposable {
         
         self.subscriber?.markTerminatedWithoutDisposal()
         disposable?.dispose()
+    }
+    
+    public var description: String {
+        return "SubscriberDisposable { disposable: \(self.disposable == nil ? "nil" : "hasValue") }"
     }
 }
 

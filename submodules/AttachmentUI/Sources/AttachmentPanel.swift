@@ -94,7 +94,7 @@ private final class IconComponent: Component {
                         } else {
                             self?.image = image
                         }
-                    })
+                    }).strict()
                 } else {
                     if let tintColor = component.tintColor {
                         self.image = generateTintedImage(image: UIImage(bundleImageName: component.name), color: tintColor, backgroundColor: nil)
@@ -1044,7 +1044,7 @@ final class AttachmentPanel: ASDisplayNode, UIScrollViewDelegate {
                     let _ = strongSelf.update(layout: layout, buttons: strongSelf.buttons, isSelecting: strongSelf.isSelecting, elevateProgress: strongSelf.elevateProgress, transition: .immediate)
                 }
             }
-        })
+        }).strict()
     }
     
     deinit {

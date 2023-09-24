@@ -294,6 +294,7 @@ public enum PresentationResourceKey: Int32 {
     case uploadToneIcon
     
     case storyViewListLikeIcon
+    case navigationPostStoryIcon
     
     case enterSecretPasscodeIcon
     case manageSecretPasscodesIcon

@@ -3,6 +3,7 @@ import AppLockState
 import UIKit
 import TelegramUI
 import BuildConfig
+import ShareExtensionContext
 
 @objc(ShareRootController)
 class ShareRootController: UIViewController {
@@ -67,6 +68,11 @@ class ShareRootController: UIViewController {
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        self.impl?.viewWillDisappear()
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
         self.impl?.viewWillDisappear()
     }
     
