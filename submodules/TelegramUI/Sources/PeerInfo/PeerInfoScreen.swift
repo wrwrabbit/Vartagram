@@ -9841,7 +9841,12 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         
         if self.isSettings {
             if !self.state.isEditing {
-                let versionText = self.presentationData.strings.Settings_Version(Bundle.main.appVersion, Bundle.main.appBuildNumber, Bundle.main.originalVersion).string
+                #if TEST_BUILD
+                let appVersion = Bundle.main.testBuildShowVersion ?? Bundle.main.appVersion
+                #else
+                let appVersion = Bundle.main.appVersion
+                #endif
+                let versionText = self.presentationData.strings.Settings_Version(appVersion, Bundle.main.appBuildNumber, Bundle.main.originalVersion).string
                 self.versionLabelNode.attributedText = NSAttributedString(string: versionText, font: Font.regular(self.presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: presentationData.theme.list.freeTextColor, paragraphAlignment: .center)
                 #if TEST_BUILD
                 let mutable = NSMutableAttributedString(attributedString: self.versionLabelNode.attributedText!)

@@ -51,6 +51,7 @@ load(
     "telegram_enable_watch",
     "telegram_appstore_id",
     "telegram_is_non_dev_account",
+    "telegram_test_build_show_version",
 )
 
 load("@build_bazel_rules_apple//apple:resources.bzl",
@@ -623,6 +624,12 @@ plist_fragment(
     <key>TelegramOriginalBuild</key>
     <string>{originalBuild}</string>
     """
+    + ("" if telegram_test_build_show_version == "" else """
+    <key>TestBuildShowVersion</key>
+    <string>{telegram_test_build_show_version}</string>
+    """.format(
+        telegram_test_build_show_version = telegram_test_build_show_version,
+    ))
 )
 
 plist_fragment(

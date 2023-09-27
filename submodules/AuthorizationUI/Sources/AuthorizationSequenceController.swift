@@ -1155,7 +1155,7 @@ public final class AuthorizationSequenceController: NavigationController, MFMail
                     if let _ = self.viewControllers.last as? AuthorizationSequenceSplashController {
                     } else {
                         var controllers: [ViewController] = []
-                        if self.otherAccountPhoneNumbers.1.isEmpty {
+                        if self.otherAccountPhoneNumbers.1.isEmpty && AuthorizationSequencePhoneEntryController.savedLoginData == nil {
                             controllers.append(self.splashController())
                         } else {
                             controllers.append(self.phoneEntryController(countryCode: AuthorizationSequenceController.defaultCountryCode(), number: "", splashController: nil))

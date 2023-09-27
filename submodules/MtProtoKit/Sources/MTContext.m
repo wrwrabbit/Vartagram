@@ -350,6 +350,9 @@ static void copyKeychainKey(NSString * _Nonnull group, NSString * _Nonnull key, 
     
     id<MTDisposable> cleanupSessionInfoDisposables = _cleanupSessionInfoDisposables;
     
+    id<MTDisposable> backupAddressListDisposable = _backupAddressListDisposable;
+    _backupAddressListDisposable = nil;
+    
     [[MTContext contextQueue] dispatchOnQueue:^
     {
         for (NSNumber *nDatacenterId in discoverDatacenterAddressActions)
@@ -383,6 +386,8 @@ static void copyKeychainKey(NSString * _Nonnull group, NSString * _Nonnull key, 
         }
         
         [cleanupSessionInfoDisposables dispose];
+        
+        [backupAddressListDisposable dispose];
     }];
 }
 

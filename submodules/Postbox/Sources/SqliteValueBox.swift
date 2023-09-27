@@ -206,6 +206,9 @@ public final class SqliteValueBox: ValueBox {
     
     private let queue: Queue
     
+    private let checkFileSizePipe = ValuePipe<Void>()
+    private var checkFileSizeTimer: SwiftSignalKit.Timer?
+    
     public init?(basePath: String, queue: Queue, isTemporary: Bool, isReadOnly: Bool, useCaches: Bool, removeDatabaseOnError: Bool, encryptionParameters: ValueBoxEncryptionParameters?, upgradeProgress: (Float) -> Void, inMemory: Bool = false) {
         self.basePath = basePath
         self.isTemporary = isTemporary
@@ -245,7 +248,7 @@ public final class SqliteValueBox: ValueBox {
 
         postboxLog("Instance \(self) opening sqlite at \(path)")
         
-        #if DEBUG
+        #if TEST_BUILD//DEBUG
         let exists = FileManager.default.fileExists(atPath: path)
         postboxLog("Opening \(path), exists: \(exists)")
         if exists {
@@ -537,6 +540,8 @@ public final class SqliteValueBox: ValueBox {
         precondition(self.queue.isCurrent())
         let resultCode = self.database.execute("COMMIT")
         assert(resultCode)
+        
+        self.checkFileSize()
     }
     
     public func checkpoint() {
@@ -2348,6 +2353,8 @@ public final class SqliteValueBox: ValueBox {
         precondition(resultCode)
         resultCode = self.database.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         precondition(resultCode)
+        
+        self.checkFileSize()
     }
     
     public func freePagesFraction() -> Double {
@@ -2360,31 +2367,49 @@ public final class SqliteValueBox: ValueBox {
         }
     }
     
+    private func checkFileSize() {
+        assert(self.queue.isCurrent())
+        if self.checkFileSizeTimer == nil {
+            let timer = Timer(timeout: 0.1, repeat: false, completion: { [weak self] in
+                if let strongSelf = self {
+                    strongSelf.checkFileSizeTimer = nil
+                    strongSelf.checkFileSizePipe.putNext(Void())
+                }
+            }, queue: self.queue)
+            
+            self.checkFileSizeTimer = timer
+            timer.start()
+        }
+    }
+    
     public func dbFilesSize() -> Signal<Int64, NoError> {
         let basePath = self.basePath
         let queue = self.queue
+        let checkFileSizePipe = self.checkFileSizePipe
         
-        return combineLatest(dabaseFileNames.map { fileName in
-            let fullpath = basePath + "/\(fileName)"
-            
-            return Signal { subscriber in
-                queue.async {
-                    subscriber.putNext(fileSize(fullpath, useTotalFileAllocatedSize: true) ?? 0)
-                    subscriber.putCompletion()
-                }
-                return EmptyDisposable
+        let currentDbFilesSize = {
+            assert(queue.isCurrent())
+            var size: Int64 = 0
+            for fileName in dabaseFileNames {
+                size += fileSize(basePath + "/\(fileName)", useTotalFileAllocatedSize: true) ?? 0
             }
-            |> then (
-                fileSizeChangeNotifier(path: fullpath, queue: queue)
-                |> map { _ in
-                    return fileSize(fullpath, useTotalFileAllocatedSize: true) ?? 0
-                }
-            )
-            |> distinctUntilChanged
-        })
-        |> map { sizes in
-            return sizes.reduce(0, +)
+            return size
         }
+        
+        return Signal { subscriber in
+            queue.async {
+                subscriber.putNext(currentDbFilesSize())
+                subscriber.putCompletion()
+            }
+            return EmptyDisposable
+        }
+        |> then (
+            checkFileSizePipe.signal()
+            |> map { _ in
+                return currentDbFilesSize()
+            }
+        )
+        |> distinctUntilChanged
     }
     
     #if TEST_BUILD

@@ -310,6 +310,9 @@ public final class SharedWakeupManager {
         var endTaskAfterTransactionsComplete: UIBackgroundTaskIdentifier?
         
         if self.inForeground || self.hasActiveAudioSession || hasActiveCalls {
+#if TEST_BUILD
+            Logger.shared.log("Wakeup", "inForeground: \(self.inForeground), hasActiveAudioSession: \(self.hasActiveAudioSession), hasActiveCalls: \(hasActiveCalls)")
+#endif
             if let (completion, timer) = self.currentExternalCompletion {
                 self.currentExternalCompletion = nil
                 completion()
@@ -343,6 +346,9 @@ public final class SharedWakeupManager {
             }
             
             let canBeginBackgroundExtensionTasks = self.allowBackgroundTimeExtensionDeadline.flatMap({ CFAbsoluteTimeGetCurrent() < $0 }) ?? false
+#if TEST_BUILD
+            Logger.shared.log("Wakeup", "hasTasksForBackgroundExtension: \(hasTasksForBackgroundExtension), canBeginBackgroundExtensionTasks: \(canBeginBackgroundExtensionTasks), currentTask == nil: \(self.currentTask == nil)")
+#endif
             if hasTasksForBackgroundExtension {
                 if canBeginBackgroundExtensionTasks {
                     var endTaskId: UIBackgroundTaskIdentifier?
@@ -353,6 +359,9 @@ public final class SharedWakeupManager {
                             self.currentTask = nil
                             timer.invalidate()
                             endTaskId = taskId
+#if TEST_BUILD
+                            Logger.shared.log("Wakeup", "Ending current task")
+#endif
                         }
                     }
                     
@@ -375,6 +384,9 @@ public final class SharedWakeupManager {
                             strongSelf.isInBackgroundExtension = false
                             strongSelf.checkTasks()
                         }
+#if TEST_BUILD
+                        Logger.shared.log("Wakeup", "Starting background-wakeup")
+#endif
                         if let taskId = self.beginBackgroundTask("background-wakeup", {
                             handleExpiration()
                         }) {
@@ -418,6 +430,9 @@ public final class SharedWakeupManager {
     private func updateAccounts(hasTasks: Bool, endTaskAfterTransactionsComplete: UIBackgroundTaskIdentifier?) {
         if self.inForeground || self.hasActiveAudioSession || self.isInBackgroundExtension || (hasTasks && self.currentExternalCompletion != nil) || self.activeExplicitExtensionTimer != nil || !self.activeBGTaskSchedulerTasks.isEmpty {
             Logger.shared.log("Wakeup", "enableBeginTransactions: true (active)")
+#if TEST_BUILD
+            Logger.shared.log("Wakeup", "inForeground: \(self.inForeground), hasActiveAudioSession: \(self.hasActiveAudioSession), isInBackgroundExtension: \(self.isInBackgroundExtension), hasTasks: \(hasTasks), currentExternalCompletion != nil: \(self.currentExternalCompletion != nil), activeExplicitExtensionTimer != nil: \(self.activeExplicitExtensionTimer != nil), !activeBGTaskSchedulerTasks.isEmpty: \(!self.activeBGTaskSchedulerTasks.isEmpty)")
+#endif
             
             for (account, primary, tasks) in self.accountsAndTasks {
                 account.postbox.setCanBeginTransactions(true)

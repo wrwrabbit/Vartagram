@@ -54,9 +54,18 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
     public var loginWithNumber: ((String, Bool) -> Void)?
     var accountUpdated: ((UnauthorizedAccount) -> Void)?
     
+    struct SavedLoginData {
+        let authAccountId: AccountRecordId
+        let number: String
+        let syncContacts: Bool
+    }
+    
+    static var savedLoginData: SavedLoginData?
+    
     weak var confirmationController: PhoneConfirmationController?
     
     private let termsDisposable = MetaDisposable()
+    private var loadServerCountryCodesDisposable: Disposable?
     
     private let hapticFeedback = HapticFeedback()
     
@@ -99,6 +108,7 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
     
     deinit {
         self.termsDisposable.dispose()
+        self.loadServerCountryCodesDisposable?.dispose()
     }
     
     @objc private func cancelPressed() {
@@ -179,7 +189,7 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
         }
         
         if let account = self.account {
-            loadServerCountryCodes(accountManager: sharedContext.accountManager, engine: TelegramEngineUnauthorized(account: account), completion: { [weak self] in
+            self.loadServerCountryCodesDisposable = loadServerCountryCodes(accountManager: sharedContext.accountManager, engine: TelegramEngineUnauthorized(account: account), completion: { [weak self] in
                 if let strongSelf = self {
                     strongSelf.controllerNode.updateCountryCode()
                 }
@@ -215,6 +225,12 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
         
         if !self.animatingIn {
             self.controllerNode.activateInput()
+        }
+        
+        if let savedLoginData = Self.savedLoginData, savedLoginData.authAccountId == self.account?.id {
+            Self.savedLoginData = nil
+            self.controllerNode.setup(number: savedLoginData.number, syncContacts: savedLoginData.syncContacts)
+            self.loginWithNumber?(savedLoginData.number, savedLoginData.syncContacts)
         }
     }
     
@@ -276,24 +292,47 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
                 actions.append(TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {}))
                 self.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: nil, text: self.presentationData.strings.Login_PhoneNumberAlreadyAuthorized, actions: actions), in: .window(.root))
             } else {
+                let proceedLogin = { [weak self] in
+                    guard let strongSelf = self else {
+                        return
+                    }
+                    
+                    // self.account == nil when changing phone number for account
+                    if strongSelf.account != nil, !strongSelf.isTestingEnvironment, logInNumber.hasPrefix("99966") {
+                        let number = strongSelf.controllerNode.currentNumber
+                        let syncContacts = strongSelf.controllerNode.syncContacts
+                        
+                        strongSelf.inProgress = true
+                        strongSelf.confirmationController?.dismiss()
+                        strongSelf.confirmationController = nil
+                        
+                        let _ = (strongSelf.sharedContext.accountManager.transaction { transaction -> AccountRecordId? in
+                            return transaction.createAuth([.environment(AccountEnvironmentAttribute(environment: .test))])?.id
+                        }
+                        |> deliverOnMainQueue).start(next: { authAccountId in
+                            if let authAccountId {
+                                Self.savedLoginData = SavedLoginData(authAccountId: authAccountId, number: number, syncContacts: syncContacts)
+                            }
+                        })
+                    } else {
+                        strongSelf.loginWithNumber?(strongSelf.controllerNode.currentNumber, strongSelf.controllerNode.syncContacts)
+                    }
+                }
+                
                 if let validLayout = self.validLayout, validLayout.size.width > 320.0 {
                     let (code, formattedNumber) = self.controllerNode.formattedCodeAndNumber
 
                     let confirmationController = PhoneConfirmationController(theme: self.presentationData.theme, strings: self.presentationData.strings, code: code, number: formattedNumber, sourceController: self)
-                    confirmationController.proceed = { [weak self] in
-                        if let strongSelf = self {
-                            strongSelf.loginWithNumber?(strongSelf.controllerNode.currentNumber, strongSelf.controllerNode.syncContacts)
-                        }
+                    confirmationController.proceed = {
+                        proceedLogin()
                     }
                     (self.navigationController as? NavigationController)?.presentOverlay(controller: confirmationController, inGlobal: true, blockInteraction: true)
                     self.confirmationController = confirmationController
                 } else {
                     var actions: [TextAlertAction] = []
                     actions.append(TextAlertAction(type: .genericAction, title: self.presentationData.strings.Login_Edit, action: {}))
-                    actions.append(TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Login_Yes, action: { [weak self] in
-                        if let strongSelf = self {
-                            strongSelf.loginWithNumber?(strongSelf.controllerNode.currentNumber, strongSelf.controllerNode.syncContacts)
-                        }
+                    actions.append(TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Login_Yes, action: {
+                        proceedLogin()
                     }))
                     self.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: logInNumber, text: self.presentationData.strings.Login_PhoneNumberConfirmation, actions: actions), in: .window(.root))
                 }

@@ -14,6 +14,12 @@ public extension Bundle {
         return (infoDictionary?["TelegramOriginalVersion"] as? String) ?? "unknown"
     }
     
+    #if TEST_BUILD
+    var testBuildShowVersion: String? {
+        return infoDictionary?["TestBuildShowVersion"] as? String
+    }
+    #endif
+    
     #if targetEnvironment(simulator)
     static let isTestFlightOrDevelopment: Bool = true
     #else

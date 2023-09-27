@@ -339,6 +339,10 @@ public class ItemListDisclosureItemNode: ListViewItemNode, ItemListItemNode {
             if item.iconPeer != nil {
                 maxTitleWidth -= 12.0
             }
+            if case .text = item.labelStyle, !item.label.isEmpty {
+                // leave some space for label
+                maxTitleWidth -= 40.0
+            }
             
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: maxTitleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
@@ -349,6 +353,10 @@ public class ItemListDisclosureItemNode: ListViewItemNode, ItemListItemNode {
             var labelConstrain: CGFloat = params.width - params.rightInset - leftInset - 40.0 - titleLayout.size.width - 10.0
             if item.iconPeer != nil {
                 labelConstrain -= 6.0
+            }
+            if case .text = item.labelStyle, !item.label.isEmpty {
+                // should be enough for at least one letter
+                labelConstrain = max(27.0, labelConstrain)
             }
             
             switch item.labelStyle {

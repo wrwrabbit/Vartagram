@@ -7,7 +7,7 @@ import MtProtoKit
 class UpdateMessageService: NSObject, MTMessageService {
     var peerId: PeerId!
     let pipe: ValuePipe<[UpdateGroup]> = ValuePipe()
-    var mtProto: MTProto?
+    weak var mtProto: MTProto?
     
     override init() {
         super.init()
