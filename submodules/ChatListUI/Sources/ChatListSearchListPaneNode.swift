@@ -1077,7 +1077,6 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
     }
     
     private var hiddenMediaDisposable: Disposable?
-  
     private var searchQueryDisposable: Disposable?
     private var searchOptionsDisposable: Disposable?
     
@@ -2211,7 +2210,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         }, peerSelected: { [weak self] peer, chatPeer, threadId, _ in
             interaction.dismissInput()
             interaction.openPeer(peer, chatPeer, threadId, false)
-            let _ = context.engine.peers.addRecentlySearchedPeer(peerId: peer.id).start()
+            let _ = context.engine.peers.addRecentlySearchedPeer(peerId: peer.id).startStandalone()
             self?.listNode.clearHighlightAnimated(true)
         }, disabledPeerSelected: { _, _ in
         }, togglePeerSelected: { _, _ in
@@ -2262,7 +2261,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 return
             }
             let _ = (self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
-            |> deliverOnMainQueue).start(next: { [weak self] peer in
+            |> deliverOnMainQueue).startStandalone(next: { [weak self] peer in
                 guard let self, let peer else {
                     return
                 }
@@ -2385,14 +2384,14 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         let previousExpandGlobalSearch = Atomic<Bool>(value: false)
         
         self.searchQueryDisposable = (searchQuery
-        |> deliverOnMainQueue).start(next: { [weak self, weak listInteraction, weak chatListInteraction] query in
+        |> deliverOnMainQueue).startStrict(next: { [weak self, weak listInteraction, weak chatListInteraction] query in
             self?.searchQueryValue = query
             listInteraction?.searchTextHighightState = query
             chatListInteraction?.searchTextHighightState = query
         })
         
         self.searchOptionsDisposable = (searchOptions
-        |> deliverOnMainQueue).start(next: { [weak self] options in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] options in
             self?.searchOptionsValue = options
         })
 
@@ -2444,7 +2443,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 return (mappedItems, isSearching)
             }
         }
-        |> deliverOnMainQueue).start(next: { [weak self] foundItems in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] foundItems in
             if let strongSelf = self {
                 let previousSelectedMessageIds = previousSelectedMessages.swap(strongSelf.selectedMessages)
                 let previousExpandGlobalSearch = previousExpandGlobalSearch.swap(strongSelf.searchStateValue.expandGlobalSearch)
@@ -2535,7 +2534,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                             return
                         }
                         
-                        let _ = clearRecentDownloadList(postbox: strongSelf.context.account.postbox).start()
+                        let _ = clearRecentDownloadList(postbox: strongSelf.context.account.postbox).startStandalone()
                     }))
                     
                     actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
@@ -2552,7 +2551,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     
                     let _ = ((strongSelf.context.fetchManager as! FetchManagerImpl).entriesSummary
                     |> take(1)
-                    |> deliverOnMainQueue).start(next: { entries in
+                    |> deliverOnMainQueue).startStandalone(next: { entries in
                         guard let strongSelf = self, !entries.isEmpty else {
                             return
                         }
@@ -2659,14 +2658,14 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         }
         
         if case .chats = key, !peersFilter.contains(.excludeRecent) {
-            self.updatedRecentPeersDisposable.set(context.engine.peers.managedUpdatedRecentPeers().start())
+            self.updatedRecentPeersDisposable.set(context.engine.peers.managedUpdatedRecentPeers().startStrict())
         }
         
         self.recentDisposable.set((combineLatest(queue: .mainQueue(),
             presentationDataPromise.get(),
             recentItems
         )
-        |> deliverOnMainQueue).start(next: { [weak self] presentationData, entries in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] presentationData, entries in
             if let strongSelf = self {
                 let previousEntries = previousRecentItems.swap(entries)
                 
@@ -2674,7 +2673,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 let transition = chatListSearchContainerPreparedRecentTransition(from: previousEntries ?? [], to: entries, context: context, presentationData: presentationData, filter: peersFilter, peerSelected: { peer, threadId in
                     interaction.openPeer(peer, nil, threadId, true)
                     if threadId == nil {
-                        let _ = context.engine.peers.addRecentlySearchedPeer(peerId: peer.id).start()
+                        let _ = context.engine.peers.addRecentlySearchedPeer(peerId: peer.id).startStandalone()
                     }
                     self?.recentListNode.clearHighlightAnimated(true)
                 }, disabledPeerSelected: { peer, threadId in
@@ -2688,7 +2687,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 }, clearRecentlySearchedPeers: {
                     interaction.clearRecentSearch()
                 }, deletePeer: { peerId in
-                    let _ = context.engine.peers.removeRecentlySearchedPeer(peerId: peerId).start()
+                    let _ = context.engine.peers.removeRecentlySearchedPeer(peerId: peerId).startStandalone()
                 }, animationCache: strongSelf.animationCache, animationRenderer: strongSelf.animationRenderer, openStories: { peerId, avatarNode in
                     interaction.openStories?(peerId, avatarNode)
                 })
@@ -2697,7 +2696,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         }))
         
         self.presentationDataDisposable = ((updatedPresentationData?.signal ?? context.sharedContext.presentationData)
-        |> deliverOnMainQueue).start(next: { [weak self] presentationData in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] presentationData in
             if let strongSelf = self {
                 strongSelf.presentationData = presentationData
                 strongSelf.presentationDataPromise.set(.single(ChatListPresentationData(theme: presentationData.theme, fontSize: presentationData.listsFontSize, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat, nameSortOrder: presentationData.nameSortOrder, nameDisplayOrder: presentationData.nameDisplayOrder, disableAnimations: true)))
@@ -2742,6 +2741,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         }
         
         if [.file, .music, .voiceOrInstantVideo].contains(tagMask) || self.key == .downloads {
+            let key = self.key
             self.mediaStatusDisposable = (context.sharedContext.mediaManager.globalMediaPlayerState
             |> mapToSignal { playlistStateAndType -> Signal<(Account, SharedMediaPlayerItemPlaybackState, MediaManagerPlayerType)?, NoError> in
                 if let (account, state, type) = playlistStateAndType {
@@ -2754,7 +2754,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                                     return .single(nil) |> delay(0.2, queue: .mainQueue())
                                 }
                             case .music:
-                                if tagMask != .music && self.key != .downloads {
+                                if tagMask != .music && key != .downloads {
                                     return .single(nil) |> delay(0.2, queue: .mainQueue())
                                 }
                             case .file:
@@ -2773,31 +2773,31 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     return .single(nil)
                 }
             }
-            |> deliverOnMainQueue).start(next: { [weak self] playlistStateAndType in
-                guard let strongSelf = self else {
+            |> deliverOnMainQueue).startStrict(next: { [weak self] playlistStateAndType in
+                guard let self else {
                     return
                 }
-                if !arePlaylistItemsEqual(strongSelf.playlistStateAndType?.0, playlistStateAndType?.1.item) ||
-                    !arePlaylistItemsEqual(strongSelf.playlistStateAndType?.1, playlistStateAndType?.1.previousItem) ||
-                    !arePlaylistItemsEqual(strongSelf.playlistStateAndType?.2, playlistStateAndType?.1.nextItem) ||
-                    strongSelf.playlistStateAndType?.3 != playlistStateAndType?.1.order || strongSelf.playlistStateAndType?.4 != playlistStateAndType?.2 {
+                if !arePlaylistItemsEqual(self.playlistStateAndType?.0, playlistStateAndType?.1.item) ||
+                    !arePlaylistItemsEqual(self.playlistStateAndType?.1, playlistStateAndType?.1.previousItem) ||
+                    !arePlaylistItemsEqual(self.playlistStateAndType?.2, playlistStateAndType?.1.nextItem) ||
+                    self.playlistStateAndType?.3 != playlistStateAndType?.1.order || self.playlistStateAndType?.4 != playlistStateAndType?.2 {
                     
                     if let playlistStateAndType = playlistStateAndType {
-                        strongSelf.playlistStateAndType = (playlistStateAndType.1.item, playlistStateAndType.1.previousItem, playlistStateAndType.1.nextItem, playlistStateAndType.1.order, playlistStateAndType.2, playlistStateAndType.0)
+                        self.playlistStateAndType = (playlistStateAndType.1.item, playlistStateAndType.1.previousItem, playlistStateAndType.1.nextItem, playlistStateAndType.1.order, playlistStateAndType.2, playlistStateAndType.0)
                     } else {
-                        strongSelf.playlistStateAndType = nil
+                        self.playlistStateAndType = nil
                     }
                     
-                    if let (size, sideInset, bottomInset, visibleHeight, presentationData) = strongSelf.currentParams {
-                        strongSelf.update(size: size, sideInset: sideInset, bottomInset: bottomInset, visibleHeight: visibleHeight, presentationData: presentationData, synchronous: true, transition: .animated(duration: 0.4, curve: .spring))
+                    if let (size, sideInset, bottomInset, visibleHeight, presentationData) = self.currentParams {
+                        self.update(size: size, sideInset: sideInset, bottomInset: bottomInset, visibleHeight: visibleHeight, presentationData: presentationData, synchronous: true, transition: .animated(duration: 0.4, curve: .spring))
                     }
                 }
-                strongSelf.playlistLocation = playlistStateAndType?.1.playlistLocation
-            }).strict()
+                self.playlistLocation = playlistStateAndType?.1.playlistLocation
+            })
         }
         
         self.deletedMessagesDisposable = (context.account.stateManager.deletedMessages
-        |> deliverOnMainQueue).start(next: { [weak self] messageIds in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] messageIds in
             if let strongSelf = self {
                 strongSelf.updateState { state in
                     var state = state
@@ -2872,7 +2872,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     return
                 }
                 strongSelf.scheduledMarkRecentDownloadsAsSeen = false
-                let _ = markAllRecentDownloadItemsAsSeen(postbox: strongSelf.context.account.postbox).start()
+                let _ = markAllRecentDownloadItemsAsSeen(postbox: strongSelf.context.account.postbox).startStandalone()
             })
         }
     }
@@ -2969,7 +2969,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                         })
                         return rate
                     }
-                    |> deliverOnMainQueue).start(next: { baseRate in
+                    |> deliverOnMainQueue).startStandalone(next: { baseRate in
                         guard let strongSelf = self, let (_, _, _, _, type, _) = strongSelf.playlistStateAndType else {
                             return
                         }
@@ -3097,7 +3097,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                                         progressDisposable.dispose()
                                     }
                                 }
-                                |> deliverOnMainQueue).start(next: { index in
+                                |> deliverOnMainQueue).startStrict(next: { index in
                                     guard let strongSelf = self else {
                                         return
                                     }

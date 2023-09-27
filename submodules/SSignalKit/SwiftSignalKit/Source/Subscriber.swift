@@ -1,19 +1,51 @@
 import Foundation
 
 /*
-#if DEBUG
-// Signals keep themselves in memory until terminated (dispose, putError, putCompletion)
-private final class LiveSubscribers {
-    var dict: [ObjectIdentifier: AnyObject] = [:]
+final class WrappedSubscriberDisposable: Disposable {
+    private var lock = pthread_mutex_t()
+    private var disposable: Disposable?
+    
+    init(_ disposable: Disposable) {
+        self.disposable = disposable
+        
+        pthread_mutex_init(&self.lock, nil)
+    }
+    
+    deinit {
+        pthread_mutex_destroy(&self.lock)
+    }
+    
+    func dispose() {
+        var disposableValue: Disposable?
+        pthread_mutex_lock(&self.lock)
+        disposableValue = self.disposable
+        self.disposable = nil
+        pthread_mutex_unlock(&self.lock)
+        
+        disposableValue?.dispose()
+    }
+    
+    func markTerminated() {
+        var disposableValue: Disposable?
+        pthread_mutex_lock(&self.lock)
+        disposableValue = self.disposable
+        self.disposable = nil
+        pthread_mutex_unlock(&self.lock)
+        
+        if let disposableValue = disposableValue {
+            withExtendedLifetime(disposableValue, {
+            })
+        }
+    }
 }
-private let liveSubscribers = Atomic<LiveSubscribers>(value: LiveSubscribers())
-#endif
 */
 
 public final class Subscriber<T, E>: CustomStringConvertible {
     private var next: ((T) -> Void)!
     private var error: ((E) -> Void)!
     private var completed: (() -> Void)!
+    
+    private var keepAliveObjects: [AnyObject]?
     
     private let lock = createOSUnfairLock()
     private var terminated = false
@@ -31,28 +63,29 @@ public final class Subscriber<T, E>: CustomStringConvertible {
     
     deinit {
         var freeDisposable: Disposable?
+        var keepAliveObjects: [AnyObject]?
+        
         self.lock.lock()
         if let disposable = self.disposable {
             freeDisposable = disposable
             self.disposable = nil
         }
+        keepAliveObjects = self.keepAliveObjects
+        self.keepAliveObjects = nil
         self.lock.unlock()
         if let freeDisposableValue = freeDisposable {
             withExtendedLifetime(freeDisposableValue, {
             })
             freeDisposable = nil
         }
+        
+        if let keepAliveObjects = keepAliveObjects {
+            withExtendedLifetime(keepAliveObjects, {
+            })
+        }
     }
     
     internal func assignDisposable(_ disposable: Disposable) {
-        /*
-        #if DEBUG
-        liveSubscribers.with { impl in
-            //let _ = impl.dict[ObjectIdentifier(self)] = self
-        }
-        #endif
-        */
-        
         var dispose = false
         self.lock.lock()
         if self.terminated {
@@ -68,7 +101,8 @@ public final class Subscriber<T, E>: CustomStringConvertible {
     }
     
     internal func markTerminatedWithoutDisposal() {
-        var disposable: Disposable?
+        var freeDisposable: Disposable?
+        var keepAliveObjects: [AnyObject]?
         
         var next: ((T) -> Void)?
         var error: ((E) -> Void)?
@@ -83,9 +117,13 @@ public final class Subscriber<T, E>: CustomStringConvertible {
             self.error = nil
             completed = self.completed
             self.completed = nil
-            disposable = self.disposable
+            freeDisposable = self.disposable
             self.disposable = nil
         }
+        
+        keepAliveObjects = self.keepAliveObjects
+        self.keepAliveObjects = nil
+        
         self.lock.unlock()
         
         if let next = next {
@@ -98,17 +136,16 @@ public final class Subscriber<T, E>: CustomStringConvertible {
             withExtendedLifetime(completed, {})
         }
         
-        if let disposable = disposable {
-            withExtendedLifetime(disposable, {})
+        if let freeDisposableValue = freeDisposable {
+            withExtendedLifetime(freeDisposableValue, {
+            })
+            freeDisposable = nil
         }
         
-        /*
-        #if DEBUG
-        liveSubscribers.with { impl in
-            let _ = impl.dict.removeValue(forKey: ObjectIdentifier(self))
+        if let keepAliveObjects = keepAliveObjects {
+            withExtendedLifetime(keepAliveObjects, {
+            })
         }
-        #endif
-        */
     }
     
     public func putNext(_ next: T) {
@@ -128,6 +165,7 @@ public final class Subscriber<T, E>: CustomStringConvertible {
         var action: ((E) -> Void)! = nil
         
         var disposeDisposable: Disposable?
+        var keepAliveObjects: [AnyObject]?
         
         var next: ((T) -> Void)?
         var completed: (() -> Void)?
@@ -144,6 +182,8 @@ public final class Subscriber<T, E>: CustomStringConvertible {
             disposeDisposable = self.disposable
             self.disposable = nil
         }
+        keepAliveObjects = self.keepAliveObjects
+        self.keepAliveObjects = nil
         self.lock.unlock()
         
         if let next = next {
@@ -161,19 +201,17 @@ public final class Subscriber<T, E>: CustomStringConvertible {
             disposeDisposable.dispose()
         }
         
-        /*
-        #if DEBUG
-        liveSubscribers.with { impl in
-            let _ = impl.dict.removeValue(forKey: ObjectIdentifier(self))
+        if let keepAliveObjects = keepAliveObjects {
+            withExtendedLifetime(keepAliveObjects, {
+            })
         }
-        #endif
-        */
     }
     
     public func putCompletion() {
         var action: (() -> Void)! = nil
         
         var disposeDisposable: Disposable? = nil
+        var keepAliveObjects: [AnyObject]?
         
         var next: ((T) -> Void)?
         var error: ((E) -> Void)?
@@ -193,6 +231,8 @@ public final class Subscriber<T, E>: CustomStringConvertible {
             disposeDisposable = self.disposable
             self.disposable = nil
         }
+        keepAliveObjects = self.keepAliveObjects
+        self.keepAliveObjects = nil
         self.lock.unlock()
         
         if let next = next {
@@ -213,12 +253,20 @@ public final class Subscriber<T, E>: CustomStringConvertible {
             disposeDisposable.dispose()
         }
         
-        /*
-        #if DEBUG
-        liveSubscribers.with { impl in
-            let _ = impl.dict.removeValue(forKey: ObjectIdentifier(self))
+        if let keepAliveObjects = keepAliveObjects {
+            withExtendedLifetime(keepAliveObjects, {
+            })
         }
-        #endif
-        */
+    }
+    
+    public func keepAlive(_ object: AnyObject) {
+        self.lock.lock()
+        if !self.terminated {
+            if self.keepAliveObjects == nil {
+                self.keepAliveObjects = []
+            }
+            self.keepAliveObjects?.append(object)
+        }
+        self.lock.unlock()
     }
 }

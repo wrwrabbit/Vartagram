@@ -107,7 +107,7 @@ public final class NotificationViewControllerImpl {
         }
         
         let semaphore = DispatchSemaphore(value: 0)
-        let _ = combineLatest(currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: .light), loggingSettingsSignal).start(next: { value, ls in
+        let _ = combineLatest(currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: .light), loggingSettingsSignal).startStandalone(next: { value, ls in
             initialPresentationDataAndSettings = value
             loggingSettings = ls
             semaphore.signal()
@@ -252,7 +252,7 @@ public final class NotificationViewControllerImpl {
                         return (account, imageReference)
                 }
             }
-            |> deliverOnMainQueue).start(next: { [weak self] accountAndImage in
+            |> deliverOnMainQueue).startStrict(next: { [weak self] accountAndImage in
                 guard let strongSelf = self else {
                     return
                 }
@@ -260,7 +260,7 @@ public final class NotificationViewControllerImpl {
                     strongSelf.imageNode.setSignal(chatMessagePhoto(postbox: accountAndImage.0.postbox, userLocation: .other, photoReference: imageReference))
                     
                     accountAndImage.0.network.shouldExplicitelyKeepWorkerConnections.set(.single(true))
-                    strongSelf.fetchedDisposable.set(standaloneChatMessagePhotoInteractiveFetched(account: accountAndImage.0, userLocation: .other, photoReference: imageReference).start())
+                    strongSelf.fetchedDisposable.set(standaloneChatMessagePhotoInteractiveFetched(account: accountAndImage.0, userLocation: .other, photoReference: imageReference).startStrict())
                 }
             }))
         } else if let file = media as? TelegramMediaFile, let dimensions = file.dimensions {
@@ -303,7 +303,7 @@ public final class NotificationViewControllerImpl {
                     return (account, fileReference)
                 }
             }
-            |> deliverOnMainQueue).start(next: { [weak self, weak view] accountAndImage in
+            |> deliverOnMainQueue).startStrict(next: { [weak self, weak view] accountAndImage in
                 guard let strongSelf = self else {
                     return
                 }
@@ -338,7 +338,7 @@ public final class NotificationViewControllerImpl {
                         animatedStickerNode.visibility = true
                         
                         accountAndImage.0.network.shouldExplicitelyKeepWorkerConnections.set(.single(true))
-                        strongSelf.fetchedDisposable.set(freeMediaFileInteractiveFetched(account: accountAndImage.0, userLocation: .other, fileReference: fileReference).start())
+                        strongSelf.fetchedDisposable.set(freeMediaFileInteractiveFetched(account: accountAndImage.0, userLocation: .other, fileReference: fileReference).startStrict())
                     } else if file.isSticker {
                         if let animatedStickerNode = strongSelf.animatedStickerNode {
                             animatedStickerNode.removeFromSupernode()
@@ -349,7 +349,7 @@ public final class NotificationViewControllerImpl {
                         strongSelf.imageNode.setSignal(chatMessageSticker(account: accountAndImage.0, userLocation: .other, file: file, small: false))
                         
                         accountAndImage.0.network.shouldExplicitelyKeepWorkerConnections.set(.single(true))
-                        strongSelf.fetchedDisposable.set(freeMediaFileInteractiveFetched(account: accountAndImage.0, userLocation: .other, fileReference: fileReference).start())
+                        strongSelf.fetchedDisposable.set(freeMediaFileInteractiveFetched(account: accountAndImage.0, userLocation: .other, fileReference: fileReference).startStrict())
                     }
                 }
             }))

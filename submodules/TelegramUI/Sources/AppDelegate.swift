@@ -231,6 +231,7 @@ extension UserDefaults {
     var nativeWindow: (UIWindow & WindowHost)?
     var mainWindow: Window1!
     private var dataImportSplash: LegacyDataImportSplash?
+    private var memoryUsageOverlayView: UILabel?
     
     private var buildConfig: BuildConfig?
     let episodeId = arc4random()
@@ -242,7 +243,7 @@ extension UserDefaults {
     let hasActiveAudioSession = Promise<Bool>(false)
     
     private let sharedContextPromise = Promise<SharedApplicationContext>()
-    private let watchCommunicationManagerPromise = Promise<WatchCommunicationManager?>()
+    //private let watchCommunicationManagerPromise = Promise<WatchCommunicationManager?>()
 
     private var accountManager: AccountManager<TelegramAccountManagerTypes>?
     private var accountManagerState: AccountManagerState?
@@ -1005,7 +1006,7 @@ extension UserDefaults {
                     return .single(nil)
                 }
             }
-            let watchTasks = self.context.get()
+            /*let watchTasks = self.context.get()
             |> mapToSignal { context -> Signal<AccountRecordId?, NoError> in
                 if let context = context, let watchManager = context.context.watchManager {
                     let accountId = context.context.account.id
@@ -1024,7 +1025,7 @@ extension UserDefaults {
                 } else {
                     return .single(nil)
                 }
-            }
+            }*/
             let wakeupManager = SharedWakeupManager(beginBackgroundTask: { name, expiration in
                 let id = application.beginBackgroundTask(withName: name, expirationHandler: expiration)
                 Logger.shared.log("App \(self.episodeId)", "Begin background task \(name): \(id)")
@@ -1036,7 +1037,7 @@ extension UserDefaults {
                 application.endBackgroundTask(id)
             }, backgroundTimeRemaining: { application.backgroundTimeRemaining }, acquireIdleExtension: {
                 return applicationBindings.pushIdleTimerExtension()
-            }, activeAccounts: sharedContext.activeAccountContexts |> map { ($0.0?.account, $0.1.map { ($0.0, $0.1.account) } + $0.inactiveAccounts.map { ($0.0, $0.1.account) }) }, liveLocationPolling: liveLocationPolling, watchTasks: watchTasks, inForeground: applicationBindings.applicationInForeground, hasActiveAudioSession: self.hasActiveAudioSession.get(), notificationManager: notificationManager, mediaManager: sharedContext.mediaManager, callManager: sharedContext.callManager, accountUserInterfaceInUse: { id in
+            }, activeAccounts: sharedContext.activeAccountContexts |> map { ($0.0?.account, $0.1.map { ($0.0, $0.1.account) } + $0.inactiveAccounts.map { ($0.0, $0.1.account) }) }, liveLocationPolling: liveLocationPolling, watchTasks: .single(nil), inForeground: applicationBindings.applicationInForeground, hasActiveAudioSession: self.hasActiveAudioSession.get(), notificationManager: notificationManager, mediaManager: sharedContext.mediaManager, callManager: sharedContext.callManager, accountUserInterfaceInUse: { id in
                 return sharedContext.accountUserInterfaceInUse(id)
             })
             let sharedApplicationContext = SharedApplicationContext(sharedContext: sharedContext, notificationManager: notificationManager, wakeupManager: wakeupManager)
@@ -1055,7 +1056,7 @@ extension UserDefaults {
             return .single(sharedApplicationContext)
         })
         
-        let watchManagerArgumentsPromise = Promise<WatchManagerArguments?>()
+        //let watchManagerArgumentsPromise = Promise<WatchManagerArguments?>()
             
         self.context.set(self.sharedContextPromise.get()
         |> deliverOnMainQueue
@@ -1094,7 +1095,7 @@ extension UserDefaults {
             |> deliverOnMainQueue
             |> map { accountAndSettings -> AuthorizedApplicationContext? in
                 return accountAndSettings.flatMap { context, callListSettings in
-                    return AuthorizedApplicationContext(sharedApplicationContext: sharedApplicationContext, mainWindow: self.mainWindow, watchManagerArguments: watchManagerArgumentsPromise.get(), context: context as! AccountContextImpl, accountManager: sharedApplicationContext.sharedContext.accountManager, showCallsTab: callListSettings.showTab, reinitializedNotificationSettings: {
+                    return AuthorizedApplicationContext(sharedApplicationContext: sharedApplicationContext, mainWindow: self.mainWindow, watchManagerArguments: .single(nil), context: context as! AccountContextImpl, accountManager: sharedApplicationContext.sharedContext.accountManager, showCallsTab: callListSettings.showTab, reinitializedNotificationSettings: {
                         let _ = (self.context.get()
                         |> take(1)
                         |> deliverOnMainQueue).start(next: { context in
@@ -1354,7 +1355,7 @@ extension UserDefaults {
             }).start()
         }))
         
-        if buildConfig.isWatchEnabled {
+        /*if buildConfig.isWatchEnabled {
             self.watchCommunicationManagerPromise.set(watchCommunicationManager(context: self.context.get() |> flatMap { WatchCommunicationManagerContext(context: $0.context) }, allowBackgroundTimeExtension: { timeout in
                 let _ = (self.sharedContextPromise.get()
                 |> take(1)).start(next: { sharedContext in
@@ -1370,7 +1371,7 @@ extension UserDefaults {
             } else {
                 watchManagerArgumentsPromise.set(.single(nil))
             }
-        })
+        })*/
         
         self.resetBadge()
         
@@ -1649,15 +1650,39 @@ extension UserDefaults {
                 previousReportedMemoryConsumption = value
                 Logger.shared.log("App \(self.episodeId)", "Memory consumption: \(value / (1024 * 1024)) MB")
                 
+                if self.contextValue?.context.sharedContext.immediateExperimentalUISettings.crashOnMemoryPressure == true {
+                    let memoryUsageOverlayView: UILabel
+                    if let current = self.memoryUsageOverlayView {
+                        memoryUsageOverlayView = current
+                    } else {
+                        memoryUsageOverlayView = UILabel()
+                        if #available(iOS 13.0, *) {
+                            memoryUsageOverlayView.textColor = .label
+                        } else {
+                            memoryUsageOverlayView.textColor = .black
+                        }
+                        memoryUsageOverlayView.font = Font.regular(11.0)
+                        memoryUsageOverlayView.layer.zPosition = 1000.0
+                        self.memoryUsageOverlayView = memoryUsageOverlayView
+                        self.window?.addSubview(memoryUsageOverlayView)
+                        
+                        memoryUsageOverlayView.center = CGPoint(x: 5.0, y: 36.0)
+                    }
+                    
+                    memoryUsageOverlayView.text = "\(value / (1024 * 1024)) MB"
+                    memoryUsageOverlayView.sizeToFit()
+                } else {
+                    if let memoryUsageOverlayView = self.memoryUsageOverlayView {
+                        self.memoryUsageOverlayView = nil
+                        memoryUsageOverlayView.removeFromSuperview()
+                    }
+                }
+                
                 if !buildConfig.isAppStoreBuild {
-                    if value >= 800 * 1024 * 1024 {
-                        #if targetEnvironment(simulator)
-                        print("Debug memory")
-                        #else
+                    if value >= 2000 * 1024 * 1024 {
                         if self.contextValue?.context.sharedContext.immediateExperimentalUISettings.crashOnMemoryPressure == true {
                             preconditionFailure()
                         }
-                        #endif
                     }
                 }
             }

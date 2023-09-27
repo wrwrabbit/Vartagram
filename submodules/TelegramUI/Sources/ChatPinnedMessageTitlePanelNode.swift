@@ -260,7 +260,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
             |> map { status -> Bool in
                 return status == .pinnedMessage
             }
-            |> deliverOnMainQueue).start(next: { [weak self] isLoading in
+            |> deliverOnMainQueue).startStrict(next: { [weak self] isLoading in
                 guard let strongSelf = self else {
                     return
                 }
@@ -498,7 +498,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
         if currentTranslateToLanguageUpdated || messageUpdated, let message = interfaceState.pinnedMessage?.message {
             if let translation = message.attributes.first(where: { $0 is TranslationMessageAttribute }) as? TranslationMessageAttribute, translation.toLang == translateToLanguage {
             } else if let translateToLanguage  {
-                self.translationDisposable.set(translateMessageIds(context: self.context, messageIds: [message.id], toLang: translateToLanguage).start())
+                self.translationDisposable.set(translateMessageIds(context: self.context, messageIds: [message.id], toLang: translateToLanguage).startStrict())
             }
         }
         
@@ -824,7 +824,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                         strongSelf.imageNode.setSignal(updateImageSignal)
                     }
                     if let updatedFetchMediaSignal = updatedFetchMediaSignal {
-                        strongSelf.fetchDisposable.set(updatedFetchMediaSignal.start())
+                        strongSelf.fetchDisposable.set(updatedFetchMediaSignal.startStrict())
                     }
                 }
             }
@@ -906,7 +906,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                         break
                     case let .openUserProfile(peerId):
                         let _ = (self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
-                        |> deliverOnMainQueue).start(next: { peer in
+                        |> deliverOnMainQueue).startStandalone(next: { peer in
                             if let peer = peer {
                                 controllerInteraction.openPeer(peer, .info, nil, .default)
                             }

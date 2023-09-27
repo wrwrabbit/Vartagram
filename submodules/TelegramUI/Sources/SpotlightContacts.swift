@@ -251,7 +251,7 @@ private final class SpotlightDataContextImpl {
             }
             return true
         }))
-        |> deliverOn(self.queue)).start(next: { [weak self] items in
+        |> deliverOn(self.queue)).startStrict(next: { [weak self] items in
             guard let strongSelf = self else {
                 return
             }

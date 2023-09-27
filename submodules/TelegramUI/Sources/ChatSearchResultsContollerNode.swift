@@ -285,7 +285,7 @@ class ChatSearchResultsControllerNode: ViewControllerTracingNode, UIScrollViewDe
         self.interaction = interaction
         
         self.disposable.set((signal
-        |> deliverOnMainQueue).start(next: { [weak self] entries in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] entries in
             if let strongSelf = self {
                 let previousEntries = strongSelf.previousEntries.swap(entries)
                 
@@ -347,7 +347,7 @@ class ChatSearchResultsControllerNode: ViewControllerTracingNode, UIScrollViewDe
 
             return (updatedResult, updatedState, matchesOnlyBcOfFAN, shouldTryLoadMore)
         }
-        |> deliverOnMainQueue).start(next: { [weak self] (updatedResult, updatedState, matchesOnlyBcOfFAN, shouldTryLoadMore) in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] (updatedResult, updatedState, matchesOnlyBcOfFAN, shouldTryLoadMore) in
             guard let strongSelf = self else {
                 return
             }
@@ -384,7 +384,7 @@ class ChatSearchResultsControllerNode: ViewControllerTracingNode, UIScrollViewDe
             }
             
             strongSelf.disposable.set((signal
-            |> deliverOnMainQueue).start(next: { entries in
+            |> deliverOnMainQueue).startStrict(next: { entries in
                 if let strongSelf = self {
                     let previousEntries = strongSelf.previousEntries.swap(entries)
                     

@@ -66,24 +66,22 @@ public func suspendAwareDelay<T, E>(_ timeout: Double, granularity: Double = 4.0
                     startFinalTimer()
                 } else {
                     var invalidateImpl: (() -> Void)?
-                    let timer = Timer(timeout: granularity, repeat: true, completion: {
+                    let timer = Timer(timeout: granularity, repeat: true, completion: { timer in
                         let currentTimestamp = CFAbsoluteTimeGetCurrent()
                         if beginTimestamp + timeout - granularity * 1.1 <= currentTimestamp {
-                            invalidateImpl?()
+                            timer.invalidate()
                             startFinalTimer()
                         }
                     }, queue: queue)
                     
-                    invalidateImpl = { [weak timer] in
+                    invalidateImpl = {
                         queue.async {
-                            timer?.invalidate()
+                            timer.invalidate()
                         }
                     }
                     
                     timerDisposable.set(ActionDisposable {
-                        queue.async {
-                            timer.invalidate()
-                        }
+                        invalidateImpl?()
                     })
                     
                     timer.start()
