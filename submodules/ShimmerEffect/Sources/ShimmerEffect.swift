@@ -431,16 +431,18 @@ public final class ShimmerEffectNode: ASDisplayNode {
             }
         })
         
-        if mask {
-            if self.view.mask == nil {
-                self.foregroundNode.removeFromSupernode()
-                self.view.mask = self.foregroundNode.view
-            }
-        } else {
-            if self.view.mask != nil {
-                self.view.mask = nil
-                if self.foregroundNode.supernode == nil {
-                    self.addSubnode(self.foregroundNode)
+        if !self.isLayerBacked {
+            if mask {
+                if self.view.mask == nil {
+                    self.foregroundNode.removeFromSupernode()
+                    self.view.mask = self.foregroundNode.view
+                }
+            } else {
+                if self.view.mask != nil {
+                    self.view.mask = nil
+                    if self.foregroundNode.supernode == nil {
+                        self.addSubnode(self.foregroundNode)
+                    }
                 }
             }
         }

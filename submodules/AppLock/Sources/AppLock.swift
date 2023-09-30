@@ -146,11 +146,17 @@ public final class AppLockContextImpl: AppLockContext {
                         return sp.timeout != nil && isSecretPasscodeTimedout(timeout: sp.timeout!, state: state)
                     }).start(completed: {
                         if becameActive {
-                            let _ = strongSelf.appContextIsReady!.start(completed: {
+                            if accessChallengeData.data.isLockable && isLocked(passcodeSettings: passcodeSettings, state: state) {
                                 Queue.mainQueue().justDispatch {
                                     strongSelf.syncingWait.set(false)
                                 }
-                            })
+                            } else {
+                                let _ = strongSelf.appContextIsReady!.start(completed: {
+                                    Queue.mainQueue().justDispatch {
+                                        strongSelf.syncingWait.set(false)
+                                    }
+                                })
+                            }
                         }
                     })
                     

@@ -9,6 +9,9 @@ swift_library(
     srcs = glob([
         "Sources/**/*.swift",
     ]),
+    deps = [
+        "//submodules/GZip:GZip",
+    ],
     visibility = [
         "//visibility:public",
     ],
