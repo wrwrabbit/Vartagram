@@ -1070,6 +1070,8 @@ public protocol AccountContext: AnyObject {
     var currentInactiveSecretChatPeerIds: Atomic<Set<PeerId>> { get }
     var isHidable: Signal<Bool, NoError> { get }
     var immediateIsHidable: Bool { get }
+    var ptgAccountSettings: Signal<PtgAccountSettings, NoError> { get }
+    var currentPtgAccountSettings: Atomic<PtgAccountSettings?> { get }
     
     func shouldSuppressForeignAgentNotice(in message: Message) -> Bool
     func shouldHideChannelSignature(in message: Message) -> Bool

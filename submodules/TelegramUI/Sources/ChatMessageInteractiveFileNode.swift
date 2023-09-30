@@ -508,7 +508,7 @@ final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 self.audioTranscriptionState = .inProgress
                 self.requestUpdateLayout(true)
                 
-                if context.sharedContext.immediateExperimentalUISettings.localTranscription && (!arguments.associatedData.isPremium || arguments.context.sharedContext.currentPtgSettings.with { $0.preferAppleVoiceToText }) {
+                if context.sharedContext.immediateExperimentalUISettings.localTranscription && (!arguments.associatedData.isPremium || arguments.context.currentPtgAccountSettings.with { ($0 ?? .default).preferAppleVoiceToText }) {
                     let appLocale = presentationData.strings.baseLanguageCode
                     
                     let signal: Signal<LocallyTranscribedAudio?, NoError> = context.engine.data.get(TelegramEngine.EngineData.Item.Messages.Message(id: message.id))
@@ -806,7 +806,7 @@ final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 var displayTranscribe: Bool
                 var displayingTranscribeDueToLocalTranscription = false
                 if arguments.message.id.peerId.namespace != Namespaces.Peer.SecretChat {
-                    if arguments.context.sharedContext.immediateExperimentalUISettings.localTranscription && (!arguments.associatedData.isPremium || arguments.context.sharedContext.currentPtgSettings.with { $0.preferAppleVoiceToText }) {
+                    if arguments.context.sharedContext.immediateExperimentalUISettings.localTranscription && (!arguments.associatedData.isPremium || arguments.context.currentPtgAccountSettings.with { ($0 ?? .default).preferAppleVoiceToText }) {
                         displayTranscribe = true
                         displayingTranscribeDueToLocalTranscription = true
                     } else if arguments.associatedData.isPremium {

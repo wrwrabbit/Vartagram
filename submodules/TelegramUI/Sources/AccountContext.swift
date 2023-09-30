@@ -264,6 +264,13 @@ public final class AccountContextImpl: AccountContext {
         return self.sharedContext.currentPtgSecretPasscodes.with { $0.allHidableAccountIds().contains(accountId) }
     }
     
+    private let _ptgAccountSettings: Promise<PtgAccountSettings>
+    public var ptgAccountSettings: Signal<PtgAccountSettings, NoError> {
+        return self._ptgAccountSettings.get()
+    }
+    public let currentPtgAccountSettings = Atomic<PtgAccountSettings?>(value: nil)
+    private var ptgAccountSettingsDisposable: Disposable?
+    
     public private(set) var isPremium: Bool
     
     public let imageCache: AnyObject?
@@ -342,11 +349,17 @@ public final class AccountContextImpl: AccountContext {
             let _ = currentLimitsConfiguration.swap(value)
         })
         
-        let ignoreAllContentRestrictions = account.postbox.preferencesView(keys: [ApplicationSpecificPreferencesKeys.ptgAccountSettings])
+        let ptgAccountSettings = Promise<PtgAccountSettings>()
+        ptgAccountSettings.set(account.postbox.preferencesView(keys: [ApplicationSpecificPreferencesKeys.ptgAccountSettings])
         |> map { view in
-            let ptgAccountSettings = PtgAccountSettings(view.values[ApplicationSpecificPreferencesKeys.ptgAccountSettings])
+            return PtgAccountSettings(view.values[ApplicationSpecificPreferencesKeys.ptgAccountSettings])
+        })
+        
+        let ignoreAllContentRestrictions = ptgAccountSettings.get()
+        |> map { ptgAccountSettings in
             return ptgAccountSettings.ignoreAllContentRestrictions
         }
+        |> distinctUntilChanged
         
         let updatedContentSettings = getContentSettings(postbox: account.postbox, ignoreAllContentRestrictions: ignoreAllContentRestrictions)
         self.currentContentSettings = Atomic(value: contentSettings)
@@ -400,6 +413,8 @@ public final class AccountContextImpl: AccountContext {
         
         self.currentInactiveSecretChatPeerIds = Atomic(value: sharedContext.currentPtgSecretPasscodes.with { $0.inactiveSecretChatPeerIds(accountId: account.id) })
         
+        self._ptgAccountSettings = ptgAccountSettings
+        
         self.inactiveSecretChatPeerIdsDisposable = (self.inactiveSecretChatPeerIds
         |> deliverOnMainQueue).start(next: { [weak self] next in
             guard let strongSelf = self else {
@@ -411,6 +426,12 @@ public final class AccountContextImpl: AccountContext {
             let _ = (strongSelf.account.postbox.transaction { transaction in
                 transaction.updatePeerIdsExcludedFromUnreadCounters(next)
             }).start()
+        })
+        
+        self.ptgAccountSettingsDisposable = self._ptgAccountSettings.get().start(next: { [weak self] next in
+            if let strongSelf = self {
+                let _ = strongSelf.currentPtgAccountSettings.swap(next)
+            }
         })
         
         if !temp {
@@ -472,6 +493,7 @@ public final class AccountContextImpl: AccountContext {
         self.animatedEmojiStickersDisposable?.dispose()
         self.userLimitsConfigurationDisposable?.dispose()
         self.inactiveSecretChatPeerIdsDisposable?.dispose()
+        self.ptgAccountSettingsDisposable?.dispose()
     }
     
     public func storeSecureIdPassword(password: String) {
