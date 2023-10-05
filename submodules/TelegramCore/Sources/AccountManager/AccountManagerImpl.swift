@@ -63,6 +63,8 @@ final class AccountManagerImpl<Types: AccountManagerTypes> {
     private var noticeEntryViews = Bag<(MutableNoticeEntryView<Types>, ValuePipe<NoticeEntryView<Types>>)>()
     private var accessChallengeDataViews = Bag<(MutableAccessChallengeDataView, ValuePipe<AccessChallengeDataView>)>()
     
+    private var queuedInternalTransactions = Atomic<[() -> Void]>(value: [])
+    
     static func getCurrentRecords(basePath: String, excludeAccountIds: Set<AccountRecordId>) -> (records: [AccountRecord<Types.Attribute>], currentId: AccountRecordId?) {
         let atomicStatePath = "\(basePath)/atomic-state"
         do {
@@ -250,10 +252,12 @@ final class AccountManagerImpl<Types: AccountManagerTypes> {
     fileprivate func transaction<T>(ignoreDisabled: Bool, _ f: @escaping (AccountManagerModifier<Types>) -> T) -> Signal<T, NoError> {
         return Signal { subscriber in
             self.queue.justDispatch {
-                let result = self.transactionSync(ignoreDisabled: ignoreDisabled, f)
-                
-                subscriber.putNext(result)
-                subscriber.putCompletion()
+//                self.beginInternalTransaction(ignoreDisabled: ignoreDisabled, {
+                    let result = self.transactionSync(ignoreDisabled: ignoreDisabled, f)
+                    
+                    subscriber.putNext(result)
+                    subscriber.putCompletion()
+//                })
             }
             return EmptyDisposable
         }
@@ -543,14 +547,41 @@ final class AccountManagerImpl<Types: AccountManagerTypes> {
         })
     }
     
+    private func beginInternalTransaction(ignoreDisabled: Bool = false, _ f: @escaping () -> Void) {
+        assert(self.queue.isCurrent())
+        if ignoreDisabled || self.canBeginTransactionsValue.with({ $0 }) {
+            f()
+        } else {
+            let _ = self.queuedInternalTransactions.modify { fs in
+                var fs = fs
+                fs.append(f)
+                return fs
+            }
+        }
+    }
+    
+    let canBeginTransactionsValue = Atomic<Bool>(value: true)
+    func setCanBeginTransactions(_ value: Bool, afterTransactionIfRunning: @escaping () -> Void) {
+        let previous = self.canBeginTransactionsValue.swap(value)
+        if previous != value && value {
+            let fs = self.queuedInternalTransactions.swap([])
+            for f in fs {
+                f()
+            }
+        }
+        afterTransactionIfRunning()
+    }
+    
     fileprivate func optimizeStorage(minFreePagesFraction: Double) -> Signal<Never, NoError> {
         return Signal { subscriber in
-            if let valueBox = self.valueBox as? SqliteValueBox {
-                if valueBox.freePagesFraction() >= minFreePagesFraction {
-                    valueBox.vacuum()
+            self.beginInternalTransaction {
+                if let valueBox = self.valueBox as? SqliteValueBox {
+                    if valueBox.freePagesFraction() >= minFreePagesFraction {
+                        valueBox.vacuum()
+                    }
                 }
+                subscriber.putCompletion()
             }
-            subscriber.putCompletion()
             return EmptyDisposable
         }
     }
@@ -695,6 +726,20 @@ public final class AccountManager<Types: AccountManagerTypes> {
                 }))
             }
             return disposable
+        }
+    }
+    
+    public func setCanBeginTransactions(_ value: Bool, afterTransactionIfRunning: @escaping () -> Void = {}) {
+        let storageBox = self.mediaBox.storageBox
+        let cacheStorageBox = self.mediaBox.cacheStorageBox
+        self.impl.with { impl in
+            impl.setCanBeginTransactions(value, afterTransactionIfRunning: {
+                storageBox.setCanBeginTransactions(value, afterTransactionIfRunning: {
+                    cacheStorageBox.setCanBeginTransactions(value, afterTransactionIfRunning: {
+                        afterTransactionIfRunning()
+                    })
+                })
+            })
         }
     }
     

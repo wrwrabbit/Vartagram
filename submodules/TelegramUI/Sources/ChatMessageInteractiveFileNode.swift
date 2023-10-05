@@ -553,7 +553,6 @@ final class ChatMessageInteractiveFileNode: ASDisplayNode {
                                 // Siri and Dictation are disabled
                                 self?.arguments?.controllerInteraction.presentController(textAlertController(context: context, title: nil, text: presentationData.strings.SiriAndDictationAreDisabledAlert, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), nil)
                             }
-                            self?.transcribeDisposable = nil
                             return .single(nil)
                         }
                     }

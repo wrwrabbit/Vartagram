@@ -4150,10 +4150,12 @@ final class PostboxImpl {
     
     public func optimizeStorage(minFreePagesFraction: Double) -> Signal<Never, NoError> {
         return Signal { subscriber in
-            if self.valueBox.freePagesFraction() >= minFreePagesFraction {
-                self.valueBox.vacuum()
+            self.beginInternalTransaction {
+                if self.valueBox.freePagesFraction() >= minFreePagesFraction {
+                    self.valueBox.vacuum()
+                }
+                subscriber.putCompletion()
             }
-            subscriber.putCompletion()
             
             return EmptyDisposable
         }
@@ -4328,10 +4330,13 @@ public class Postbox {
 
     public func setCanBeginTransactions(_ value: Bool, afterTransactionIfRunning: @escaping () -> Void = {}) {
         let storageBox = self.mediaBox.storageBox
+        let cacheStorageBox = self.mediaBox.cacheStorageBox
         self.impl.with { impl in
             impl.setCanBeginTransactions(value, afterTransactionIfRunning: {
                 storageBox.setCanBeginTransactions(value, afterTransactionIfRunning: {
-                    afterTransactionIfRunning()
+                    cacheStorageBox.setCanBeginTransactions(value, afterTransactionIfRunning: {
+                        afterTransactionIfRunning()
+                    })
                 })
             })
         }

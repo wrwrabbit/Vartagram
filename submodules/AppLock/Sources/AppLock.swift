@@ -83,7 +83,12 @@ public final class AppLockContextImpl: AppLockContext {
     
     private weak var keyboardCoveringView: UIView?
     
-    public init(rootPath: String, window: Window1?, rootController: UIViewController?, applicationBindings: TelegramApplicationBindings, accountManager: AccountManager<TelegramAccountManagerTypes>, presentationDataSignal: Signal<PresentationData, NoError>, lockIconInitialFrame: @escaping () -> CGRect?, appContextIsReady: Signal<Bool, NoError>? = nil) {
+    private var currentPtgSecretPasscodes: PtgSecretPasscodes!
+    private var ptgSecretPasscodesDisposable: Disposable?
+    
+    public var canBeginTransactions: () -> Bool = { return true }
+    
+    public init(rootPath: String, window: Window1?, rootController: UIViewController?, applicationBindings: TelegramApplicationBindings, accountManager: AccountManager<TelegramAccountManagerTypes>, presentationDataSignal: Signal<PresentationData, NoError>, lockIconInitialFrame: @escaping () -> CGRect?, appContextIsReady: Signal<Bool, NoError>? = nil, initialPtgSecretPasscodes: PtgSecretPasscodes? = nil) {
         assert(Queue.mainQueue().isCurrent())
         
         self.applicationBindings = applicationBindings
@@ -93,6 +98,7 @@ public final class AppLockContextImpl: AppLockContext {
         self.window = window
         self.rootController = rootController
         self.appContextIsReady = appContextIsReady
+        self.currentPtgSecretPasscodes = initialPtgSecretPasscodes
         
         if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: self.rootPath))), let current = try? JSONDecoder().decode(LockState.self, from: data) {
             self.currentStateValue = current
@@ -139,12 +145,12 @@ public final class AppLockContextImpl: AppLockContext {
                         strongSelf.syncingWait.set(true)
                     }
                     let state = strongSelf.currentStateValue
-                    let _ = strongSelf.secretPasscodesDeactivateOnCondition({ sp in
+                    strongSelf.secretPasscodesDeactivateOnCondition({ sp in
                         if becameForeground && sp.timeout == 10 {
                             return true
                         }
                         return sp.timeout != nil && isSecretPasscodeTimedout(timeout: sp.timeout!, state: state)
-                    }).start(completed: {
+                    }, completion: {
                         if becameActive {
                             if accessChallengeData.data.isLockable && isLocked(passcodeSettings: passcodeSettings, state: state) {
                                 Queue.mainQueue().justDispatch {
@@ -471,8 +477,20 @@ public final class AppLockContextImpl: AppLockContext {
                 }
             })
             
+            self.ptgSecretPasscodesDisposable = (accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.ptgSecretPasscodes])
+            |> map { sharedData in
+                return PtgSecretPasscodes(sharedData.entries[ApplicationSpecificSharedDataKeys.ptgSecretPasscodes])
+            }
+            |> deliverOnMainQueue).start(next: { [weak self] next in
+                self?.currentPtgSecretPasscodes = next
+            })
+            
             self.temporarilyDisableAnimations()
         }
+    }
+    
+    deinit {
+        self.ptgSecretPasscodesDisposable?.dispose()
     }
     
     public var isUIActivityViewControllerPresented: Bool {
@@ -555,7 +573,7 @@ public final class AppLockContextImpl: AppLockContext {
             }
             
             if self.secretPasscodesTimeoutCheckTimer == nil && self.applicationBindings.isMainApp {
-                // set timer to check for secret passcodes timeout when the app is locked or in background while playing audio or video in picture-in-picture mode, or resumed from background to handle push notifications
+                // set timer to check for secret passcodes timeout when the app is locked or in background while playing audio or video in picture-in-picture mode
                 
                 weak var weakSelf = self
                 
@@ -564,34 +582,36 @@ public final class AppLockContextImpl: AppLockContext {
                         return
                     }
                     
-                    let _ = (strongSelf.accountManager.transaction { transaction in
-                        return PtgSecretPasscodes(transaction)
-                    }
-                    |> deliverOnMainQueue).start(next: { ptgSecretPasscodes in
-                        guard let strongSelf = weakSelf else {
-                            return
-                        }
+                    assert(Queue.mainQueue().isCurrent())
+                    assert(strongSelf.currentPtgSecretPasscodes != nil)
+                    
+                    if let minActiveTimeout = strongSelf.currentPtgSecretPasscodes.secretPasscodes.compactMap({ $0.active ? $0.timeout : nil }).min() {
+                        let state = strongSelf.currentStateValue
                         
-                        if let minActiveTimeout = ptgSecretPasscodes.secretPasscodes.compactMap({ $0.active ? $0.timeout : nil }).min() {
-                            let state = strongSelf.currentStateValue
+                        if let applicationActivityTimestamp = state.applicationActivityTimestamp {
+                            let timestamp = MonotonicTimestamp()
                             
-                            if let applicationActivityTimestamp = state.applicationActivityTimestamp {
-                                let timestamp = MonotonicTimestamp()
-                                
-                                // since timer does not take into account system sleep time, use just fraction of timeout
-                                let nextTimeout = max(5, (applicationActivityTimestamp.uptime + minActiveTimeout - timestamp.uptime) / 2)
-                                
-                                let secretPasscodesTimeoutCheckTimer = SwiftSignalKit.Timer(timeout: Double(nextTimeout), repeat: false, completion: {
-                                    let _ = weakSelf?.secretPasscodesTimeoutCheck().start(completed: {
+                            // since timer does not take into account system sleep time, use just fraction of timeout
+                            let nextTimeout = max(5, (applicationActivityTimestamp.uptime + minActiveTimeout - timestamp.uptime) / 2)
+                            
+                            let secretPasscodesTimeoutCheckTimer = SwiftSignalKit.Timer(timeout: Double(nextTimeout), repeat: false, completion: {
+                                if let strongSelf = weakSelf {
+                                    if strongSelf.canBeginTransactions() {
+                                        strongSelf.secretPasscodesTimeoutCheck(completion: {
+                                            Queue.mainQueue().async {
+                                                resetTimer()
+                                            }
+                                        })
+                                    } else {
                                         resetTimer()
-                                    })
-                                }, queue: .mainQueue())
-                                
-                                strongSelf.secretPasscodesTimeoutCheckTimer = secretPasscodesTimeoutCheckTimer
-                                secretPasscodesTimeoutCheckTimer.start()
-                            }
+                                    }
+                                }
+                            }, queue: .mainQueue())
+                            
+                            strongSelf.secretPasscodesTimeoutCheckTimer = secretPasscodesTimeoutCheckTimer
+                            secretPasscodesTimeoutCheckTimer.start()
                         }
-                    })
+                    }
                 }
                 
                 resetTimer()
@@ -655,7 +675,7 @@ public final class AppLockContextImpl: AppLockContext {
         }
         
         // deactivating all secret passcodes on manual app lock
-        let _ = self.secretPasscodesDeactivateOnCondition({ _ in return true }).start()
+        self.secretPasscodesDeactivateOnCondition({ _ in return true })
     }
     
     public func unlock() {
@@ -664,7 +684,7 @@ public final class AppLockContextImpl: AppLockContext {
         
         self.temporarilyDisableAnimations()
         
-        let _ = self.secretPasscodesTimeoutCheck().start(completed: {
+        self.secretPasscodesTimeoutCheck(completion: {
             let _ = self.appContextIsReady!.start(completed: {
                 self.updateLockState { state in
                     var state = state
@@ -694,34 +714,53 @@ public final class AppLockContextImpl: AppLockContext {
         }
     }
     
-    private func secretPasscodesDeactivateOnCondition(_ f: @escaping (PtgSecretPasscode) -> Bool) -> Signal<Void, NoError> {
-        return self.accountManager.transaction { transaction in
-            return PtgSecretPasscodes(transaction)
-        }
-        |> mapToSignal { [weak self] ptgSecretPasscodes -> Signal<Void, NoError> in
-            guard let strongSelf = self else {
-                return .complete()
-            }
-            
-            if ptgSecretPasscodes.secretPasscodes.contains(where: { $0.active && f($0) }) {
-                return updatePtgSecretPasscodes(strongSelf.accountManager, { current in
+    private func secretPasscodesDeactivateOnCondition(_ f: @escaping (PtgSecretPasscode) -> Bool, completion: (() -> Void)? = nil) {
+        assert(self.applicationBindings.isMainApp)
+        assert(Queue.mainQueue().isCurrent())
+        assert(self.currentPtgSecretPasscodes != nil)
+        
+        if self.currentPtgSecretPasscodes.secretPasscodes.contains(where: { $0.active && f($0) }) {
+            var taskId: UIBackgroundTaskIdentifier?
+            taskId = UIApplication.shared.beginBackgroundTask(withName: "updateSP", expirationHandler: {
+                Logger.shared.log("AppLock", "Background task for updatePtgSecretPasscodes expired")
+                if let taskId {
+                    UIApplication.shared.endBackgroundTask(taskId)
+                }
+            })
+            if taskId != .invalid {
+                Logger.shared.log("AppLock", "Began background task for updatePtgSecretPasscodes")
+                
+                // current account may change as a result, allow some time to handle that
+                Queue.mainQueue().after(2.0, {
+                    if let taskId {
+                        Logger.shared.log("AppLock", "Ending background task for updatePtgSecretPasscodes")
+                        UIApplication.shared.endBackgroundTask(taskId)
+                    }
+                })
+                
+                let _ = updatePtgSecretPasscodes(self.accountManager, { current in
                     return PtgSecretPasscodes(secretPasscodes: current.secretPasscodes.map { sp in
                         return sp.withUpdated(active: sp.active && !f(sp))
                     }, dbCoveringAccounts: current.dbCoveringAccounts, cacheCoveringAccounts: current.cacheCoveringAccounts)
+                }).start(completed: {
+                    completion?()
                 })
             } else {
-                return .complete()
+                Logger.shared.log("AppLock", "Failed to begin background task for updatePtgSecretPasscodes")
+                completion?()
             }
+        } else {
+            completion?()
         }
     }
     
     // passing state (and not getting through self.currentState.get()) so we have value before it could be changed for instance by following updateApplicationActivityTimestamp() calls
-    private func secretPasscodesTimeoutCheck() -> Signal<Void, NoError> {
+    public func secretPasscodesTimeoutCheck(completion: (() -> Void)? = nil) {
         assert(Queue.mainQueue().isCurrent())
         let state = self.currentStateValue
-        return self.secretPasscodesDeactivateOnCondition { sp in
+        self.secretPasscodesDeactivateOnCondition({ sp in
             return sp.timeout != nil && isSecretPasscodeTimedout(timeout: sp.timeout!, state: state)
-        }
+        }, completion: completion)
     }
     
     private func temporarilyDisableAnimations() {

@@ -1022,10 +1022,12 @@ public final class StorageBox {
         
         fileprivate func optimizeStorage(minFreePagesFraction: Double) -> Signal<Never, NoError> {
             return Signal { subscriber in
-                if self.valueBox.freePagesFraction() >= minFreePagesFraction {
-                    self.valueBox.vacuum()
+                self.beginInternalTransaction {
+                    if self.valueBox.freePagesFraction() >= minFreePagesFraction {
+                        self.valueBox.vacuum()
+                    }
+                    subscriber.putCompletion()
                 }
-                subscriber.putCompletion()
                 
                 return EmptyDisposable
             }

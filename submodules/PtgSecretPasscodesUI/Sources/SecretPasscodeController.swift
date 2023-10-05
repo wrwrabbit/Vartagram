@@ -531,9 +531,10 @@ public func secretPasscodeController(context: AccountContext, passcode: String, 
                         )
                     }
                     
-                    let _ = context.sharedContext.maybeTriggerCoveringProtection(maybeCoveringAccountId: selectedContext.account.id, cleanCache: false).start()
-                    
-                    let _ = (selectedContext.account.cleanOldCloudMessages()
+                    let _ = (context.sharedContext.maybeTriggerCoveringProtection(maybeCoveringAccountId: selectedContext.account.id, cleanCache: false)
+                    |> then (
+                        selectedContext.account.cleanOldCloudMessages()
+                    )
                     |> then (
                         selectedContext.account.postbox.optimizeStorage(minFreePagesFraction: 0.2)
                     )).start()
