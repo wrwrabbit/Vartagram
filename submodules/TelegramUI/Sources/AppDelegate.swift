@@ -45,6 +45,7 @@ import AuthorizationUI
 import ManagedFile
 import DeviceProximity
 import MediaEditor
+import TelegramUIDeclareEncodables
 
 #if canImport(AppCenter)
 import AppCenter
@@ -230,7 +231,8 @@ extension UserDefaults {
     var nativeWindow: (UIWindow & WindowHost)?
     var mainWindow: Window1!
     private var dataImportSplash: LegacyDataImportSplash?
-    
+    private var memoryUsageOverlayView: UILabel?
+
     private var buildConfig: BuildConfig?
     let episodeId = arc4random()
     
@@ -241,7 +243,7 @@ extension UserDefaults {
     let hasActiveAudioSession = Promise<Bool>(false)
     
     private let sharedContextPromise = Promise<SharedApplicationContext>()
-    private let watchCommunicationManagerPromise = Promise<WatchCommunicationManager?>()
+    //private let watchCommunicationManagerPromise = Promise<WatchCommunicationManager?>()
 
     private var accountManager: AccountManager<TelegramAccountManagerTypes>?
     private var accountManagerState: AccountManagerState?
@@ -274,7 +276,7 @@ extension UserDefaults {
     private let voipTokenPromise = Promise<Data>()
     
     private var reindexCacheDisposable: Disposable?
-    
+
     private var firebaseSecrets: [String: String] = [:] {
         didSet {
             if self.firebaseSecrets != oldValue {
@@ -504,7 +506,7 @@ extension UserDefaults {
             self.mainWindow?.presentNative(UIAlertController(title: nil, message: "Error 2", preferredStyle: .alert))
             return true
         }
-        
+
         let rootPath = rootPathForBasePath(appGroupUrl.path)
         performAppGroupUpgrades(appGroupPath: appGroupUrl.path, rootPath: rootPath)
         
@@ -886,7 +888,7 @@ extension UserDefaults {
             |> filter { $0 }
             |> take(1)
         }
-        
+
         let checkTimeoutInPtgSecretPasscodes: Signal<Void, NoError>
         if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data) {
             checkTimeoutInPtgSecretPasscodes = updatePtgSecretPasscodes(accountManager, { current in
@@ -897,12 +899,12 @@ extension UserDefaults {
         } else {
             checkTimeoutInPtgSecretPasscodes = .complete()
         }
-        
+
         let initialPresentationDataAndSettingsPromise = Promise<InitialPresentationDataAndSettings>()
         let _ = checkTimeoutInPtgSecretPasscodes.start(completed: {
             initialPresentationDataAndSettingsPromise.set(currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: systemUserInterfaceStyle))
         })
-        
+
         let sharedContextSignal = initialPresentationDataAndSettingsPromise.get()
         |> map { initialPresentationDataAndSettings -> (AccountManager, InitialPresentationDataAndSettings) in
             return (accountManager, initialPresentationDataAndSettings)
@@ -942,7 +944,7 @@ extension UserDefaults {
             }, appDelegate: self)
             
             appLockContext.sharedAccountContext = sharedContext
-            
+
             presentationDataPromise.set(sharedContext.presentationData)
             
             sharedContext.presentGlobalController = { [weak self] c, a in
@@ -1006,7 +1008,7 @@ extension UserDefaults {
                     return .single(nil)
                 }
             }
-            let watchTasks = self.context.get()
+            /*let watchTasks = self.context.get()
             |> mapToSignal { context -> Signal<AccountRecordId?, NoError> in
                 if let context = context, let watchManager = context.context.watchManager {
                     let accountId = context.context.account.id
@@ -1025,7 +1027,7 @@ extension UserDefaults {
                 } else {
                     return .single(nil)
                 }
-            }
+            }*/
             let wakeupManager = SharedWakeupManager(beginBackgroundTask: { name, expiration in
                 let id = application.beginBackgroundTask(withName: name, expirationHandler: expiration)
                 Logger.shared.log("App \(self.episodeId)", "Begin background task \(name): \(id)")
@@ -1037,7 +1039,7 @@ extension UserDefaults {
                 application.endBackgroundTask(id)
             }, backgroundTimeRemaining: { application.backgroundTimeRemaining }, acquireIdleExtension: {
                 return applicationBindings.pushIdleTimerExtension()
-            }, activeAccounts: sharedContext.activeAccountContexts |> map { ($0.0?.account, $0.1.map { ($0.0, $0.1.account) } + $0.inactiveAccounts.map { ($0.0, $0.1.account) }) }, liveLocationPolling: liveLocationPolling, watchTasks: watchTasks, inForeground: applicationBindings.applicationInForeground, hasActiveAudioSession: self.hasActiveAudioSession.get(), notificationManager: notificationManager, mediaManager: sharedContext.mediaManager, callManager: sharedContext.callManager, accountUserInterfaceInUse: { id in
+            }, activeAccounts: sharedContext.activeAccountContexts |> map { ($0.0?.account, $0.1.map { ($0.0, $0.1.account) }) }, liveLocationPolling: liveLocationPolling, watchTasks: .single(nil), inForeground: applicationBindings.applicationInForeground, hasActiveAudioSession: self.hasActiveAudioSession.get(), notificationManager: notificationManager, mediaManager: sharedContext.mediaManager, callManager: sharedContext.callManager, accountUserInterfaceInUse: { id in
                 return sharedContext.accountUserInterfaceInUse(id)
             })
             let sharedApplicationContext = SharedApplicationContext(sharedContext: sharedContext, notificationManager: notificationManager, wakeupManager: wakeupManager)
@@ -1056,7 +1058,7 @@ extension UserDefaults {
             return .single(sharedApplicationContext)
         })
         
-        let watchManagerArgumentsPromise = Promise<WatchManagerArguments?>()
+        //let watchManagerArgumentsPromise = Promise<WatchManagerArguments?>()
             
         self.context.set(self.sharedContextPromise.get()
         |> deliverOnMainQueue
@@ -1095,7 +1097,7 @@ extension UserDefaults {
             |> deliverOnMainQueue
             |> map { accountAndSettings -> AuthorizedApplicationContext? in
                 return accountAndSettings.flatMap { context, callListSettings in
-                    return AuthorizedApplicationContext(sharedApplicationContext: sharedApplicationContext, mainWindow: self.mainWindow, watchManagerArguments: watchManagerArgumentsPromise.get(), context: context as! AccountContextImpl, accountManager: sharedApplicationContext.sharedContext.accountManager, showCallsTab: callListSettings.showTab, reinitializedNotificationSettings: {
+                    return AuthorizedApplicationContext(sharedApplicationContext: sharedApplicationContext, mainWindow: self.mainWindow, watchManagerArguments: .single(nil), context: context as! AccountContextImpl, accountManager: sharedApplicationContext.sharedContext.accountManager, showCallsTab: callListSettings.showTab, reinitializedNotificationSettings: {
                         let _ = (self.context.get()
                         |> take(1)
                         |> deliverOnMainQueue).start(next: { context in
@@ -1205,7 +1207,7 @@ extension UserDefaults {
                             }
                         }
                     }
-                    
+
                     self.mainWindow.debugAction = nil
                     if let previousViewController = self.mainWindow.viewController {
                         previousViewController.view.endEditingWithoutAnimation()
@@ -1213,7 +1215,7 @@ extension UserDefaults {
                     self.mainWindow.viewController = context.rootController
                     
                     context.isReadyAndPresented.set(context.isReady.get())
-                    
+
                     if firstTime {
                         let layer = context.rootController.view.layer
                         layer.allowsGroupOpacity = true
@@ -1355,8 +1357,7 @@ extension UserDefaults {
             }).start()
         }))
         
-        if buildConfig.isWatchEnabled {
-            self.watchCommunicationManagerPromise.set(watchCommunicationManager(context: self.context.get() |> flatMap { WatchCommunicationManagerContext(context: $0.context) }, allowBackgroundTimeExtension: { timeout in
+        /*self.watchCommunicationManagerPromise.set(watchCommunicationManager(context: self.context.get() |> flatMap { WatchCommunicationManagerContext(context: $0.context) }, allowBackgroundTimeExtension: { timeout in
                 let _ = (self.sharedContextPromise.get()
                 |> take(1)).start(next: { sharedContext in
                     sharedContext.wakeupManager.allowBackgroundTimeExtension(timeout: timeout)
@@ -1371,7 +1372,7 @@ extension UserDefaults {
             } else {
                 watchManagerArgumentsPromise.set(.single(nil))
             }
-        })
+        })*/
         
         self.resetBadge()
         
@@ -1484,18 +1485,18 @@ extension UserDefaults {
             let taskId = "\(baseAppBundleId).cleanup"
             
             var scheduleCleanupTask: (() -> Void)?
-            
+
             BGTaskScheduler.shared.register(forTaskWithIdentifier: taskId, using: DispatchQueue.main) { task in
                 Logger.shared.log("App \(self.episodeId)", "Executing cleanup task")
                 
                 let disposable = MetaDisposable()
-                
+
                 let _ = (self.sharedContextPromise.get()
                 |> take(1)
                 |> deliverOnMainQueue).start(next: { sharedApplicationContext in
                     // ensure wakeupManager does not suspend postbox transactions by calling postbox.setCanBeginTransactions(false)
                     sharedApplicationContext.wakeupManager.bgTaskSchedulerTaskBegan(taskId)
-                    
+
                     disposable.set(self.runCacheReindexTasks(lowImpact: false, completion: {
                         Logger.shared.log("App \(self.episodeId)", "Completed cleanup task")
                         sharedApplicationContext.wakeupManager.bgTaskSchedulerTaskEnded(taskId)
@@ -1507,7 +1508,7 @@ extension UserDefaults {
                 task.expirationHandler = {
                     Logger.shared.log("App \(self.episodeId)", "Cleanup task expired")
                     disposable.dispose()
-                    
+
                     let _ = (self.sharedContextPromise.get()
                     |> take(1)
                     |> deliverOnMainQueue).start(next: { sharedApplicationContext in
@@ -1527,13 +1528,13 @@ extension UserDefaults {
                     let request = BGProcessingTaskRequest(identifier: taskId)
                     request.requiresExternalPower = true
                     request.requiresNetworkConnectivity = false
-                    
+
                     let timestamp = Int(CFAbsoluteTimeGetCurrent())
                     let minInterval = 18 * 60 * 60
                     if let indexTimestamp = UserDefaults.standard.object(forKey: "TelegramCacheIndexTimestamp") as? NSNumber, indexTimestamp.intValue >= timestamp - minInterval {
                         request.earliestBeginDate = Date(timeIntervalSinceNow: Double(min(minInterval, indexTimestamp.intValue - (timestamp - minInterval))))
                     }
-                    
+
                     do {
                         try BGTaskScheduler.shared.submit(request)
                     } catch let e {
@@ -1541,10 +1542,10 @@ extension UserDefaults {
                     }
                 })
             }
-            
+
             scheduleCleanupTask?()
         }
-        
+
         let reindexCacheOnce = Signal<Never, NoError> { subscriber in
             let timestamp = Int(CFAbsoluteTimeGetCurrent())
             let minReindexTimestamp = timestamp - 3 * 24 * 60 * 60
@@ -1559,7 +1560,7 @@ extension UserDefaults {
                 })
             }
         }
-        
+
         let reindexCacheFirstTime = reindexCacheOnce
         |> delay(20.0, queue: Queue.concurrentDefaultQueue())
         let reindexCacheRepeatedly = (
@@ -1569,20 +1570,65 @@ extension UserDefaults {
         |> restart
         let reindexCache = reindexCacheFirstTime
         |> then(reindexCacheRepeatedly)
-        
+
         self.reindexCacheDisposable = reindexCache.start()
-        
+
         if #available(iOS 12.0, *) {
             UIApplication.shared.registerForRemoteNotifications()
         }
         
         let _ = self.urlSession(identifier: "\(baseAppBundleId).backroundSession")
         
+        var previousReportedMemoryConsumption = 0
+        let _ = Foundation.Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true, block: { _ in
+            let value = getMemoryConsumption()
+            if abs(value - previousReportedMemoryConsumption) > 1 * 1024 * 1024 {
+                previousReportedMemoryConsumption = value
+                Logger.shared.log("App \(self.episodeId)", "Memory consumption: \(value / (1024 * 1024)) MB")
+
+                if self.contextValue?.context.sharedContext.immediateExperimentalUISettings.crashOnMemoryPressure == true {
+                    let memoryUsageOverlayView: UILabel
+                    if let current = self.memoryUsageOverlayView {
+                        memoryUsageOverlayView = current
+                    } else {
+                        memoryUsageOverlayView = UILabel()
+                        if #available(iOS 13.0, *) {
+                            memoryUsageOverlayView.textColor = .label
+                        } else {
+                            memoryUsageOverlayView.textColor = .black
+                        }
+                        memoryUsageOverlayView.font = Font.regular(11.0)
+                        memoryUsageOverlayView.layer.zPosition = 1000.0
+                        self.memoryUsageOverlayView = memoryUsageOverlayView
+                        self.window?.addSubview(memoryUsageOverlayView)
+
+                        memoryUsageOverlayView.center = CGPoint(x: 5.0, y: 36.0)
+                    }
+
+                    memoryUsageOverlayView.text = "\(value / (1024 * 1024)) MB"
+                    memoryUsageOverlayView.sizeToFit()
+                } else {
+                    if let memoryUsageOverlayView = self.memoryUsageOverlayView {
+                        self.memoryUsageOverlayView = nil
+                        memoryUsageOverlayView.removeFromSuperview()
+                    }
+                }
+
+                if !buildConfig.isAppStoreBuild {
+                    if value >= 2000 * 1024 * 1024 {
+                        if self.contextValue?.context.sharedContext.immediateExperimentalUISettings.crashOnMemoryPressure == true {
+                            preconditionFailure()
+                        }
+                    }
+                }
+            }
+        })
+
         if let appGroupUserDefaults = UserDefaults(suiteName: appGroupName) {
             appGroupUserDefaults.removeObject(forKey: "suppressedNotificationForAccounId")
-            
+
             var suppressedNotificationForAccounIdObserver: NSKeyValueObservation?
-            
+
             let _ = self.isInForegroundPromise.get().start(next: { isInForeground in
                 if isInForeground {
                     // using UserDefaults KVO to be notified by Notification Service Extension about suppressed notifications in hidable accounts and secret chats
@@ -1594,7 +1640,7 @@ extension UserDefaults {
                             appGroupUserDefaults.removeObject(forKey: "suppressedNotificationForAccounId")
                         }
                     })
-                    
+
                     let _ = (self.sharedContextPromise.get()
                     |> take(1)
                     |> deliverOnMainQueue).start(next: { sharedApplicationContext in
@@ -1614,40 +1660,39 @@ extension UserDefaults {
                 }
             })
         }
-        
+
         // handle incoming calls and update unread counter badge right after previously hidden account is revealed
         let _ = (self.sharedContextPromise.get()
         |> take(1)
         |> deliverOnMainQueue).start(next: { sharedApplicationContext in
             var lastInactiveAccountIds = Set<AccountRecordId>()
-            
+
             let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
             |> deliverOnMainQueue).start(next: { activeAccounts in
                 let inactiveAccountsIds = Set(activeAccounts.inactiveAccounts.map({ $0.0 }))
                 let newlyRevealedAccountIds = lastInactiveAccountIds.subtracting(inactiveAccountsIds)
                 lastInactiveAccountIds = inactiveAccountsIds
-                
+
                 if !newlyRevealedAccountIds.isEmpty && sharedApplicationContext.sharedContext.currentInAppNotificationSettings.with({ $0.displayNotificationsFromAllAccounts }) {
                     self.checkIncomingCallAndRefreshUnreadCountOfNonCurrentAccounts(newlyRevealedAccountIds)
                 }
             })
         })
-        
+
         // exclude from backup folders that may reveal hidden secrets
         let libraryPath = NSSearchPathForDirectoriesInDomains(.libraryDirectory, .userDomainMask, true)[0]
         excludePathFromBackup(libraryPath + "/Cookies")
         excludePathFromBackup(libraryPath + "/WebKit")
-        
+
         Queue.concurrentBackgroundQueue().async { [weak self] in
             let _ = self?.cleanTmpFolderRecursively(path: NSTemporaryDirectory())
         }
-        
         return true
     }
     
     private func cleanTmpFolderRecursively(path: String) -> Bool {
         var folderIsEmpty = true
-        
+
         if let contents = try? FileManager.default.contentsOfDirectory(at: URL(fileURLWithPath: path), includingPropertiesForKeys: [.isDirectoryKey, .creationDateKey], options: []) {
             for url in contents {
                 var createdRecently = true
@@ -1656,7 +1701,7 @@ extension UserDefaults {
                         createdRecently = false
                     }
                 }
-                
+
                 if (try? url.resourceValues(forKeys: Set([.isDirectoryKey])))?.isDirectory ?? false {
                     if cleanTmpFolderRecursively(path: url.path) && !createdRecently {
                         try? FileManager.default.removeItem(at: url)
@@ -1672,10 +1717,10 @@ extension UserDefaults {
                 }
             }
         }
-        
+
         return folderIsEmpty
     }
-    
+
     private var backgroundSessionSourceDataDisposables: [String: Disposable] = [:]
     private var backgroundUploadResultSubscribers: [String: Bag<(String?) -> Void>] = [:]
     
@@ -1835,12 +1880,12 @@ extension UserDefaults {
                 for (_, context, _) in activeAccounts.accounts + activeAccounts.inactiveAccounts {
                     signals = signals |> then(context.account.cleanupTasks(lowImpact: lowImpact))
                 }
-                
+
                 signals = signals |> then (
                     sharedApplicationContext.sharedContext.accountManager.optimizeAllStorages(minFreePagesFraction: 0.2)
                     |> (lowImpact ? runOn(.concurrentBackgroundQueue()) : identity)
                 )
-                
+
                 // not touching inactive accounts
                 for (_, context, _) in activeAccounts.accounts {
                     signals = signals |> then (
@@ -1882,7 +1927,7 @@ extension UserDefaults {
     }
 
     private var lastResignActiveUptime: Int32?
-    
+
     func applicationWillResignActive(_ application: UIApplication) {
         self.isActiveValue = false
         self.isActivePromise.set(false)
@@ -1908,7 +1953,7 @@ extension UserDefaults {
             }
             return true
         })
-        
+
         self.lastResignActiveUptime = getDeviceUptimeSeconds(nil)
     }
 
@@ -1944,7 +1989,7 @@ extension UserDefaults {
                 UIApplication.shared.endBackgroundTask(taskId)
             }
         })
-        
+
         self.mainWindow.dismissSensitiveViewControllers()
         self.lastResignActiveUptime = nil
     }
@@ -1966,7 +2011,7 @@ extension UserDefaults {
         Queue.mainQueue().after(0.5, {
             self.runForegroundTasks()
         })
-        
+
         SharedDisplayLinkDriver.shared.updateForegroundState(self.isActiveValue)
     }
     
@@ -1988,7 +2033,7 @@ extension UserDefaults {
         if let lastResignActiveUptime = self.lastResignActiveUptime, getDeviceUptimeSeconds(nil) - lastResignActiveUptime >= 10 {
             self.mainWindow.dismissSensitiveViewControllers()
         }
-        
+
         self.isInForegroundValue = true
         self.isInForegroundPromise.set(true)
         self.isActiveValue = true
@@ -2000,7 +2045,7 @@ extension UserDefaults {
         #if canImport(AppCenter)
         self.maybeCheckForUpdates()
         #endif
-        
+
         SharedDisplayLinkDriver.shared.updateForegroundState(self.isActiveValue)
     }
     
@@ -2175,7 +2220,7 @@ extension UserDefaults {
         if !Logger.shared.redactSensitiveData {
             Logger.shared.log("App \(self.episodeId) PushRegistry", "decrypted payload: \(payloadJson)")
         }
-        
+
         guard var updateString = payloadJson["updates"] as? String else {
             Logger.shared.log("App \(self.episodeId) PushRegistry", "updates is nil")
             completion()
@@ -2197,7 +2242,7 @@ extension UserDefaults {
             completion()
             return
         }
-        
+
         let useCallKitIntegration: Signal<Bool, NoError>
         if #available(iOS 13.0, *) {
             useCallKitIntegration = .single(true)
@@ -2211,7 +2256,7 @@ extension UserDefaults {
                 return voiceCallSettings.enableSystemIntegration
             }
         }
-        
+
         let _ = (combineLatest(self.sharedContextPromise.get(), useCallKitIntegration)
         |> take(1)
         |> deliverOnMainQueue).start(next: { sharedApplicationContext, useCallKitIntegration in
@@ -2226,13 +2271,13 @@ extension UserDefaults {
                 completion()
                 return
             }
-            
+
             guard let callKitIntegration = CallKitIntegration.shared else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "CallKitIntegration is not available")
                 completion()
                 return
             }
-            
+
             let phoneNumber = payloadJson["phoneNumber"] as? String
 
             callKitIntegration.reportIncomingCall(
@@ -2257,7 +2302,7 @@ extension UserDefaults {
                     }
                 }
             )
-            
+
             let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
             |> take(1)
             |> deliverOnMainQueue).start(next: { activeAccounts in
@@ -2298,9 +2343,9 @@ extension UserDefaults {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "pushRegistry payload: \(payload.dictionaryPayload)")
                 sharedApplicationContext.notificationManager.addNotification(payload.dictionaryPayload)
             }
-            
+
             Logger.shared.log("App \(self.episodeId) PushRegistry", "Invoking completion handler")
-            
+
             completion()
         })
     }
@@ -2425,7 +2470,7 @@ extension UserDefaults {
                     |> take(1)
                     |> delay(0.1, queue: Queue.mainQueue()) // allow possible secret passcodes deactivations to be applied
                     |> deliverOnMainQueue).start(next: { _ in
-                    
+
                     let contactByIdentifier: Signal<EnginePeer?, NoError>
                     if let context = self.contextValue?.context, let contactIdentifier = contact.contactIdentifier {
                         contactByIdentifier = context.engine.contacts.findPeerByLocalContactIdentifier(identifier: contactIdentifier)
@@ -2485,7 +2530,7 @@ extension UserDefaults {
                     })
                     
                     })
-                    
+
                     return true
                 }
             } else if let sendMessageIntent = userActivity.interaction?.intent as? INSendMessageIntent {
@@ -2496,13 +2541,13 @@ extension UserDefaults {
                         |> take(1)
                         |> delay(0.1, queue: Queue.mainQueue()) // allow possible secret passcodes deactivations to be applied
                         |> deliverOnMainQueue).start(next: { _ in
-                        
+
                         guard PeerId(value).namespace == Namespaces.Peer.CloudUser else {
                             return
                         }
-                        
+
                         self.openChatWhenReady(accountId: nil, peerId: PeerId(value), threadId: nil, activateInput: true, storyId: nil)
-                        
+
                         })
                     }
                 }
@@ -2520,7 +2565,7 @@ extension UserDefaults {
                     guard peerId.namespace == Namespaces.Peer.CloudUser else {
                         return true
                     }
-                
+
                     let signal = self.sharedContextPromise.get()
                     |> take(1)
                     |> delay(0.1, queue: Queue.mainQueue()) // allow possible secret passcodes deactivations to be applied
@@ -2897,7 +2942,7 @@ extension UserDefaults {
     
     private func checkIncomingCallAndRefreshUnreadCountOfNonCurrentAccounts(_ accountIds: Set<AccountRecordId>?) {
         Logger.shared.log("App \(self.episodeId)", "checkIncomingCallAndRefreshUnreadCountOfNonCurrentAccounts: \(accountIds ?? [])")
-        
+
         let _ = (self.sharedContextPromise.get()
         |> take(1)
         |> deliverOnMainQueue).start(next: { sharedApplicationContext in
@@ -2912,7 +2957,7 @@ extension UserDefaults {
             })
         })
     }
-    
+
     private var lastCheckForUpdatesTimestamp: Double?
     private let currentCheckForUpdatesDisposable = MetaDisposable()
     
@@ -2967,7 +3012,7 @@ extension UserDefaults {
         #endif
     }
     #endif
-    
+
     override var next: UIResponder? {
         if let context = self.contextValue, let controller = context.context.keyShortcutsController {
             return controller
@@ -3156,4 +3201,23 @@ private func downloadHTTPData(url: URL) -> Signal<Data, DownloadFileError> {
             }
         }
     }
+}
+
+private func getMemoryConsumption() -> Int {
+    guard let memory_offset = MemoryLayout.offset(of: \task_vm_info_data_t.min_address) else {
+        return 0
+    }
+    let TASK_VM_INFO_COUNT = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
+    let TASK_VM_INFO_REV1_COUNT = mach_msg_type_number_t(memory_offset / MemoryLayout<integer_t>.size)
+    var info = task_vm_info_data_t()
+    var count = TASK_VM_INFO_COUNT
+    let kr = withUnsafeMutablePointer(to: &info) { infoPtr in
+        infoPtr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { intPtr in
+            task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), intPtr, &count)
+        }
+    }
+    guard kr == KERN_SUCCESS, count >= TASK_VM_INFO_REV1_COUNT else {
+        return 0
+    }
+    return Int(info.phys_footprint)
 }

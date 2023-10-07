@@ -33,6 +33,10 @@ public final class AnimationNode: ASDisplayNode {
         super.init()
         
         self.setViewBlock({ [weak self] in
+            guard let self else {
+                return UIView()
+            }
+
             var animation: Animation?
             if let animationName {
                 if let url = getAppBundle().url(forResource: animationName, withExtension: "json"), let maybeAnimation = Animation.filepath(url.path) {

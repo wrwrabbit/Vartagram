@@ -29,9 +29,9 @@ struct ChatListNodeViewUpdate {
     let scrollPosition: ChatListNodeViewScrollPosition?
 }
 
-public func chatListFilterPredicate(filter: ChatListFilterData) -> ChatListFilterPredicate {
-    let includePeers = Set(filter.includePeers.peers)
-    let excludePeers = Set(filter.excludePeers)
+public func chatListFilterPredicate(filter: ChatListFilterData, accountPeerId: EnginePeer.Id) -> ChatListFilterPredicate {
+    var includePeers = Set(filter.includePeers.peers)
+    var excludePeers = Set(filter.excludePeers)
     
     // commented out to fix bug: pinning user chat in folder hides secret chats of the same user
 //    if !filter.includePeers.pinnedPeers.isEmpty {
@@ -75,7 +75,7 @@ public func chatListFilterPredicate(filter: ChatListFilterData) -> ChatListFilte
                 return false
             }
         }
-        if !filter.categories.contains(.nonContacts) && !isContact {
+        if !filter.categories.contains(.nonContacts) && (!isContact && peer.id != accountPeerId) {
             if let user = peer as? TelegramUser {
                 if user.botInfo == nil {
                     return false
@@ -116,7 +116,7 @@ func chatListViewForLocation(chatListLocation: ChatListControllerLocation, locat
     case let .chatList(groupId):
         let filterPredicate: ChatListFilterPredicate?
         if let filter = location.filter, case let .filter(_, _, _, data) = filter {
-            filterPredicate = chatListFilterPredicate(filter: data)
+            filterPredicate = chatListFilterPredicate(filter: data, accountPeerId: account.peerId)
         } else {
             filterPredicate = nil
         }

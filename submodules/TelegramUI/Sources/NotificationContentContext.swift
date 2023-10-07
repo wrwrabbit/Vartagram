@@ -95,31 +95,31 @@ public final class NotificationViewControllerImpl {
         setupSharedLogger(rootPath: rootPath, path: logsPath)
         
         accountsPath = rootPath
-        
+
         initializeAccountManagement()
         let accountManager = AccountManager<TelegramAccountManagerTypes>(basePath: rootPath + "/accounts-metadata", isTemporary: true, isReadOnly: false, useCaches: false, removeDatabaseOnError: false)
-        
+
         var initialPresentationDataAndSettings: InitialPresentationDataAndSettings?
         var loggingSettings: LoggingSettings!
-        
+
         let loggingSettingsSignal = accountManager.transaction { transaction in
             return transaction.getSharedData(SharedDataKeys.loggingSettings)?.get(LoggingSettings.self) ?? LoggingSettings.defaultSettings
         }
-        
+
         let semaphore = DispatchSemaphore(value: 0)
-        let _ = combineLatest(currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: .light), loggingSettingsSignal).start(next: { value, ls in
+            let _ = currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: .light).startStandalone(next: { value in
             initialPresentationDataAndSettings = value
             loggingSettings = ls
             semaphore.signal()
         })
         semaphore.wait()
-        
+
         Logger.shared.logToFile = loggingSettings.logToFile
         Logger.shared.logToConsole = loggingSettings.logToConsole
         Logger.shared.redactSensitiveData = loggingSettings.redactSensitiveData
-        
+
         initialPresentationDataAndSettings = initialPresentationDataAndSettings!.withUpdatedPtgSecretPasscodes(initialPresentationDataAndSettings!.ptgSecretPasscodes.withCheckedTimeoutUsingLockStateFile(rootPath: rootPath))
-        
+
         if let sharedAccountContext = sharedAccountContext {
             (sharedAccountContext as! SharedAccountContextImpl).updatePtgSecretPasscodesPromise(.single(initialPresentationDataAndSettings!.ptgSecretPasscodes))
         } else {
@@ -160,7 +160,7 @@ public final class NotificationViewControllerImpl {
             sharedAccountContext = SharedAccountContextImpl(mainWindow: nil, sharedContainerPath: self.initializationData.appGroupPath, basePath: rootPath, encryptionParameters: ValueBoxEncryptionParameters(forceEncryptionIfNoSet: false, key: ValueBoxEncryptionParameters.Key(data: self.initializationData.encryptionParameters.0)!, salt: ValueBoxEncryptionParameters.Salt(data: self.initializationData.encryptionParameters.1)!), accountManager: accountManager, appLockContext: appLockContext, applicationBindings: applicationBindings, initialPresentationDataAndSettings: initialPresentationDataAndSettings!, networkArguments: NetworkInitializationArguments(apiId: self.initializationData.apiId, apiHash: self.initializationData.apiHash, languagesCategory: self.initializationData.languagesCategory, appVersion: self.initializationData.appVersion, voipMaxLayer: 0, voipVersions: [], appData: .single(self.initializationData.bundleData), autolockDeadine: .single(nil), encryptionProvider: OpenSSLEncryptionProvider(), deviceModelName: nil, useBetaFeatures: self.initializationData.useBetaFeatures, isICloudEnabled: false), hasInAppPurchases: false, rootPath: rootPath, legacyBasePath: nil, apsNotificationToken: .never(), voipNotificationToken: .never(), firebaseSecretStream: .never(), setNotificationCall: { _ in }, navigateToChat: { _, _, _ in }, appDelegate: nil)
             
             appLockContext.sharedAccountContext = sharedAccountContext
-            
+
             presentationDataPromise.set(sharedAccountContext!.presentationData)
         }
     }
@@ -254,7 +254,7 @@ public final class NotificationViewControllerImpl {
                         return (account, imageReference)
                 }
             }
-            |> deliverOnMainQueue).start(next: { [weak self] accountAndImage in
+            |> deliverOnMainQueue).startStrict(next: { [weak self] accountAndImage in
                 guard let strongSelf = self else {
                     return
                 }
@@ -262,7 +262,7 @@ public final class NotificationViewControllerImpl {
                     strongSelf.imageNode.setSignal(chatMessagePhoto(postbox: accountAndImage.0.postbox, userLocation: .other, photoReference: imageReference))
                     
                     accountAndImage.0.network.shouldExplicitelyKeepWorkerConnections.set(.single(true))
-                    strongSelf.fetchedDisposable.set(standaloneChatMessagePhotoInteractiveFetched(account: accountAndImage.0, userLocation: .other, photoReference: imageReference).start())
+                    strongSelf.fetchedDisposable.set(standaloneChatMessagePhotoInteractiveFetched(account: accountAndImage.0, userLocation: .other, photoReference: imageReference).startStrict())
                 }
             }))
         } else if let file = media as? TelegramMediaFile, let dimensions = file.dimensions {
@@ -305,7 +305,7 @@ public final class NotificationViewControllerImpl {
                     return (account, fileReference)
                 }
             }
-            |> deliverOnMainQueue).start(next: { [weak self, weak view] accountAndImage in
+            |> deliverOnMainQueue).startStrict(next: { [weak self, weak view] accountAndImage in
                 guard let strongSelf = self else {
                     return
                 }
@@ -340,7 +340,7 @@ public final class NotificationViewControllerImpl {
                         animatedStickerNode.visibility = true
                         
                         accountAndImage.0.network.shouldExplicitelyKeepWorkerConnections.set(.single(true))
-                        strongSelf.fetchedDisposable.set(freeMediaFileInteractiveFetched(account: accountAndImage.0, userLocation: .other, fileReference: fileReference).start())
+                        strongSelf.fetchedDisposable.set(freeMediaFileInteractiveFetched(account: accountAndImage.0, userLocation: .other, fileReference: fileReference).startStrict())
                     } else if file.isSticker {
                         if let animatedStickerNode = strongSelf.animatedStickerNode {
                             animatedStickerNode.removeFromSupernode()
@@ -351,7 +351,7 @@ public final class NotificationViewControllerImpl {
                         strongSelf.imageNode.setSignal(chatMessageSticker(account: accountAndImage.0, userLocation: .other, file: file, small: false))
                         
                         accountAndImage.0.network.shouldExplicitelyKeepWorkerConnections.set(.single(true))
-                        strongSelf.fetchedDisposable.set(freeMediaFileInteractiveFetched(account: accountAndImage.0, userLocation: .other, fileReference: fileReference).start())
+                        strongSelf.fetchedDisposable.set(freeMediaFileInteractiveFetched(account: accountAndImage.0, userLocation: .other, fileReference: fileReference).startStrict())
                     }
                 }
             }))

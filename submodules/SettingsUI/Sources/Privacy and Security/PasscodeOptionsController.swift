@@ -381,7 +381,7 @@ func passcodeOptionsController(context: AccountContext) -> ViewController {
     }
     
     controller.isSensitiveUI = true
-    
+
     return controller
 }
 
@@ -431,6 +431,79 @@ public func passcodeOptionsAccessController(context: AccountContext, animateIn: 
                     completion(true)
                 }
                 return succeed
+            }
+            return controller
+        }
+    }
+}
+
+public func passcodeEntryController(
+    context: AccountContext,
+    animateIn: Bool = true,
+    modalPresentation: Bool = false,
+    completion: @escaping (Bool) -> Void
+) -> Signal<ViewController?, NoError> {
+    return passcodeEntryController(
+        accountManager: context.sharedContext.accountManager,
+        applicationBindings: context.sharedContext.applicationBindings,
+        presentationData: context.sharedContext.currentPresentationData.with { $0 },
+        updatedPresentationData: context.sharedContext.presentationData,
+        statusBarHost: context.sharedContext.mainWindow?.statusBarHost,
+        appLockContext: context.sharedContext.appLockContext,
+        animateIn: animateIn,
+        modalPresentation: modalPresentation,
+        completion: completion
+    )
+}
+
+public func passcodeEntryController(
+    accountManager: AccountManager<TelegramAccountManagerTypes>,
+    applicationBindings: TelegramApplicationBindings,
+    presentationData: PresentationData,
+    updatedPresentationData: Signal<PresentationData, NoError>,
+    statusBarHost: StatusBarHost?,
+    appLockContext: AppLockContext,
+    animateIn: Bool = true,
+    modalPresentation: Bool = false,
+    completion: @escaping (Bool) -> Void
+) -> Signal<ViewController?, NoError> {
+    return accountManager.transaction { transaction -> PostboxAccessChallengeData in
+        return transaction.getAccessChallengeData()
+    }
+    |> mapToSignal { accessChallengeData -> Signal<(PostboxAccessChallengeData, PresentationPasscodeSettings?), NoError> in
+        return accountManager.transaction { transaction -> (PostboxAccessChallengeData, PresentationPasscodeSettings?) in
+            let passcodeSettings = transaction.getSharedData(ApplicationSpecificSharedDataKeys.presentationPasscodeSettings)?.get(PresentationPasscodeSettings.self)
+            return (accessChallengeData, passcodeSettings)
+        }
+    }
+    |> deliverOnMainQueue
+    |> map { (challenge, passcodeSettings) -> ViewController? in
+        if case .none = challenge {
+            completion(true)
+            return nil
+        } else {
+            let biometrics: PasscodeEntryControllerBiometricsMode
+            #if targetEnvironment(simulator)
+            biometrics = .enabled(nil)
+            #else
+            if let passcodeSettings = passcodeSettings, passcodeSettings.enableBiometrics {
+                biometrics = .enabled(applicationBindings.isMainApp ? passcodeSettings.biometricsDomainState : passcodeSettings.shareBiometricsDomainState)
+            } else {
+                biometrics = .none
+            }
+            #endif
+            let controller = PasscodeEntryController(applicationBindings: applicationBindings, accountManager: accountManager, appLockContext: appLockContext, presentationData: presentationData, presentationDataSignal: updatedPresentationData, statusBarHost: statusBarHost, challengeData: challenge, biometrics: biometrics, arguments: PasscodeEntryControllerPresentationArguments(animated: false, fadeIn: true, cancel: {
+                completion(false)
+            }, modalPresentation: modalPresentation))
+            controller.presentationCompleted = { [weak controller] in
+                Queue.mainQueue().after(0.5, { [weak controller] in
+                    controller?.requestBiometrics()
+                })
+            }
+            controller.completed = { [weak controller] in
+                controller?.dismiss(completion: {
+                    completion(true)
+                })
             }
             return controller
         }

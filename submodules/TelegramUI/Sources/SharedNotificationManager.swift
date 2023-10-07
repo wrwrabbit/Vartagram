@@ -59,7 +59,7 @@ public final class SharedNotificationManager {
         self.pollLiveLocationOnce = pollLiveLocationOnce
         
         self.inForegroundDisposable = (inForeground
-        |> deliverOnMainQueue).start(next: { [weak self] value in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] value in
             guard let strongSelf = self else {
                 return
             }
@@ -76,7 +76,7 @@ public final class SharedNotificationManager {
             }
             return combineLatest(signals)
         }
-        |> deliverOnMainQueue).start(next: { [weak self] accountsAndKeys in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] accountsAndKeys in
             guard let strongSelf = self else {
                 return
             }
@@ -136,7 +136,7 @@ public final class SharedNotificationManager {
             return .single(messageIds)
             |> delay(1.0, queue: Queue.mainQueue())
         }
-        |> deliverOnMainQueue).start(next: { [weak self, weak context] _ in
+        |> deliverOnMainQueue).startStrict(next: { [weak self, weak context] _ in
             guard let strongSelf = self else {
                 return
             }
@@ -378,9 +378,7 @@ public final class SharedNotificationManager {
                 self.clearNotificationsManager?.clearAll()
                 
                 if let accountManager = self.accountManager {
-                    let _ = logoutFromAccount(id: account.id, accountManager: accountManager, alreadyLoggedOutRemotely: true, getExcludedAccountIds: { transaction in
-                        return PtgSecretPasscodes(transaction).allHidableAccountIds()
-                    }).start()
+                    let _ = logoutFromAccount(id: account.id, accountManager: accountManager, alreadyLoggedOutRemotely: true).startStandalone()
                 }
                 return
             }
@@ -433,12 +431,12 @@ public final class SharedNotificationManager {
                 }
             }
         }
-        
+
         if !mayAddNotification {
             self.currentNotificationCall = nil
             return
         }
-        
+
         self.currentNotificationCall = call
         
         if let notificationCall = call {
@@ -508,8 +506,8 @@ public final class SharedNotificationManager {
                             return nil
                         }
                     }
-                    |> distinctUntilChanged(isEqual: { $0?.1 == $1?.1 }), notificationCall.context.isHidable).start(next: { [weak self] peerAndInternalId, isHidableAccount in
-                        self?.updateNotificationCall(call: peerAndInternalId, strings: strings, nameOrder: .firstLast, mayAddNotification: !isHidableAccount)
+                    |> distinctUntilChanged(isEqual: { $0?.1 == $1?.1 })).startStrict(next: { [weak self] peerAndInternalId in
+                        self?.updateNotificationCall(call: peerAndInternalId, strings: strings, nameOrder: .firstLast)
                     }))
             } else {
                 self.notificationCallStateDisposable.set(nil)

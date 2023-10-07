@@ -79,6 +79,7 @@ public struct Namespaces {
         public static let CloudEmojiStatusCategories: Int32 = 22
         public static let CloudFeaturedProfilePhotoEmoji: Int32 = 23
         public static let CloudFeaturedGroupPhotoEmoji: Int32 = 24
+        public static let NewSessionReviews: Int32 = 25
     }
     
     public struct CachedItemCollection {
@@ -108,7 +109,9 @@ public struct Namespaces {
         public static let cachedEmojiQueryResults: Int8 = 26
         public static let cachedPeerStoryListHeads: Int8 = 27
         public static let displayedStoryNotifications: Int8 = 28
-        
+        public static let storySendAsPeerIds: Int8 = 29
+        public static let cachedChannelBoosters: Int8 = 30
+
         // 64 - ...: ApplicationSpecificItemCacheCollectionIdValues
         // 100: CachedChannelAdminRanks
         // 101: CachedRecentPeers
