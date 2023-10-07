@@ -123,6 +123,9 @@
 "SecretPasscodeSettings.DeleteSecretPasscodeNotice" = "All accounts and secret chats specified here will become visible at all times.";
 "SecretPasscodeSettings.AtLeastOneAccountMustRemainUnhidden" = "At least one account must remain visible at all times.";
 "SecretPasscodeSettings.Intro" = "Specify secrets: accounts and secret chats that will be hidden until you enter this secret code.";
+"SecretPasscodeSettings.OnRevealNavigateTo" = "Navigate When Secrets are Revealed";
+"SecretPasscodeSettings.OnRevealNavigateTo.None" = "Disabled";
+"SecretPasscodeSettings_OnRevealNavigateToDesc" = "Specify account you want to switch to or secret chat you want to navigate to once you enter the secret code.";
 "Settings.EnterSecretPasscode" = "Enter Secret Code";
 "Settings.ManageSecretPasscodes" = "Manage Secret Codes";
 "SecretPasscodeMenu.Add" = "Add Secret Code";

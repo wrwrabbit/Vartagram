@@ -56,6 +56,9 @@
 "SecretPasscodeSettings.DeleteSecretPasscodeNotice" = "Усі зазначені тут акаунти і секретні чати стануть видимими весь час.";
 "SecretPasscodeSettings.AtLeastOneAccountMustRemainUnhidden" = "Принаймні один акаунт має залишатися видимим весь час.";
 "SecretPasscodeSettings.Intro" = "Вкажіть секрети: акаунти та секретні чати, які будуть приховані, поки ви не введете цей секретний код.";
+"SecretPasscodeSettings.OnRevealNavigateTo" = "Перехід при відкритті секретів";
+"SecretPasscodeSettings.OnRevealNavigateTo.None" = "Вимкнено";
+"SecretPasscodeSettings_OnRevealNavigateToDesc" = "Вкажіть акаунт, на який ви хочете переключитися, або секретний чат, у який ви хочете перейти після введення секретного коду.";
 "Settings.EnterSecretPasscode" = "Ввести секретний код";
 "Settings.ManageSecretPasscodes" = "Керувати секретними кодами";
 "SecretPasscodeMenu.Add" = "Додати секретний код";

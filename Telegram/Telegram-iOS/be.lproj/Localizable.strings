@@ -112,15 +112,18 @@
 "SecretPasscodeSettings.RepeatNewPasscode" = "Увядзіце новы сакрэтны код яшчэ раз";
 "SecretPasscodeSettings.AutoHide" = "Аўта-схаванне";
 "SecretPasscodeSettings.AutoHideDesc" = "Калі праграма неактыўна на працягу ўказанага перыяду часу, сакрэты аўтаматычна хаваюцца.";
-"SecretPasscodeSettings.AccountsHeader" = "Акаўнты якія хаваюцца";
+"SecretPasscodeSettings.AccountsHeader" = "Хаваемыя акаўнты";
 "SecretPasscodeSettings.AddAccount" = "Дадаць акаўнт";
-"SecretPasscodeSettings.SecretChatsHeader" = "Сакрэтныя чаты якія хаваюцца";
+"SecretPasscodeSettings.SecretChatsHeader" = "Хаваемыя сакрэтныя чаты";
 "SecretPasscodeSettings.AddSecretChats" = "Дадаць сакрэтныя чаты";
 "SecretPasscodeSettings.ChangePasscode" = "Змяніць код";
 "SecretPasscodeSettings.DeleteSecretPasscode" = "Выдаліць сакрэтны код";
 "SecretPasscodeSettings.DeleteSecretPasscodeNotice" = "Усе ўказаныя тут акаўнты і сакрэтныя чаты стануць бачнымі ўвесь час.";
 "SecretPasscodeSettings.AtLeastOneAccountMustRemainUnhidden" = "Прынамсі адзін акаўнт павінен заставацца бачным увесь час.";
 "SecretPasscodeSettings.Intro" = "Укажыце сакрэты: акаўнты і сакрэтныя чаты, якія будуць схаваны, пакуль вы не ўвядзеце гэты сакрэтны код.";
+"SecretPasscodeSettings.OnRevealNavigateTo" = "Пераход пры адкрыцці сакрэтаў";
+"SecretPasscodeSettings.OnRevealNavigateTo.None" = "Адключаны";
+"SecretPasscodeSettings_OnRevealNavigateToDesc" = "Укажыце акаўнт, на які вы хочаце пераключыцца, або сакрэтны чат, у які вы хочаце перайсці пасля ўводу сакрэтнага кода.";
 "Settings.EnterSecretPasscode" = "Увесці сакрэтны код";
 "Settings.ManageSecretPasscodes" = "Кіраваць сакрэтнымі кадамі";
 "SecretPasscodeMenu.Add" = "Дадаць сакрэтны код";
@@ -136,8 +139,8 @@
 "SecretPasscode.AccountSelectionTitle" = "Абярыце акаўнт";
 "SecretPasscode.SomeWidgetContainsChatsFromJustAddedAccount" = "Увага! Прынамсі ў адным з вашых віджэтаў ёсць чат(ы) з толькі што дададзенага акаўнта. Для абароны гэтага акаўнта выдаліце ўсе гэтыя чаты з канфігурацыі віджэтаў.";
 
-"FunctionalityUnavailableForHidableAccounts" = "Гэта функцыя недаступная для акаўнтаў якія хаваюцца.";
-"ContactsSyncHelpForHidableAccounts" = "Кантакты не сінхранізуюцца ў акаўнтах якія хаваюцца.";
+"FunctionalityUnavailableForHidableAccounts" = "Гэта функцыя недаступная для хаваемых акаўнтаў.";
+"ContactsSyncHelpForHidableAccounts" = "Кантакты не сінхранізуюцца ў хаваемых акаўнтах.";
 
 "PasscodeAttempts.TryAgainIn" = "Абарона ад атак грубай сілай. Паспрабуйце зноў праз %@.";
 

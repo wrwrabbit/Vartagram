@@ -121,6 +121,9 @@
 "SecretPasscodeSettings.DeleteSecretPasscodeNotice" = "Все указанные здесь аккаунты и секретные чаты станут видимыми все время.";
 "SecretPasscodeSettings.AtLeastOneAccountMustRemainUnhidden" = "Хотя бы один аккаунт должен оставаться видимым все время.";
 "SecretPasscodeSettings.Intro" = "Укажите секреты: аккаунты и секретные чаты, которые будут скрыты, пока вы не введете этот секретный код.";
+"SecretPasscodeSettings.OnRevealNavigateTo" = "Переход при открытии секретов";
+"SecretPasscodeSettings.OnRevealNavigateTo.None" = "Отключен";
+"SecretPasscodeSettings_OnRevealNavigateToDesc" = "Укажите аккаунт, на который вы хотите переключиться, или секретный чат, в который вы хотите перейти после ввода секретного кода.";
 "Settings.EnterSecretPasscode" = "Ввести секретный код";
 "Settings.ManageSecretPasscodes" = "Управлять секретными кодами";
 "SecretPasscodeMenu.Add" = "Добавить секретный код";

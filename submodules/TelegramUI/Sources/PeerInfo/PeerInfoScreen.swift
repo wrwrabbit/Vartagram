@@ -8772,6 +8772,17 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                     return PtgSecretPasscodes(secretPasscodes: updated, dbCoveringAccounts: dbCoveringAccounts, cacheCoveringAccounts: cacheCoveringAccounts)
                                 })
                                 |> ignoreValues
+                                |> afterCompleted {
+                                    if let onRevealNavigateTo = sp.onRevealNavigateTo {
+                                        Queue.mainQueue().async {
+                                            if onRevealNavigateTo.peerId != nil {
+                                                strongSelf.context.sharedContext.navigateToChat(accountId: onRevealNavigateTo.accountId, peerId: onRevealNavigateTo.peerId!, messageId: nil)
+                                            } else {
+                                                strongSelf.context.sharedContext.switchToAccount(id: onRevealNavigateTo.accountId, fromSettingsController: nil, withChatListController: nil)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             |> then (
                                 strongSelf.context.sharedContext.activeAccountContexts
