@@ -96,6 +96,7 @@
 "PtgSettings.JumpToNextUnreadChannel.TopFirst" = "Верхнія спачатку";
 "PtgSettings.JumpToNextUnreadChannel.BottomFirst" = "Ніжнія спачатку";
 "PtgSettings.HideSignatures" = "Хаваць подпісы";
+"PtgSettings.HideMuteUnmuteButton" = "Хаваць кнопку «(Не) апавяшчаць»";
 
 "Conversation.ContextMenuSaveMessage" = "Захаваць паведамленне";
 

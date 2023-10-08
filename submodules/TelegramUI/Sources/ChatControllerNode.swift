@@ -884,6 +884,31 @@ class ChatControllerNode: ASDisplayNode, UIScrollViewDelegate {
         }
     }
     
+    private func updateMuteUnmuteButtonVisibilityInChannels() {
+        guard let peer = self.chatPresentationInterfaceState.renderedPeer?.peer as? TelegramChannel, case .broadcast = peer.info, self.context.sharedContext.currentPtgSettings.with({ $0.hideMuteUnmuteButtonInChannels }) else {
+            return
+        }
+        
+        if self.inputPanelNode == nil {
+            if self.historyNode.isScrollAtBottomPositionUpdated == nil {
+                self.inputPanelClippingNode.alpha = self.historyNode.isScrollAtBottomPosition ? 1.0 : 0.0
+                self.historyNode.isScrollAtBottomPositionUpdated = { [weak self] in
+                    guard let strongSelf = self else {
+                        return
+                    }
+                    if strongSelf.historyNode.isScrollAtBottomPosition {
+                        strongSelf.inputPanelClippingNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25, removeOnCompletion: false)
+                    } else {
+                        strongSelf.inputPanelClippingNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25, removeOnCompletion: false)
+                    }
+                }
+            }
+        } else {
+            self.historyNode.isScrollAtBottomPositionUpdated = nil
+            self.inputPanelClippingNode.alpha = 1.0
+        }
+    }
+    
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition protoTransition: ContainedViewLayoutTransition, listViewTransaction: (ListViewUpdateSizeAndInsets, CGFloat, Bool, @escaping () -> Void) -> Void, updateExtraNavigationBarBackgroundHeight: (CGFloat, CGFloat, ContainedViewLayoutTransition) -> Void) {
         let transition: ContainedViewLayoutTransition
         if let _ = self.scheduledAnimateInAsOverlayFromNode {
@@ -1314,6 +1339,8 @@ class ChatControllerNode: ASDisplayNode, UIScrollViewDelegate {
             dismissedInputPanelNode = self.inputPanelNode
             self.inputPanelNode = nil
         }
+        
+        self.updateMuteUnmuteButtonVisibilityInChannels()
         
         if let secondaryInputPanelNode = inputPanelNodes.secondary, !previewing {
             if secondaryInputPanelNode !== self.secondaryInputPanelNode {

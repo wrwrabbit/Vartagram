@@ -7,13 +7,13 @@
 "PtgSettings.Title" = "Vartagram";
 "PtgSettings.ShowPeerId" = "Показувати ID профілів";
 "PtgSettings.ShowChannelCreationDate" = "Показувати дату створення каналів";
-"PtgSettings.SuppressForeignAgentNotice" = "Приховувати мітки іноагентів РФ";
+"PtgSettings.SuppressForeignAgentNotice" = "Приховати мітки іноагентів РФ";
 "PtgSettings.EnableQuickReaction" = "Швидкі реакції";
 "PtgSettings.EnableQuickReactionHelp" = "Увімкніть, щоб швидко залишати реакції, двічі торкаючись повідомлень або натискаючи на наявні реакції. Вимкніть, щоб запобігти випадковим реакціям.";
 "PtgSettings.ChannelAppearanceHeader" = "Подання каналів";
-"PtgSettings.HideReactions" = "Приховувати реакції";
-"PtgSettings.HideComments" = "Приховувати коментарі";
-"PtgSettings.HideShareButton" = "Приховувати кнопку пересилання";
+"PtgSettings.HideReactions" = "Приховати реакції";
+"PtgSettings.HideComments" = "Приховати коментарі";
+"PtgSettings.HideShareButton" = "Приховати кнопку пересилання";
 "PtgSettings.UseFullWidth" = "На всю ширину екрана";
 "PtgSettings.EnableLiveText" = "Текст наживо";
 "PtgSettings.EnableLiveTextHelp" = "Автоматично виконувати розпізнавання тексту і штрих-кодів (наприклад, QR-коду) на кожному зображенні, яке ви переглядаєте в повноекранному режимі. Вимкніть, щоб заощадити заряд батареї.";
@@ -30,7 +30,8 @@
 "PtgSettings.JumpToNextUnreadChannel.Disabled" = "Вимкнено";
 "PtgSettings.JumpToNextUnreadChannel.TopFirst" = "Верхні спочатку";
 "PtgSettings.JumpToNextUnreadChannel.BottomFirst" = "Нижні спочатку";
-"PtgSettings.HideSignatures" = "Приховувати підписи";
+"PtgSettings.HideSignatures" = "Приховати підписи";
+"PtgSettings.HideMuteUnmuteButton" = "Приховати кнопку «(Не) сповіщати»";
 
 "Conversation.ContextMenuSaveMessage" = "Зберегти повідомлення";
 
