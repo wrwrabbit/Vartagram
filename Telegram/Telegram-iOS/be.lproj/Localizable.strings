@@ -97,6 +97,8 @@
 "PtgSettings.JumpToNextUnreadChannel.BottomFirst" = "Ніжнія спачатку";
 "PtgSettings.HideSignatures" = "Хаваць подпісы";
 "PtgSettings.HideMuteUnmuteButton" = "Хаваць кнопку «(Не) апавяшчаць»";
+"PtgSettings.SwipeActionsForChats" = "Дзеянні пры змахванні чатаў";
+"PtgSettings.SwipeActionsForChatsHelp" = "Выключыце, каб прадухіліць выпадковыя дзеянні пры змахванні чатаў налева ці направа ў спісе чатаў. Усе гэтыя дзеянні таксама даступны ў кантэксным меню чатаў.";
 
 "Conversation.ContextMenuSaveMessage" = "Захаваць паведамленне";
 

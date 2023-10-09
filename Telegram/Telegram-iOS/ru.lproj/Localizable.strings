@@ -97,6 +97,8 @@
 "PtgSettings.JumpToNextUnreadChannel.BottomFirst" = "Нижние сначала";
 "PtgSettings.HideSignatures" = "Скрывать подписи";
 "PtgSettings.HideMuteUnmuteButton" = "Скрывать кнопку «Вкл./Убрать звук»";
+"PtgSettings.SwipeActionsForChats" = "Действия при смахивании чатов";
+"PtgSettings.SwipeActionsForChatsHelp" = "Выключите, чтобы предотвратить случайные действия при смахивании чатов влево или вправо в списке чатов. Все эти действия также доступны в контекстном меню чатов.";
 
 "Conversation.ContextMenuSaveMessage" = "Сохранить сообщение";
 

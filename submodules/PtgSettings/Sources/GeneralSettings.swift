@@ -26,6 +26,7 @@ public struct PtgSettings: Codable, Equatable {
     public let jumpToNextUnreadChannel: JumpToNextUnreadChannel
     public let hideSignatureInChannels: Bool
     public let hideMuteUnmuteButtonInChannels: Bool
+    public let disableSwipeActionsForChats: Bool
     public let testToolsEnabled: Bool?
     
     public static var defaultSettings: PtgSettings {
@@ -43,6 +44,7 @@ public struct PtgSettings: Codable, Equatable {
             jumpToNextUnreadChannel: .topFirst,
             hideSignatureInChannels: false,
             hideMuteUnmuteButtonInChannels: false,
+            disableSwipeActionsForChats: false,
             testToolsEnabled: nil
         )
     }
@@ -61,6 +63,7 @@ public struct PtgSettings: Codable, Equatable {
         jumpToNextUnreadChannel: JumpToNextUnreadChannel,
         hideSignatureInChannels: Bool,
         hideMuteUnmuteButtonInChannels: Bool,
+        disableSwipeActionsForChats: Bool,
         testToolsEnabled: Bool?
     ) {
         self.showPeerId = showPeerId
@@ -76,6 +79,7 @@ public struct PtgSettings: Codable, Equatable {
         self.jumpToNextUnreadChannel = jumpToNextUnreadChannel
         self.hideSignatureInChannels = hideSignatureInChannels
         self.hideMuteUnmuteButtonInChannels = hideMuteUnmuteButtonInChannels
+        self.disableSwipeActionsForChats = disableSwipeActionsForChats
         self.testToolsEnabled = testToolsEnabled
     }
     
@@ -95,6 +99,7 @@ public struct PtgSettings: Codable, Equatable {
         self.jumpToNextUnreadChannel = (try container.decodeIfPresent(Int32.self, forKey: "jtnuc")).flatMap({ JumpToNextUnreadChannel(rawValue: $0) }) ?? .topFirst
         self.hideSignatureInChannels = (try container.decodeIfPresent(Int32.self, forKey: "hsic") ?? 0) != 0
         self.hideMuteUnmuteButtonInChannels = (try container.decodeIfPresent(Int32.self, forKey: "hmubic") ?? 0) != 0
+        self.disableSwipeActionsForChats = (try container.decodeIfPresent(Int32.self, forKey: "dsafc") ?? 0) != 0
         self.testToolsEnabled = try container.decodeIfPresent(Int32.self, forKey: "test").flatMap({ $0 != 0 })
     }
     
@@ -114,6 +119,7 @@ public struct PtgSettings: Codable, Equatable {
         try container.encode(self.jumpToNextUnreadChannel.rawValue, forKey: "jtnuc")
         try container.encode((self.hideSignatureInChannels ? 1 : 0) as Int32, forKey: "hsic")
         try container.encode((self.hideMuteUnmuteButtonInChannels ? 1 : 0) as Int32, forKey: "hmubic")
+        try container.encode((self.disableSwipeActionsForChats ? 1 : 0) as Int32, forKey: "dsafc")
         try container.encodeIfPresent(self.testToolsEnabled.flatMap({ ($0 ? 1 : 0) as Int32 }), forKey: "test")
     }
     
