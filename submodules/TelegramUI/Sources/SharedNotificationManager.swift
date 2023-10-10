@@ -378,7 +378,9 @@ public final class SharedNotificationManager {
                 self.clearNotificationsManager?.clearAll()
                 
                 if let accountManager = self.accountManager {
-                    let _ = logoutFromAccount(id: account.id, accountManager: accountManager, alreadyLoggedOutRemotely: true).startStandalone()
+                    let _ = logoutFromAccount(id: account.id, accountManager: accountManager, alreadyLoggedOutRemotely: true, getExcludedAccountIds: { transaction in
+                        return PtgSecretPasscodes(transaction).allHidableAccountIds()
+                    }).startStandalone()
                 }
                 return
             }
@@ -431,12 +433,12 @@ public final class SharedNotificationManager {
                 }
             }
         }
-
+        
         if !mayAddNotification {
             self.currentNotificationCall = nil
             return
         }
-
+        
         self.currentNotificationCall = call
         
         if let notificationCall = call {
@@ -506,8 +508,8 @@ public final class SharedNotificationManager {
                             return nil
                         }
                     }
-                    |> distinctUntilChanged(isEqual: { $0?.1 == $1?.1 })).startStrict(next: { [weak self] peerAndInternalId in
-                        self?.updateNotificationCall(call: peerAndInternalId, strings: strings, nameOrder: .firstLast)
+                    |> distinctUntilChanged(isEqual: { $0?.1 == $1?.1 }), notificationCall.context.isHidable).startStrict(next: { [weak self] peerAndInternalId, isHidableAccount in
+                        self?.updateNotificationCall(call: peerAndInternalId, strings: strings, nameOrder: .firstLast, mayAddNotification: !isHidableAccount)
                     }))
             } else {
                 self.notificationCallStateDisposable.set(nil)

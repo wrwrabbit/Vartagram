@@ -37,13 +37,15 @@ public func suspendAwareDelay<T, E>(_ timeout: Double, granularity: Double = 4.0
         return Signal<T, E> { subscriber in
             let timerDisposable = MetaDisposable()
             let runDisposable = MetaDisposable()
-
+            
             queue.async {
                 let beginTimestamp = CFAbsoluteTimeGetCurrent()
                 
                 let startFinalTimer: () -> Void = {
                     let finalTimeout = beginTimestamp + timeout - CFAbsoluteTimeGetCurrent()
-                    let timer = Timer(timeout: max(0.0, finalTimeout), repeat: false, completion: {
+                    // when app restored from suspended state, many timers may trigger immediately
+                    // since we may need to quickly hide some secrets, delay these tasks for 0.5 seconds
+                    let timer = Timer(timeout: max(0.5, finalTimeout), repeat: false, completion: {
                         runDisposable.set(signal.start(next: { next in
                             subscriber.putNext(next)
                         }, error: { error in
@@ -72,9 +74,9 @@ public func suspendAwareDelay<T, E>(_ timeout: Double, granularity: Double = 4.0
                         }
                     }, queue: queue)
                     
-                    invalidateImpl = { [weak timer] in
+                    invalidateImpl = {
                         queue.async {
-                            timer?.invalidate()
+                            timer.invalidate()
                         }
                     }
                     

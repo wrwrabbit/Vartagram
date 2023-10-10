@@ -1245,7 +1245,7 @@ public final class ChatListNode: ListView {
     public var reachedSelectionLimit: ((Int32) -> Void)?
     
     private let inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError>
-
+    
     private var visibleTopInset: CGFloat?
     private var originalTopInset: CGFloat?
     
@@ -1257,7 +1257,7 @@ public final class ChatListNode: ListView {
     private var pollFilterUpdatesDisposable: Disposable?
     private var chatFilterUpdatesDisposable: Disposable?
     private var updateIsMainTabDisposable: Disposable?
-
+    
     public var scrollHeightTopInset: CGFloat {
         didSet {
             self.keepMinimalScrollHeightWithTopInset = self.scrollHeightTopInset
@@ -1270,8 +1270,8 @@ public final class ChatListNode: ListView {
     
     public let isMainTab = ValuePromise<Bool>(false, ignoreRepeated: true)
     private let suggestedChatListNotice = Promise<ChatListNotice?>(nil)
-
-    public init(context: AccountContext, location: ChatListControllerLocation, chatListFilter: ChatListFilter? = nil, previewing: Bool, fillPreloadItems: Bool, mode: ChatListNodeMode, isPeerEnabled: ((EnginePeer) -> Bool)? = nil, theme: PresentationTheme, fontSize: PresentationFontSize, strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, nameSortOrder: PresentationPersonNameOrder, nameDisplayOrder: PresentationPersonNameOrder, animationCache: AnimationCache, animationRenderer: MultiAnimationRenderer, disableAnimations: Bool, isInlineMode: Bool, autoSetReady: Bool, isMainTab: Bool?) {
+    
+    public init(context: AccountContext, location: ChatListControllerLocation, chatListFilter: ChatListFilter? = nil, previewing: Bool, fillPreloadItems: Bool, mode: ChatListNodeMode, isPeerEnabled: ((EnginePeer) -> Bool)? = nil, theme: PresentationTheme, fontSize: PresentationFontSize, strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, nameSortOrder: PresentationPersonNameOrder, nameDisplayOrder: PresentationPersonNameOrder, animationCache: AnimationCache, animationRenderer: MultiAnimationRenderer, disableAnimations: Bool, isInlineMode: Bool, autoSetReady: Bool, isMainTab: Bool?, inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError>? = nil) {
         self.context = context
         self.location = location
         self.chatListFilter = chatListFilter
@@ -1288,7 +1288,7 @@ public final class ChatListNode: ListView {
         
         let inactiveSecretChatPeerIds = inactiveSecretChatPeerIds ?? context.inactiveSecretChatPeerIds
         self.inactiveSecretChatPeerIds = inactiveSecretChatPeerIds
-
+        
         var isSelecting = false
         if case .peers(_, true, _, _, _, _) = mode {
             isSelecting = true
@@ -1306,7 +1306,7 @@ public final class ChatListNode: ListView {
         if case .internal = context.sharedContext.applicationBindings.appBuildType {
             //self.useMainQueueTransactions = true
         }
-
+        
         self.verticalScrollIndicatorColor = theme.list.scrollIndicatorColor
         self.verticalScrollIndicatorFollowsOverscroll = true
         
@@ -1617,7 +1617,7 @@ public final class ChatListNode: ListView {
             guard let self else {
                 return
             }
-
+            
             let activeSessionsContext = self.context.engine.privacy.activeSessions()
             let _ = (activeSessionsContext.state
             |> filter { state in
@@ -1628,7 +1628,7 @@ public final class ChatListNode: ListView {
                 guard let self else {
                     return
                 }
-
+                
                 let recentSessionsController = self.context.sharedContext.makeRecentSessionsController(context: self.context, activeSessionsContext: activeSessionsContext)
                 self.push?(recentSessionsController)
             })
@@ -1636,10 +1636,10 @@ public final class ChatListNode: ListView {
             guard let self else {
                 return
             }
-
+            
             if isPositive {
                 let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
-
+                
                 let animationBackgroundColor: UIColor
                 if presentationData.theme.overallDarkAppearance {
                     animationBackgroundColor = presentationData.theme.rootController.tabBar.backgroundColor
@@ -1653,14 +1653,14 @@ public final class ChatListNode: ListView {
                     default:
                         break
                     }
-
+                    
                     return true
                 }))
-
+                
                 let _ = self.context.engine.privacy.confirmNewSessionReview(id: newSessionReview.id).startStandalone()
             } else {
                 self.push?(NewSessionInfoScreen(context: self.context, newSessionReview: newSessionReview))
-
+                
                 //#if DEBUG
                 //#else
                 let _ = self.context.engine.privacy.terminateAnotherSession(id: newSessionReview.id).startStandalone()
@@ -1769,16 +1769,16 @@ public final class ChatListNode: ListView {
             guard let self else {
                 return
             }
-
+            
             guard case .chatList(groupId: .root) = location, isMainTab else {
                 self.suggestedChatListNotice.set(.single(nil))
                 return
             }
-
+            
             let _ = context.engine.privacy.cleanupSessionReviews().startStandalone()
-
+            
             let twoStepData: Signal<TwoStepVerificationConfiguration?, NoError> = .single(nil) |> then(context.engine.auth.twoStepVerificationConfiguration() |> map(Optional.init))
-
+            
             let suggestedChatListNoticeSignal: Signal<ChatListNotice?, NoError> = combineLatest(
                 getServerProvidedSuggestions(account: context.account),
                 twoStepData,
@@ -1828,7 +1828,7 @@ public final class ChatListNode: ListView {
                                     break
                                 }
                             }
-
+                            
                             return nil
                         } else {
                             return nil
@@ -1839,7 +1839,7 @@ public final class ChatListNode: ListView {
                 }
             }
             |> distinctUntilChanged
-
+            
             self.suggestedChatListNotice.set(suggestedChatListNoticeSignal)
         }).strict()
         
@@ -2055,7 +2055,7 @@ public final class ChatListNode: ListView {
             }
             
             let innerIsMainTab = location == .chatList(groupId: .root) && chatListFilter == nil
-
+            
             let (rawEntries, isLoading) = chatListNodeEntriesForView(view: update.list, state: state, savedMessagesPeer: savedMessagesPeer, foundPeers: state.foundPeers, hideArchivedFolderByDefault: hideArchivedFolderByDefault, displayArchiveIntro: displayArchiveIntro, notice: notice, mode: mode, chatListLocation: location, contacts: contacts, accountPeerId: accountPeerId, isMainTab: innerIsMainTab)
             var isEmpty = true
             var entries = rawEntries.filter { entry in
@@ -2997,11 +2997,11 @@ public final class ChatListNode: ListView {
             guard let self else {
                 return UIEdgeInsets()
             }
-
+            
             let _ = self
             return UIEdgeInsets()
         }
-
+        
         self.pollFilterUpdates()
         self.resetFilter()
         

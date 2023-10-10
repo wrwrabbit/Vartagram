@@ -1,3 +1,4 @@
+import PtgSettings
 import PtgForeignAgentNoticeRemoval
 
 import Foundation
@@ -307,16 +308,16 @@ public protocol ShareControllerEnvironment: AnyObject {
     var updatedPresentationData: Signal<PresentationData, NoError> { get }
     var isMainApp: Bool { get }
     var energyUsageSettings: EnergyUsageSettings { get }
-
+    
     var mediaManager: MediaManager? { get }
-
+    
     func setAccountUserInterfaceInUse(id: AccountRecordId) -> Disposable
     func donateSendMessageIntent(account: ShareControllerAccountContext, peerIds: [EnginePeer.Id])
 }
 
 public final class ShareControllerAppEnvironment: ShareControllerEnvironment {
     let sharedContext: SharedAccountContext
-
+    
     public private(set) var presentationData: PresentationData
     public var updatedPresentationData: Signal<PresentationData, NoError> {
         return self.sharedContext.presentationData
@@ -327,21 +328,21 @@ public final class ShareControllerAppEnvironment: ShareControllerEnvironment {
     public var energyUsageSettings: EnergyUsageSettings {
         return self.sharedContext.energyUsageSettings
     }
-
+    
     public var mediaManager: MediaManager? {
         return self.sharedContext.mediaManager
     }
-
+    
     public init(sharedContext: SharedAccountContext) {
         self.sharedContext = sharedContext
-
+        
         self.presentationData = sharedContext.currentPresentationData.with { $0 }
     }
-
+    
     public func setAccountUserInterfaceInUse(id: AccountRecordId) -> Disposable {
         return self.sharedContext.setAccountUserInterfaceInUse(id)
     }
-
+    
     public func donateSendMessageIntent(account: ShareControllerAccountContext, peerIds: [EnginePeer.Id]) {
         if let account = account as? ShareControllerAppAccountContext {
             TelegramIntents.donateSendMessageIntent(account: account.context.account, sharedContext: self.sharedContext, intentContext: .share, peerIds: peerIds)
@@ -359,13 +360,16 @@ public protocol ShareControllerAccountContext: AnyObject {
     var animationRenderer: MultiAnimationRenderer { get }
     var contentSettings: ContentSettings { get }
     var appConfiguration: AppConfiguration { get }
-
+    
+    var ptgSettings: PtgSettings { get }
+    var inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError> { get }
+    
     func resolveInlineStickers(fileIds: [Int64]) -> Signal<[Int64: TelegramMediaFile], NoError>
 }
 
 public final class ShareControllerAppAccountContext: ShareControllerAccountContext {
     public let context: AccountContext
-
+    
     public var accountId: AccountRecordId {
         return self.context.account.id
     }
@@ -387,11 +391,19 @@ public final class ShareControllerAppAccountContext: ShareControllerAccountConte
     public var appConfiguration: AppConfiguration {
         return self.context.currentAppConfiguration.with { $0 }
     }
-
+    
+    public var ptgSettings: PtgSettings {
+        return self.context.sharedContext.currentPtgSettings.with { $0 }
+    }
+    
+    public var inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError> {
+        return self.context.inactiveSecretChatPeerIds
+    }
+    
     public init(context: AccountContext) {
         self.context = context
     }
-
+    
     public func resolveInlineStickers(fileIds: [Int64]) -> Signal<[Int64: TelegramMediaFile], NoError> {
         return self.context.engine.stickers.resolveInlineStickers(fileIds: fileIds)
     }
@@ -400,12 +412,12 @@ public final class ShareControllerAppAccountContext: ShareControllerAccountConte
 public final class ShareControllerSwitchableAccount: Equatable {
     public let account: ShareControllerAccountContext
     public let peer: Peer
-
+    
     public init(account: ShareControllerAccountContext, peer: Peer) {
         self.account = account
         self.peer = peer
     }
-
+    
     public static func ==(lhs: ShareControllerSwitchableAccount, rhs: ShareControllerSwitchableAccount) -> Bool {
         if lhs.account !== rhs.account {
             return false
@@ -679,7 +691,7 @@ public final class ShareController: ViewController {
         self.readyDisposable.dispose()
         self.accountActiveDisposable.dispose()
         self.presentationDataDisposable?.dispose()
-
+        
         if self.fromForeignApp {
             if let application = UIApplication.value(forKeyPath: #keyPath(UIApplication.shared)) as? UIApplication {
                 application.isIdleTimerDisabled = false
@@ -982,7 +994,7 @@ public final class ShareController: ViewController {
                     useLegacy = true
                 }
             }
-
+            
             if useLegacy {
                 return self.shareLegacy(text: text, peerIds: peerIds, topicIds: topicIds, showNames: showNames, silently: silently)
             } else {
@@ -1017,9 +1029,13 @@ public final class ShareController: ViewController {
                     case let .messages(messages):
 //                        messagesToShare = messages
                         for message in messages {
+                            let shouldSuppressForeignAgentNotice = message.isPeerOrForwardSourceBroadcastChannel && strongSelf.currentContext.ptgSettings.suppressForeignAgentNotice
+                            
+                            let message_ = shouldSuppressForeignAgentNotice ? removeForeignAgentNotice(message: message) : message
+                            
                             var url: String?
                             var selectedMedia: Media?
-                            loop: for media in message.media {
+                            loop: for media in message_.media {
                                 switch media {
                                     case _ as TelegramMediaImage, _ as TelegramMediaFile:
                                         selectedMedia = media
@@ -1056,18 +1072,18 @@ public final class ShareController: ViewController {
                             } else {
                                 authorPeerId = accountPeerId
                             }
-
+                            
                             var restrictedText: String?
                             for attribute in message.attributes {
                                 if let attribute = attribute as? RestrictedContentMessageAttribute {
                                     restrictedText = attribute.platformText(platform: "ios", contentSettings: strongSelf.currentContext.contentSettings) ?? ""
                                 }
                             }
-
+                            
                             if let restrictedText = restrictedText {
                                 collectableItems.append(CollectableExternalShareItem(url: url, text: restrictedText, author: authorPeerId, timestamp: message.timestamp, mediaReference: nil))
                             } else {
-                                collectableItems.append(CollectableExternalShareItem(url: url, text: message.text, author: authorPeerId, timestamp: message.timestamp, mediaReference: selectedMedia.flatMap({ AnyMediaReference.message(message: MessageReference(message), media: $0) })))
+                                collectableItems.append(CollectableExternalShareItem(url: url, text: message_.text, author: authorPeerId, timestamp: message.timestamp, mediaReference: selectedMedia.flatMap({ AnyMediaReference.message(message: MessageReference(message_), media: $0) })))
                             }
                         }
                     case .fromExternal:
@@ -1099,7 +1115,7 @@ public final class ShareController: ViewController {
                                         }
                                     }
                                 }
-
+                                
                                 let activities: [UIActivity]? = nil
                                 let _ = (strongSelf.didAppearPromise.get()
                                 |> filter { $0 }
@@ -1129,7 +1145,7 @@ public final class ShareController: ViewController {
                 return
             }
             strongSelf.controllerNode.animateOut(shared: false, completion: {})
-
+            
             let presentationData = strongSelf.environment.presentationData
             let controller = ActionSheetController(presentationData: presentationData)
             controller.dismissed = { [weak self] cancelled in
@@ -1168,7 +1184,7 @@ public final class ShareController: ViewController {
             self?.debugAction?()
         }
         self.displayNodeDidLoad()
-
+        
         self.peersDisposable.set((self.peers.get()
         |> deliverOnMainQueue).start(next: { [weak self] next in
             if let strongSelf = self {
@@ -1177,11 +1193,11 @@ public final class ShareController: ViewController {
         }))
         self._ready.set(self.controllerNode.ready.get())
     }
-
+    
     override public func loadView() {
         super.loadView()
     }
-
+    
     private func shareModern(text: String, peerIds: [EnginePeer.Id], topicIds: [EnginePeer.Id: Int64], showNames: Bool, silently: Bool) -> Signal<ShareState, ShareControllerError> {
         return self.currentContext.stateManager.postbox.combinedView(
             keys: peerIds.map { peerId in
@@ -1204,14 +1220,14 @@ public final class ShareController: ViewController {
             guard let strongSelf = self else {
                 return .complete()
             }
-
+            
             var shareSignals: [Signal<StandaloneSendMessageStatus, StandaloneSendMessagesError>] = []
             var subject = strongSelf.subject
             if let segmentedValues = strongSelf.segmentedValues {
                 let selectedValue = segmentedValues[strongSelf.controllerNode.selectedSegmentedIndex]
                 subject = selectedValue.subject
             }
-
+            
             func transformMessages(_ messages: [StandaloneSendEnqueueMessage], showNames: Bool, silently: Bool) -> [StandaloneSendEnqueueMessage] {
                 return messages.map { message in
                     var message = message
@@ -1227,32 +1243,32 @@ public final class ShareController: ViewController {
                     return message
                 }
             }
-
+            
             switch subject {
             case let .url(url):
                 for peerId in peerIds {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendText = false
                     if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendText) != nil {
                         banSendText = true
                     } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendText) {
                         banSendText = true
                     }
-
+                    
                     if banSendText {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [StandaloneSendEnqueueMessage] = []
                     if !text.isEmpty {
                         messages.append(StandaloneSendEnqueueMessage(
@@ -1296,25 +1312,25 @@ public final class ShareController: ViewController {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendText = false
                     if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendText) != nil {
                         banSendText = true
                     } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendText) {
                         banSendText = true
                     }
-
+                    
                     if banSendText {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [StandaloneSendEnqueueMessage] = []
                     if !text.isEmpty {
                         messages.append(StandaloneSendEnqueueMessage(
@@ -1357,25 +1373,25 @@ public final class ShareController: ViewController {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendText = false
                     if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendText) != nil {
                         banSendText = true
                     } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendText) {
                         banSendText = true
                     }
-
+                    
                     if banSendText {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [StandaloneSendEnqueueMessage] = []
                     if !text.isEmpty {
                         messages.append(StandaloneSendEnqueueMessage(
@@ -1389,7 +1405,7 @@ public final class ShareController: ViewController {
                     let attributedText = NSMutableAttributedString(string: string, attributes: [ChatTextInputAttributes.italic: true as NSNumber])
                     attributedText.append(NSAttributedString(string: "\n\n\(url)"))
                     let entities = generateChatInputTextEntities(attributedText)
-
+                    
                     messages.append(StandaloneSendEnqueueMessage(
                         content: .text(text: StandaloneSendEnqueueMessage.Text(
                             string: attributedText.string,
@@ -1422,27 +1438,27 @@ public final class ShareController: ViewController {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendPhotos = false
                     if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendPhotos) != nil {
                         banSendPhotos = true
                     } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendPhotos) {
                         banSendPhotos = true
                     }
-
+                    
                     if banSendPhotos {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [StandaloneSendEnqueueMessage] = []
-
+                    
                     if let representation = representations.last {
                         messages.append(StandaloneSendEnqueueMessage(
                             content: .image(
@@ -1482,12 +1498,12 @@ public final class ShareController: ViewController {
                 if mediaReference.media is TelegramMediaImage || mediaReference.media is TelegramMediaFile {
                     sendTextAsCaption = true
                 }
-
+                
                 for peerId in peerIds {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendType = false
                     if mediaReference.media is TelegramMediaImage {
                         if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendPhotos) != nil {
@@ -1534,18 +1550,18 @@ public final class ShareController: ViewController {
                             }
                         }
                     }
-
+                    
                     if banSendType {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [StandaloneSendEnqueueMessage] = []
                     if !text.isEmpty && !sendTextAsCaption {
                         messages.append(StandaloneSendEnqueueMessage(
@@ -1556,7 +1572,7 @@ public final class ShareController: ViewController {
                             replyToMessageId: replyToMessageId
                         ))
                     }
-
+                    
                     messages.append(StandaloneSendEnqueueMessage(
                         content: .arbitraryMedia(
                             media: mediaReference,
@@ -1592,25 +1608,25 @@ public final class ShareController: ViewController {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendText = false
                     if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendText) != nil {
                         banSendText = true
                     } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendText) {
                         banSendText = true
                     }
-
+                    
                     if banSendText {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [StandaloneSendEnqueueMessage] = []
                     if !text.isEmpty {
                         messages.append(StandaloneSendEnqueueMessage(
@@ -1621,7 +1637,7 @@ public final class ShareController: ViewController {
                             replyToMessageId: replyToMessageId
                         ))
                     }
-
+                    
                     messages.append(StandaloneSendEnqueueMessage(
                         content: .map(map: media),
                         replyToMessageId: replyToMessageId
@@ -1651,14 +1667,14 @@ public final class ShareController: ViewController {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     var threadId: Int64?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                         threadId = topicId
                     }
-
+                    
                     var messagesToEnqueue: [StandaloneSendEnqueueMessage] = []
                     if !text.isEmpty {
                         var banSendText = false
@@ -1667,13 +1683,13 @@ public final class ShareController: ViewController {
                         } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendText) {
                             banSendText = true
                         }
-
+                        
                         if banSendText {
                             strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                            
                             return .fail(.generic)
                         }
-
+                        
                         messagesToEnqueue.append(StandaloneSendEnqueueMessage(
                             content: .text(text: StandaloneSendEnqueueMessage.Text(
                                 string: text,
@@ -1730,14 +1746,14 @@ public final class ShareController: ViewController {
                                     }
                                 }
                             }
-
+                            
                             if banSendType {
                                 strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                                
                                 return .fail(.generic)
                             }
                         }
-
+                        
                         messagesToEnqueue.append(StandaloneSendEnqueueMessage(
                             content: .forward(forward: StandaloneSendEnqueueMessage.Forward(
                                 sourceId: message.id,
@@ -1805,7 +1821,7 @@ public final class ShareController: ViewController {
                         }
                     })
                 }
-
+                
                 return .single([])
             }
             |> mapToSignal { progressSets -> Signal<ShareState, ShareControllerError> in
@@ -1821,7 +1837,7 @@ public final class ShareController: ViewController {
             }
         }
     }
-
+    
     private func shareLegacy(text: String, peerIds: [EnginePeer.Id], topicIds: [EnginePeer.Id: Int64], showNames: Bool, silently: Bool) -> Signal<ShareState, ShareControllerError> {
         guard let currentContext = self.currentContext as? ShareControllerAppAccountContext else {
             return .single(.done)
@@ -1835,14 +1851,14 @@ public final class ShareController: ViewController {
             guard let strongSelf = self, let currentContext = strongSelf.currentContext as? ShareControllerAppAccountContext else {
                 return .complete()
             }
-
+            
             var shareSignals: [Signal<[MessageId?], NoError>] = []
             var subject = strongSelf.subject
             if let segmentedValues = strongSelf.segmentedValues {
                 let selectedValue = segmentedValues[strongSelf.controllerNode.selectedSegmentedIndex]
                 subject = selectedValue.subject
             }
-
+            
             func transformMessages(_ messages: [EnqueueMessage], showNames: Bool, silently: Bool) -> [EnqueueMessage] {
                 return messages.map { message in
                     return message.withUpdatedAttributes({ attributes in
@@ -1857,32 +1873,32 @@ public final class ShareController: ViewController {
                     })
                 }
             }
-
+            
             switch subject {
             case let .url(url):
                 for peerId in peerIds {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendText = false
                     if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendText) != nil {
                         banSendText = true
                     } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendText) {
                         banSendText = true
                     }
-
+                    
                     if banSendText {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [EnqueueMessage] = []
                     if !text.isEmpty {
                         messages.append(.message(text: url + "\n\n" + text, attributes: [], inlineStickers: [:], mediaReference: nil, replyToMessageId: replyToMessageId, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: []))
@@ -1897,25 +1913,25 @@ public final class ShareController: ViewController {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendText = false
                     if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendText) != nil {
                         banSendText = true
                     } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendText) {
                         banSendText = true
                     }
-
+                    
                     if banSendText {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [EnqueueMessage] = []
                     if !text.isEmpty {
                         messages.append(.message(text: text, attributes: [], inlineStickers: [:], mediaReference: nil, replyToMessageId: replyToMessageId, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: []))
@@ -1929,25 +1945,25 @@ public final class ShareController: ViewController {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendText = false
                     if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendText) != nil {
                         banSendText = true
                     } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendText) {
                         banSendText = true
                     }
-
+                    
                     if banSendText {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [EnqueueMessage] = []
                     if !text.isEmpty {
                         messages.append(.message(text: text, attributes: [], inlineStickers: [:], mediaReference: nil, replyToMessageId: replyToMessageId, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: []))
@@ -1964,25 +1980,25 @@ public final class ShareController: ViewController {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendPhotos = false
                     if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendPhotos) != nil {
                         banSendPhotos = true
                     } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendPhotos) {
                         banSendPhotos = true
                     }
-
+                    
                     if banSendPhotos {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [EnqueueMessage] = []
                     messages.append(.message(text: text, attributes: [], inlineStickers: [:], mediaReference: .standalone(media: TelegramMediaImage(imageId: MediaId(namespace: Namespaces.Media.LocalImage, id: Int64.random(in: Int64.min ... Int64.max)), representations: representations.map({ $0.representation }), immediateThumbnailData: nil, reference: nil, partialReference: nil, flags: [])), replyToMessageId: replyToMessageId, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: []))
                     messages = transformMessages(messages, showNames: showNames, silently: silently)
@@ -1993,12 +2009,12 @@ public final class ShareController: ViewController {
                 if mediaReference.media is TelegramMediaImage || mediaReference.media is TelegramMediaFile {
                     sendTextAsCaption = true
                 }
-
+                
                 for peerId in peerIds {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendType = false
                     if mediaReference.media is TelegramMediaImage {
                         if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendPhotos) != nil {
@@ -2045,18 +2061,18 @@ public final class ShareController: ViewController {
                             }
                         }
                     }
-
+                    
                     if banSendType {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [EnqueueMessage] = []
                     if !text.isEmpty && !sendTextAsCaption {
                         messages.append(.message(text: text, attributes: [], inlineStickers: [:], mediaReference: nil, replyToMessageId: replyToMessageId, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: []))
@@ -2070,25 +2086,25 @@ public final class ShareController: ViewController {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var banSendText = false
                     if case let .channel(channel) = peer, channel.hasBannedPermission(.banSendText) != nil {
                         banSendText = true
                     } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendText) {
                         banSendText = true
                     }
-
+                    
                     if banSendText {
                         strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                        
                         return .fail(.generic)
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                     }
-
+                    
                     var messages: [EnqueueMessage] = []
                     if !text.isEmpty {
                         messages.append(.message(text: text, attributes: [], inlineStickers: [:], mediaReference: nil, replyToMessageId: replyToMessageId, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: []))
@@ -2102,14 +2118,14 @@ public final class ShareController: ViewController {
                     guard let maybePeer = peers[peerId], let peer = maybePeer else {
                         continue
                     }
-
+                    
                     var replyToMessageId: MessageId?
                     var threadId: Int64?
                     if let topicId = topicIds[peerId] {
                         replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId))
                         threadId = topicId
                     }
-
+                    
                     var messagesToEnqueue: [EnqueueMessage] = []
                     if !text.isEmpty {
                         var banSendText = false
@@ -2118,13 +2134,13 @@ public final class ShareController: ViewController {
                         } else if case let .legacyGroup(group) = peer, group.hasBannedPermission(.banSendText) {
                             banSendText = true
                         }
-
+                        
                         if banSendText {
                             strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                            
                             return .fail(.generic)
                         }
-
+                        
                         messagesToEnqueue.append(.message(text: text, attributes: [], inlineStickers: [:], mediaReference: nil, replyToMessageId: replyToMessageId, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: []))
                     }
                     for message in messages {
@@ -2175,14 +2191,14 @@ public final class ShareController: ViewController {
                                     }
                                 }
                             }
-
+                            
                             if banSendType {
                                 strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: peer.displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder), text: restrictedSendingContentsText(peer: peer, presentationData: strongSelf.presentationData), actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-
+                                
                                 return .fail(.generic)
                             }
                         }
-
+                        
                         messagesToEnqueue.append(.forward(source: message.id, threadId: threadId, grouping: .auto, attributes: [], correlationId: nil))
                     }
                     messagesToEnqueue = transformMessages(messagesToEnqueue, showNames: showNames, silently: silently)
@@ -2287,7 +2303,7 @@ public final class ShareController: ViewController {
             return
         }
         let context = accountContext.context
-
+        
         let postbox = self.currentContext.stateManager.postbox
         let signals: [Signal<Float, NoError>] = messages.compactMap { message -> Signal<Float, NoError>? in
             if let media = message.media.first {
@@ -2315,7 +2331,7 @@ public final class ShareController: ViewController {
             return
         }
         let context = accountContext.context
-
+        
         let media = TelegramMediaImage(imageId: MediaId(namespace: 0, id: 0), representations: representations.map({ $0.representation }), immediateThumbnailData: nil, reference: nil, partialReference: nil, flags: [])
         self.controllerNode.transitionToProgressWithValue(signal: SaveToCameraRoll.saveToCameraRoll(context: context, postbox: context.account.postbox, userLocation: .other, mediaReference: .standalone(media: media)) |> map(Optional.init), dismissImmediately: true, completion: {})
     }
@@ -2325,12 +2341,12 @@ public final class ShareController: ViewController {
             return
         }
         let context = accountContext.context
-
+        
         self.controllerNode.transitionToProgressWithValue(signal: SaveToCameraRoll.saveToCameraRoll(context: context, postbox: context.account.postbox, userLocation: .other, mediaReference: mediaReference) |> map(Optional.init), dismissImmediately: completion == nil, completion: completion ?? {})
     }
-
+    
     public func updatePeers() {
-        self.switchToAccount(account: self.currentContext.account, animateIn: false)
+        self.switchToAccount(account: self.currentContext, animateIn: false)
     }
     
     private func switchToAccount(account: ShareControllerAccountContext, animateIn: Bool) {
@@ -2358,7 +2374,8 @@ public final class ShareController: ViewController {
                         actionsSummary: ChatListEntryPendingMessageActionsSummaryComponent(namespace: Namespaces.Message.Cloud)
                     )
                 ]
-            )
+            ),
+            inactiveSecretChatPeerIds: self.currentContext.inactiveSecretChatPeerIds
         )
         let peer = self.currentContext.stateManager.postbox.combinedView(keys: [PostboxViewKey.basicPeer(self.currentContext.accountPeerId)])
         |> take(1)
@@ -2368,7 +2385,7 @@ public final class ShareController: ViewController {
             }
             return view.peer.flatMap(EnginePeer.init)
         }
-
+        
         self.peers.set(combineLatest(
             peer,
             tailChatList |> take(1)

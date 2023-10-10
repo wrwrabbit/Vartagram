@@ -381,7 +381,7 @@ func passcodeOptionsController(context: AccountContext) -> ViewController {
     }
     
     controller.isSensitiveUI = true
-
+    
     return controller
 }
 
@@ -437,6 +437,7 @@ public func passcodeOptionsAccessController(context: AccountContext, animateIn: 
     }
 }
 
+/*
 public func passcodeEntryController(
     context: AccountContext,
     animateIn: Bool = true,
@@ -455,7 +456,7 @@ public func passcodeEntryController(
         completion: completion
     )
 }
-
+    
 public func passcodeEntryController(
     accountManager: AccountManager<TelegramAccountManagerTypes>,
     applicationBindings: TelegramApplicationBindings,
@@ -509,3 +510,4 @@ public func passcodeEntryController(
         }
     }
 }
+*/

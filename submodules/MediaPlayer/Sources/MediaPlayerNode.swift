@@ -161,10 +161,10 @@ public final class MediaPlayerNode: ASDisplayNode {
         var numFrames: Int
         var maxTakenTime: Double
     }
-
+    
     private static func pollInner(node: MediaPlayerNode, layerTime: Double, state: PollState, completion: @escaping (PollStatus) -> Void) {
         assert(Queue.mainQueue().isCurrent())
-
+        
         guard let (takeFrameQueue, takeFrame) = node.takeFrameAndQueue else {
             return
         }
@@ -175,9 +175,9 @@ public final class MediaPlayerNode: ASDisplayNode {
             completion(.delay(max(1.0 / 30.0, state.maxTakenTime - layerTime)))
             return
         }
-
+        
         var state = state
-
+        
         takeFrameQueue.async { [weak node] in
             switch takeFrame() {
             case let .restoreState(frames, atTime):
@@ -228,7 +228,7 @@ public final class MediaPlayerNode: ASDisplayNode {
                         videoLayer.flush()
                     }
                 }
-
+                
                 if frame.decoded && frameTime < layerTime {
                     Queue.mainQueue().async {
                         guard let node else {
@@ -245,7 +245,7 @@ public final class MediaPlayerNode: ASDisplayNode {
                         videoLayer.enqueue(frame.sampleBuffer)
                         strongSelf.hasSentFramesToDisplay?()
                     }
-
+                    
                     Queue.mainQueue().async {
                         guard let node else {
                             return
@@ -271,11 +271,11 @@ public final class MediaPlayerNode: ASDisplayNode {
             }
         }
     }
-
+    
     private static func poll(node: MediaPlayerNode, completion: @escaping (PollStatus) -> Void) {
         if let _ = node.videoLayer, let (timebase, _, _, _) = node.state {
             let layerTime = CMTimeGetSeconds(CMTimebaseGetTime(timebase))
-
+            
             let loopImpl: (PollState) -> Void = { [weak node] state in
                 guard let node else {
                     return

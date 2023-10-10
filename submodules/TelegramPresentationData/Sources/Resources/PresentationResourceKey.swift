@@ -133,7 +133,7 @@ public enum PresentationResourceKey: Int32 {
     case chatMediaConsumableContentIcon
     
     case chatBubbleMediaOverlayControlSecret
-
+        
     case chatInstantVideoWithWallpaperBackgroundImage
     case chatInstantVideoWithoutWallpaperBackgroundImage
     
@@ -295,6 +295,7 @@ public enum PresentationResourceKey: Int32 {
     
     case storyViewListLikeIcon
     case navigationPostStoryIcon
+    
     case enterSecretPasscodeIcon
     case manageSecretPasscodesIcon
 }

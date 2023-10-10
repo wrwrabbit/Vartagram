@@ -75,11 +75,9 @@
         
         disposable = _disposable;
         _disposable = nil;
-
+        
         _terminated = true;
     }
-    disposable = _disposable;
-    _disposable = nil;
     os_unfair_lock_unlock(&_lock);
     
     if (blocks) {
@@ -118,7 +116,7 @@
         
         disposable = _disposable;
         _disposable = nil;
-
+        
         _terminated = true;
     }
     os_unfair_lock_unlock(&_lock);
@@ -127,10 +125,7 @@
         blocks->_error(error);
     }
     
-    if (shouldDispose) {
-        [self->_disposable dispose];
-        self->_disposable = nil;
-    }
+    [disposable dispose];
 }
 
 - (void)putCompletion
@@ -146,7 +141,7 @@
         
         disposable = _disposable;
         _disposable = nil;
-
+        
         _terminated = true;
     }
     os_unfair_lock_unlock(&_lock);
@@ -154,16 +149,7 @@
     if (blocks && blocks->_completed)
         blocks->_completed();
     
-    if (shouldDispose) {
-        [self->_disposable dispose];
-        self->_disposable = nil;
-    }
-}
-
-- (void)dispose
-{
-    [self->_disposable dispose];
-    self->_disposable = nil;
+    [disposable dispose];
 }
 
 @end

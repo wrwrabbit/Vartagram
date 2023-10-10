@@ -164,7 +164,7 @@ private func updatedContextQueryResultStateForQuery(context: AccountContext, cha
         }
         
         let normalizedQuery = query.lowercased()
-
+        
         if let chatLocation, let peerId = chatLocation.peerId {
             let inlineBots: Signal<[(EnginePeer, Double)], NoError> = types.contains(.contextBots) ? context.engine.peers.recentlyUsedInlineBots() : .single([])
             let strings = context.sharedContext.currentPresentationData.with({ $0 }).strings
@@ -182,9 +182,9 @@ private func updatedContextQueryResultStateForQuery(context: AccountContext, cha
                     }
                     return false
                 }.map { $0.0 }
-
+                
                 let inlineBotPeerIds = Set(filteredInlineBots.map { $0.id })
-
+                
                 let filteredPeers = peers.filter { peer in
                     if inlineBotPeerIds.contains(peer.id) {
                         return false
@@ -205,7 +205,7 @@ private func updatedContextQueryResultStateForQuery(context: AccountContext, cha
                 return { _ in return .mentions(sortedPeers) }
             }
             |> castError(ChatContextQueryError.self)
-
+            
             return signal |> then(participants)
         } else {
             if normalizedQuery.isEmpty {
@@ -223,7 +223,7 @@ private func updatedContextQueryResultStateForQuery(context: AccountContext, cha
                 |> castError(ChatContextQueryError.self)
                 return signal |> then(peers)
             } else {
-            let peers: Signal<(ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult?, ChatContextQueryError> = context.engine.contacts.searchLocalPeers(query: normalizedQuery, inactiveSecretChatPeerIds: context.inactiveSecretChatPeerIds)
+                let peers: Signal<(ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult?, ChatContextQueryError> = context.engine.contacts.searchLocalPeers(query: normalizedQuery, inactiveSecretChatPeerIds: context.inactiveSecretChatPeerIds)
                 |> map { peersAndPresences -> (ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult? in
                     let peers = peersAndPresences.filter { peer in
                         if let peer = peer.peer, case .user = peer, peer.addressName != nil {

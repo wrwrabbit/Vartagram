@@ -31,12 +31,12 @@
 - (void)dispose
 {
     id<MTDisposable> disposable;
-
+    
     os_unfair_lock_lock(&_lock);
     disposable = _disposable;
     _disposable = nil;
     os_unfair_lock_unlock(&_lock);
-
+    
     [_subscriber _markTerminatedWithoutDisposal];
     [disposable dispose];
 }
@@ -66,7 +66,7 @@
     os_unfair_lock _lock;
     bool _executingSignal;
     bool _terminated;
-
+    
     MTMetaDisposable *_currentDisposable;
     MTSubscriber *_subscriber;
     

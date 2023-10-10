@@ -613,8 +613,6 @@ typedef enum {
     [_localizationsDisposable dispose];
     
     [self freeGL];
-    
-    [_localizationsDisposable dispose];
 }
 
 - (void)setupGL

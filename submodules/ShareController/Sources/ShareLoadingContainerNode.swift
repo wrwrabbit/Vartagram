@@ -232,7 +232,7 @@ public final class ShareProlongedLoadingContainerNode: ASDisplayNode, ShareConte
         return self.elapsedTime + 3.0 + 0.15
     }
         
-    public init(theme: PresentationTheme, strings: PresentationStrings, forceNativeAppearance: Bool, postbox: Postbox?, environment: ShareControllerEnvironment) {
+    public init(theme: PresentationTheme, strings: PresentationStrings, forceNativeAppearance: Bool, postbox: Postbox?, environment: ShareControllerEnvironment, sourceAccountId: AccountRecordId?) {
         self.theme = theme
         self.strings = strings
         
@@ -280,7 +280,7 @@ public final class ShareProlongedLoadingContainerNode: ASDisplayNode, ShareConte
             
             let videoContent = NativeVideoContent(id: .message(1, EngineMedia.Id(namespace: 0, id: 1)), userLocation: .other, fileReference: .standalone(media: dummyFile), streamVideo: .none, loopVideo: true, enableSound: false, fetchAutomatically: true, onlyFullSizeThumbnail: false, continuePlayingWithoutSoundOnLostAudioSession: false, placeholderColor: .black, storeAfterDownload: nil)
             
-            let videoNode = UniversalVideoNode(postbox: postbox, audioSession: mediaManager.audioSession, manager: mediaManager.universalVideoManager, decoration: decoration, content: videoContent, priority: .embedded)
+            let videoNode = UniversalVideoNode(postbox: postbox, audioSession: mediaManager.audioSession, manager: mediaManager.universalVideoManager, decoration: decoration, content: videoContent, priority: .embedded, sourceAccountId: sourceAccountId!)
             videoNode.frame = CGRect(origin: CGPoint(), size: CGSize(width: 2.0, height: 2.0))
             videoNode.alpha = 0.01
             self.videoNode = videoNode

@@ -111,7 +111,7 @@ public struct Namespaces {
         public static let displayedStoryNotifications: Int8 = 28
         public static let storySendAsPeerIds: Int8 = 29
         public static let cachedChannelBoosters: Int8 = 30
-
+        
         // 64 - ...: ApplicationSpecificItemCacheCollectionIdValues
         // 100: CachedChannelAdminRanks
         // 101: CachedRecentPeers

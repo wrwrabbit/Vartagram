@@ -717,7 +717,7 @@ final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTransitio
                 }
             } else if let image = media as? TelegramMediaImage, let dimensions = largestImageRepresentation(image.representations)?.dimensions {
                 unboundSize = CGSize(width: max(10.0, floor(dimensions.cgSize.width * 0.5)), height: max(10.0, floor(dimensions.cgSize.height * 0.5)))
-
+                
                 if message.isPeerBroadcastChannel, context.sharedContext.currentPtgSettings.with({ $0.useFullWidthInChannels }) {
                     imageOriginalMaxDimensions = maxDimensions
                     switch sizeCalculation {
@@ -957,7 +957,7 @@ final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTransitio
                             if message.associatedStories[media.storyId] != currentMessage?.associatedStories[media.storyId] {
                                 let previousStory = message.associatedStories[media.storyId]
                                 let updatedStory = currentMessage?.associatedStories[media.storyId]
-
+                                
                                 if let previousItem = previousStory?.get(Stories.StoredItem.self), let updatedItem = updatedStory?.get(Stories.StoredItem.self), case let .item(previousItemValue) = previousItem, case let .item(updatedItemValue) = updatedItem {
                                     if let previousItemMedia = previousItemValue.media, let updatedItemMedia = updatedItemValue.media {
                                         mediaUpdated = !previousItemMedia.isSemanticallyEqual(to: updatedItemMedia)
@@ -1814,16 +1814,16 @@ final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTransitio
         }
         
         let messageTheme = theme.chat.message
-
+        
         var state: RadialStatusNodeState = .none
         var backgroundColor = messageTheme.mediaOverlayControlColors.fillColor
         var badgeContent: ChatMessageInteractiveMediaBadgeContent?
         var mediaDownloadState: ChatMessageInteractiveMediaDownloadState?
-
+        
         if isSecretMedia {
             backgroundColor = messageTheme.mediaDateAndStatusFillColor
         }
-
+        
         if let invoice = invoice {
             if let extendedMedia = invoice.extendedMedia {
                 if case let .preview(_, _, maybeVideoDuration) = extendedMedia, let videoDuration = maybeVideoDuration {
@@ -2081,7 +2081,7 @@ final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTransitio
                     remainingTime = nil
                 }
             }
-
+                        
             if let remainingTime {
                 if remainingTime == viewOnceTimeout {
                     badgeContent = .text(inset: 10.0, backgroundColor: messageTheme.mediaDateAndStatusFillColor, foregroundColor: messageTheme.mediaDateAndStatusTextColor, text: NSAttributedString(string: "1"), iconName: "Chat/Message/SecretMediaOnce")
@@ -2174,7 +2174,7 @@ final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTransitio
                     break
                 }
             }
-
+            
             self.extendedMediaOverlayNode?.isUserInteractionEnabled = tappable
             
             var paymentText: String = ""

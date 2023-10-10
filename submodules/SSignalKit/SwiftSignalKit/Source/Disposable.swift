@@ -6,14 +6,18 @@ public protocol Disposable: AnyObject {
 
 public final class StrictDisposable: Disposable {
     private let disposable: Disposable
+    #if DEBUG
     private let file: String
     private let line: Int
     private let isDisposed = Atomic<Bool>(value: false)
+    #endif
     
     public init(_ disposable: Disposable, file: String, line: Int) {
         self.disposable = disposable
+        #if DEBUG
         self.file = file
         self.line = line
+        #endif
     }
     
     deinit {
@@ -25,7 +29,9 @@ public final class StrictDisposable: Disposable {
     }
     
     public func dispose() {
+        #if DEBUG
         let _ = self.isDisposed.swap(true)
+        #endif
         self.disposable.dispose()
     }
 }

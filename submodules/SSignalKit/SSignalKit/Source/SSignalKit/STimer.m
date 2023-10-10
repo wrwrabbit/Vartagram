@@ -51,12 +51,17 @@
     _timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _nativeQueue);
     dispatch_source_set_timer(_timer, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_timeout * NSEC_PER_SEC)), _repeat ? (int64_t)(_timeout * NSEC_PER_SEC) : DISPATCH_TIME_FOREVER, 0);
     
+    __weak STimer *weakSelf = self;
     dispatch_source_set_event_handler(_timer, ^
     {
+        __strong STimer *strongSelf = weakSelf;
+        if (strongSelf == nil) {
+            return;
+        }
         if (_completion)
-            _completion(self);
+            _completion(strongSelf);
         if (!_repeat)
-            [self invalidate];
+            [strongSelf invalidate];
     });
     dispatch_resume(_timer);
 }

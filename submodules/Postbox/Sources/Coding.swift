@@ -163,7 +163,8 @@ public final class WriteBuffer: MemoryBuffer {
                 }
                 self.memory = malloc(self.capacity)!
             } else {
-            self.memory = realloc(self.memory, self.capacity)
+                self.memory = realloc(self.memory, self.capacity)
+            }
         }
         memcpy(self.memory + self.offset, data + offset, length)
         self.offset += length
@@ -180,7 +181,8 @@ public final class WriteBuffer: MemoryBuffer {
                 }
                 self.memory = malloc(self.capacity)!
             } else {
-            self.memory = realloc(self.memory, self.capacity)
+                self.memory = realloc(self.memory, self.capacity)
+            }
         }
         data.copyBytes(to: self.memory.advanced(by: offset).assumingMemoryBound(to: UInt8.self), count: length)
         self.offset += length

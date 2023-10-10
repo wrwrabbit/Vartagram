@@ -93,7 +93,7 @@ public func _internal_managedUpdatedRecentPeers(accountPeerId: PeerId, postbox: 
             }
         }
     }
-
+    
     return peersEnabled |> mapToSignal { _ -> Signal<Void, NoError> in
         return updateOnce
     }

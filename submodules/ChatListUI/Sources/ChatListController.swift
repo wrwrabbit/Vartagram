@@ -952,7 +952,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 }
             }
         }
-
+        
         self.chatListDisplayNode.mainContainerNode.push = { [weak self] c in
             if let strongSelf = self {
                 strongSelf.push(c)
@@ -1372,7 +1372,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             if let storyPeerListView = self.chatListHeaderView()?.storyPeerListView() {
                 storyPeerListView.cancelLoadingItem()
             }
-
+            
             switch subject {
             case .archive:
                 StoryContainerScreen.openArchivedStories(context: self.context, parentController: self, avatarNode: itemNode.avatarNode, sharedProgressDisposable: self.sharedOpenStoryProgressDisposable)
@@ -2501,9 +2501,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             self.fullScreenEffectView = nil
             fullScreenEffectView.removeFromSuperview()
         }
-
+        
         self.sharedOpenStoryProgressDisposable.set(nil)
-
+        
         if let storyPeerListView = self.chatListHeaderView()?.storyPeerListView() {
             storyPeerListView.cancelLoadingItem()
         }
@@ -2717,7 +2717,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             coordinator?.animateIn()
         }
     }
-
+    
     public func storyCameraTransitionOut() -> (Stories.PendingTarget?, Bool) -> StoryCameraTransitionOut? {
         return { [weak self] target, isArchived in
             guard let self, let target else {
@@ -2731,7 +2731,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 case let .peer(id):
                     peerId = id
                 }
-
+                
                 if let (transitionView, _) = componentView.storyPeerListView()?.transitionViewForItem(peerId: peerId) {
                     return StoryCameraTransitionOut(
                         destinationView: transitionView,
@@ -2852,7 +2852,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                 guard let self else {
                                     return
                                 }
-
+                                
                                 let _ = (self.context.engine.data.get(
                                     TelegramEngine.EngineData.Item.Peer.Peer(id: peer.id)
                                 )
@@ -2863,12 +2863,12 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                     guard let navigationController = self.navigationController as? NavigationController else {
                                         return
                                     }
-
+                                    
                                     self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: self.context, chatLocation: .peer(peer)))
                                 })
                             })
                         })))
-
+                        
                         let hideText: String
                         if self.location == .chatList(groupId: .archive) {
                             hideText = self.presentationData.strings.StoryFeed_ContextUnarchive
@@ -2880,7 +2880,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                             return generateTintedImage(image: UIImage(bundleImageName: iconName), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] _, f in
                             f(.dismissWithoutContent)
-
+                            
                             guard let self else {
                                 return
                             }
@@ -2892,7 +2892,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                 self.context.engine.peers.updatePeerStoriesHidden(id: peer.id, isHidden: true)
                                 undoValue = false
                             }
-
+                            
                             if self.location == .chatList(groupId: .archive) {
                                 self.present(UndoOverlayController(presentationData: self.presentationData, content: .archivedChat(peerId: peer.id.toInt64(), title: "", text: self.presentationData.strings.StoryFeed_TooltipUnarchive(peer.compactDisplayTitle).string, undo: true), elevatedLayout: false, position: .bottom, animateInAsReplacement: false, action: { [weak self] action in
                                     if case .undo = action {
@@ -3099,7 +3099,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     
     public func scrollToStories(peerId: EnginePeer.Id? = nil) {
         self.chatListDisplayNode.scrollToStories(animated: false)
-
+        
         if let peerId, let componentView = self.chatListHeaderView(), let storyPeerListView = componentView.storyPeerListView() {
             storyPeerListView.ensureItemVisible(peerId: peerId)
         }
@@ -5669,7 +5669,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             self.donePressed(animated: false)
         }
     }
-
+    
     private var playedSignUpCompletedAnimation = false
     public func playSignUpCompletedAnimation() {
         guard !self.playedSignUpCompletedAnimation else {
@@ -5706,7 +5706,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     case let .peer(id):
                         peerId = id
                     }
-
+                    
                     if let (transitionView, _) = componentView.storyPeerListView()?.transitionViewForItem(peerId: peerId) {
                         return StoryCameraTransitionOut(
                             destinationView: transitionView,

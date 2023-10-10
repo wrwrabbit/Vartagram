@@ -294,7 +294,7 @@ private let rightShadowImage: UIImage = {
     let baseImage = UIImage(bundleImageName: "Peer Info/MediaGridShadow")!
     let image = generateImage(baseImage.size, rotatedContext: { size, context in
         context.clear(CGRect(origin: CGPoint(), size: size))
-
+        
         UIGraphicsPushContext(context)
         baseImage.draw(in: CGRect(origin: CGPoint(), size: size))
         UIGraphicsPopContext()
@@ -329,11 +329,11 @@ private final class DurationLayer: CALayer {
             let verticalInset: CGFloat = 2.0
             let image = generateImage(CGSize(width: textSize.width + sideInset * 2.0, height: textSize.height + verticalInset * 2.0), rotatedContext: { size, context in
                 context.clear(CGRect(origin: CGPoint(), size: size))
-
+                
                 context.setBlendMode(.normal)
-
+                
                 context.setShadow(offset: CGSize(width: 0.0, height: 0.0), blur: 2.5, color: UIColor(rgb: 0x000000, alpha: 0.22).cgColor)
-
+                
                 UIGraphicsPushContext(context)
                 string.draw(in: bounds.offsetBy(dx: sideInset, dy: verticalInset))
                 UIGraphicsPopContext()
@@ -428,9 +428,9 @@ private final class GenericItemLayer: CALayer, ItemLayer {
             self.durationLayer = nil
             durationLayer.removeFromSuperlayer()
         }
-
+        
         let size = self.bounds.size
-
+        
         if self.durationLayer != nil {
             if self.rightShadowLayer == nil {
                 let rightShadowLayer = SimpleLayer()
@@ -507,7 +507,7 @@ private final class GenericItemLayer: CALayer, ItemLayer {
         if let durationLayer = self.durationLayer {
             durationLayer.frame = CGRect(origin: CGPoint(x: size.width - 3.0, y: size.height - 3.0), size: CGSize())
         }
-
+        
         if let rightShadowLayer = self.rightShadowLayer {
             let shadowSize = CGSize(width: min(size.width, rightShadowImage.size.width), height: min(size.height, rightShadowImage.size.height))
             rightShadowLayer.frame = CGRect(origin: CGPoint(x: size.width - shadowSize.width, y: size.height - shadowSize.height), size: shadowSize)
@@ -592,9 +592,9 @@ private final class CaptureProtectedItemLayer: AVSampleBufferDisplayLayer, ItemL
             self.durationLayer = nil
             durationLayer.removeFromSuperlayer()
         }
-
+        
         let size = self.bounds.size
-
+        
         if self.durationLayer != nil {
             if self.rightShadowLayer == nil {
                 let rightShadowLayer = SimpleLayer()
@@ -671,7 +671,7 @@ private final class CaptureProtectedItemLayer: AVSampleBufferDisplayLayer, ItemL
         if let durationLayer = self.durationLayer {
             durationLayer.frame = CGRect(origin: CGPoint(x: size.width - 3.0, y: size.height - 3.0), size: CGSize())
         }
-
+        
         if let rightShadowLayer = self.rightShadowLayer {
             let shadowSize = CGSize(width: min(size.width, rightShadowImage.size.width), height: min(size.height, rightShadowImage.size.height))
             rightShadowLayer.frame = CGRect(origin: CGPoint(x: size.width - shadowSize.width, y: size.height - shadowSize.height), size: shadowSize)
@@ -1089,7 +1089,7 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding, ListShimme
 
                 if let selectedMedia = selectedMedia {
                     var result = directMediaImageCache.getImage(message: message, media: selectedMedia, width: imageWidthSpec, possibleWidths: SparseItemGridBindingImpl.widthSpecs.1, includeBlurred: hasSpoiler, synchronous: synchronous == .full)
-
+                    
                     // previewRepresentations for videos in secret chats will be empty, so using immediateThumbnailData or generated good-quality thumbnail if video is downloaded
                     if result == nil, let file = selectedMedia as? TelegramMediaFile, file.isVideo, !file.isInstantVideo, let _ = file.immediateThumbnailData, let dimensions = dimensionsForFileAttributes(file.attributes) {
                         let loadSignal = mediaGridMessageVideo(postbox: self.context.account.postbox, userLocation: .peer(message.id.peerId), videoReference: FileMediaReference.message(message: MessageReference(message), media: file), synchronousLoad: synchronous == .full, nilForEmptyResult: true)
@@ -1100,7 +1100,7 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding, ListShimme
                         }
                         result = DirectMediaImageCache.GetMediaResult(image: nil, loadSignal: loadSignal)
                     }
-
+                    
                     if let result = result {
                         if let image = result.image {
                             layer.setContents(image)

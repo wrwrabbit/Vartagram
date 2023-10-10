@@ -62,11 +62,9 @@ public final class PasscodeEntryController: ViewController {
     private var statusBarHost: StatusBarHost?
     private var previousStatusBarStyle: UIStatusBarStyle?
     
-    private let sharedAccountContext: SharedAccountContext?
-    
     private var invalidAttemptsDisposable: Disposable?
     
-    public init(applicationBindings: TelegramApplicationBindings, accountManager: AccountManager<TelegramAccountManagerTypes>, appLockContext: AppLockContext, presentationData: PresentationData, presentationDataSignal: Signal<PresentationData, NoError>, statusBarHost: StatusBarHost?, challengeData: PostboxAccessChallengeData, biometrics: PasscodeEntryControllerBiometricsMode, arguments: PasscodeEntryControllerPresentationArguments, sharedAccountContext: SharedAccountContext?) {
+    public init(applicationBindings: TelegramApplicationBindings, accountManager: AccountManager<TelegramAccountManagerTypes>, appLockContext: AppLockContext, presentationData: PresentationData, presentationDataSignal: Signal<PresentationData, NoError>, statusBarHost: StatusBarHost?, challengeData: PostboxAccessChallengeData, biometrics: PasscodeEntryControllerBiometricsMode, arguments: PasscodeEntryControllerPresentationArguments) {
         self.applicationBindings = applicationBindings
         self.accountManager = accountManager
         self.appLockContext = appLockContext
@@ -75,7 +73,6 @@ public final class PasscodeEntryController: ViewController {
         self.challengeData = challengeData
         self.biometrics = biometrics
         self.arguments = arguments
-        self.sharedAccountContext = sharedAccountContext
         
         self.statusBarHost = statusBarHost
         self.previousStatusBarStyle = statusBarHost?.statusBarStyle

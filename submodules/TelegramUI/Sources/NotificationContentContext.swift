@@ -95,31 +95,31 @@ public final class NotificationViewControllerImpl {
         setupSharedLogger(rootPath: rootPath, path: logsPath)
         
         accountsPath = rootPath
-
+        
         initializeAccountManagement()
         let accountManager = AccountManager<TelegramAccountManagerTypes>(basePath: rootPath + "/accounts-metadata", isTemporary: true, isReadOnly: false, useCaches: false, removeDatabaseOnError: false)
-
+        
         var initialPresentationDataAndSettings: InitialPresentationDataAndSettings?
         var loggingSettings: LoggingSettings!
-
+        
         let loggingSettingsSignal = accountManager.transaction { transaction in
             return transaction.getSharedData(SharedDataKeys.loggingSettings)?.get(LoggingSettings.self) ?? LoggingSettings.defaultSettings
         }
-
+        
         let semaphore = DispatchSemaphore(value: 0)
-            let _ = currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: .light).startStandalone(next: { value in
+        let _ = combineLatest(currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: .light), loggingSettingsSignal).startStandalone(next: { value, ls in
             initialPresentationDataAndSettings = value
             loggingSettings = ls
             semaphore.signal()
         })
         semaphore.wait()
-
+        
         Logger.shared.logToFile = loggingSettings.logToFile
         Logger.shared.logToConsole = loggingSettings.logToConsole
         Logger.shared.redactSensitiveData = loggingSettings.redactSensitiveData
-
+        
         initialPresentationDataAndSettings = initialPresentationDataAndSettings!.withUpdatedPtgSecretPasscodes(initialPresentationDataAndSettings!.ptgSecretPasscodes.withCheckedTimeoutUsingLockStateFile(rootPath: rootPath))
-
+        
         if let sharedAccountContext = sharedAccountContext {
             (sharedAccountContext as! SharedAccountContextImpl).updatePtgSecretPasscodesPromise(.single(initialPresentationDataAndSettings!.ptgSecretPasscodes))
         } else {
@@ -159,8 +159,6 @@ public final class NotificationViewControllerImpl {
             
             sharedAccountContext = SharedAccountContextImpl(mainWindow: nil, sharedContainerPath: self.initializationData.appGroupPath, basePath: rootPath, encryptionParameters: ValueBoxEncryptionParameters(forceEncryptionIfNoSet: false, key: ValueBoxEncryptionParameters.Key(data: self.initializationData.encryptionParameters.0)!, salt: ValueBoxEncryptionParameters.Salt(data: self.initializationData.encryptionParameters.1)!), accountManager: accountManager, appLockContext: appLockContext, applicationBindings: applicationBindings, initialPresentationDataAndSettings: initialPresentationDataAndSettings!, networkArguments: NetworkInitializationArguments(apiId: self.initializationData.apiId, apiHash: self.initializationData.apiHash, languagesCategory: self.initializationData.languagesCategory, appVersion: self.initializationData.appVersion, voipMaxLayer: 0, voipVersions: [], appData: .single(self.initializationData.bundleData), autolockDeadine: .single(nil), encryptionProvider: OpenSSLEncryptionProvider(), deviceModelName: nil, useBetaFeatures: self.initializationData.useBetaFeatures, isICloudEnabled: false), hasInAppPurchases: false, rootPath: rootPath, legacyBasePath: nil, apsNotificationToken: .never(), voipNotificationToken: .never(), firebaseSecretStream: .never(), setNotificationCall: { _ in }, navigateToChat: { _, _, _ in }, appDelegate: nil)
             
-            appLockContext.sharedAccountContext = sharedAccountContext
-
             presentationDataPromise.set(sharedAccountContext!.presentationData)
         }
     }

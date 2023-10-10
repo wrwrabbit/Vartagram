@@ -1,42 +1,44 @@
 import Foundation
 
+/*
 final class WrappedSubscriberDisposable: Disposable {
     private var lock = pthread_mutex_t()
     private var disposable: Disposable?
-
+    
     init(_ disposable: Disposable) {
         self.disposable = disposable
-
+        
         pthread_mutex_init(&self.lock, nil)
     }
-
+    
     deinit {
         pthread_mutex_destroy(&self.lock)
     }
-
+    
     func dispose() {
         var disposableValue: Disposable?
         pthread_mutex_lock(&self.lock)
         disposableValue = self.disposable
         self.disposable = nil
         pthread_mutex_unlock(&self.lock)
-
+        
         disposableValue?.dispose()
     }
-
+    
     func markTerminated() {
         var disposableValue: Disposable?
         pthread_mutex_lock(&self.lock)
         disposableValue = self.disposable
         self.disposable = nil
         pthread_mutex_unlock(&self.lock)
-
+        
         if let disposableValue = disposableValue {
             withExtendedLifetime(disposableValue, {
             })
         }
     }
 }
+*/
 
 public final class Subscriber<T, E>: CustomStringConvertible {
     private var next: ((T) -> Void)!
@@ -44,11 +46,10 @@ public final class Subscriber<T, E>: CustomStringConvertible {
     private var completed: (() -> Void)!
     
     private var keepAliveObjects: [AnyObject]?
-
-    private var lock = pthread_mutex_t()
+    
+    private let lock = createOSUnfairLock()
     private var terminated = false
     internal var disposable: Disposable?
-    private weak var wrappedDisposable: WrappedSubscriberDisposable?
     
     public init(next: ((T) -> Void)! = nil, error: ((E) -> Void)! = nil, completed: (() -> Void)! = nil) {
         self.next = next
@@ -59,19 +60,19 @@ public final class Subscriber<T, E>: CustomStringConvertible {
     public var description: String {
         return "Subscriber { next: \(self.next == nil ? "nil" : "hasValue"), error: \(self.error == nil ? "nil" : "hasValue"), completed: \(self.completed == nil ? "nil" : "hasValue"), disposable: \(self.disposable == nil ? "nil" : "hasValue"), terminated: \(self.terminated) }"
     }
-
+    
     deinit {
         var freeDisposable: Disposable?
         var keepAliveObjects: [AnyObject]?
-
-        pthread_mutex_lock(&self.lock)
+        
+        self.lock.lock()
         if let disposable = self.disposable {
             freeDisposable = disposable
             self.disposable = nil
         }
         keepAliveObjects = self.keepAliveObjects
         self.keepAliveObjects = nil
-        pthread_mutex_unlock(&self.lock)
+        self.lock.unlock()
         if let freeDisposableValue = freeDisposable {
             withExtendedLifetime(freeDisposableValue, {
             })
@@ -82,39 +83,32 @@ public final class Subscriber<T, E>: CustomStringConvertible {
             withExtendedLifetime(keepAliveObjects, {
             })
         }
-
-        pthread_mutex_destroy(&self.lock)
     }
     
-    internal func assignDisposable(_ disposable: Disposable) -> Disposable {
-        var updatedWrappedDisposable: WrappedSubscriberDisposable?
+    internal func assignDisposable(_ disposable: Disposable) {
         var dispose = false
         self.lock.lock()
         if self.terminated {
             dispose = true
         } else {
             self.disposable = disposable
-            updatedWrappedDisposable = WrappedSubscriberDisposable(disposable)
-            self.wrappedDisposable = updatedWrappedDisposable
         }
         self.lock.unlock()
         
         if dispose {
             disposable.dispose()
         }
-
-        if let updatedWrappedDisposable = updatedWrappedDisposable {
-            return updatedWrappedDisposable
-        } else {
-            return EmptyDisposable
-        }
     }
     
     internal func markTerminatedWithoutDisposal() {
         var freeDisposable: Disposable?
         var keepAliveObjects: [AnyObject]?
-
-        pthread_mutex_lock(&self.lock)
+        
+        var next: ((T) -> Void)?
+        var error: ((E) -> Void)?
+        var completed: (() -> Void)?
+        
+        self.lock.lock()
         if !self.terminated {
             self.terminated = true
             next = self.next
@@ -123,28 +117,31 @@ public final class Subscriber<T, E>: CustomStringConvertible {
             self.error = nil
             completed = self.completed
             self.completed = nil
-
-            if let disposable = self.disposable {
-                freeDisposable = disposable
-                self.disposable = nil
-            }
+            freeDisposable = self.disposable
+            self.disposable = nil
         }
-
+        
         keepAliveObjects = self.keepAliveObjects
         self.keepAliveObjects = nil
-
-        pthread_mutex_unlock(&self.lock)
-
+        
+        self.lock.unlock()
+        
+        if let next = next {
+            withExtendedLifetime(next, {})
+        }
+        if let error = error {
+            withExtendedLifetime(error, {})
+        }
+        if let completed = completed {
+            withExtendedLifetime(completed, {})
+        }
+        
         if let freeDisposableValue = freeDisposable {
             withExtendedLifetime(freeDisposableValue, {
             })
             freeDisposable = nil
         }
-
-        if let wrappedDisposable = self.wrappedDisposable {
-            wrappedDisposable.markTerminated()
-        }
-
+        
         if let keepAliveObjects = keepAliveObjects {
             withExtendedLifetime(keepAliveObjects, {
             })
@@ -169,10 +166,10 @@ public final class Subscriber<T, E>: CustomStringConvertible {
         
         var disposeDisposable: Disposable?
         var keepAliveObjects: [AnyObject]?
-
+        
         var next: ((T) -> Void)?
         var completed: (() -> Void)?
-
+        
         self.lock.lock()
         if !self.terminated {
             action = self.error
@@ -187,7 +184,14 @@ public final class Subscriber<T, E>: CustomStringConvertible {
         }
         keepAliveObjects = self.keepAliveObjects
         self.keepAliveObjects = nil
-        pthread_mutex_unlock(&self.lock)
+        self.lock.unlock()
+        
+        if let next = next {
+            withExtendedLifetime(next, {})
+        }
+        if let completed = completed {
+            withExtendedLifetime(completed, {})
+        }
         
         if action != nil {
             action(error)
@@ -196,11 +200,7 @@ public final class Subscriber<T, E>: CustomStringConvertible {
         if let disposeDisposable = disposeDisposable {
             disposeDisposable.dispose()
         }
-
-        if let wrappedDisposable = self.wrappedDisposable {
-            wrappedDisposable.markTerminated()
-        }
-
+        
         if let keepAliveObjects = keepAliveObjects {
             withExtendedLifetime(keepAliveObjects, {
             })
@@ -212,7 +212,7 @@ public final class Subscriber<T, E>: CustomStringConvertible {
         
         var disposeDisposable: Disposable? = nil
         var keepAliveObjects: [AnyObject]?
-
+        
         var next: ((T) -> Void)?
         var error: ((E) -> Void)?
         var completed: (() -> Void)?
@@ -233,7 +233,7 @@ public final class Subscriber<T, E>: CustomStringConvertible {
         }
         keepAliveObjects = self.keepAliveObjects
         self.keepAliveObjects = nil
-        pthread_mutex_unlock(&self.lock)
+        self.lock.unlock()
         
         if let next = next {
             withExtendedLifetime(next, {})
@@ -252,23 +252,21 @@ public final class Subscriber<T, E>: CustomStringConvertible {
         if let disposeDisposable = disposeDisposable {
             disposeDisposable.dispose()
         }
-
-        if let wrappedDisposable = self.wrappedDisposable {
-            wrappedDisposable.markTerminated()
-        }
-
+        
         if let keepAliveObjects = keepAliveObjects {
             withExtendedLifetime(keepAliveObjects, {
             })
         }
     }
-
+    
     public func keepAlive(_ object: AnyObject) {
-        pthread_mutex_lock(&self.lock)
-        if self.keepAliveObjects == nil {
-            self.keepAliveObjects = []
+        self.lock.lock()
+        if !self.terminated {
+            if self.keepAliveObjects == nil {
+                self.keepAliveObjects = []
+            }
+            self.keepAliveObjects?.append(object)
         }
-        self.keepAliveObjects?.append(object)
-        pthread_mutex_unlock(&self.lock)
+        self.lock.unlock()
     }
 }

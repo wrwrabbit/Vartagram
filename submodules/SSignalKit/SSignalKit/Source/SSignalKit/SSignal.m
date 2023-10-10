@@ -2,13 +2,14 @@
 
 #import "SBlockDisposable.h"
 
+#import <os/lock.h>
 #import <pthread/pthread.h>
 
 @interface SSubscriberDisposable : NSObject <SDisposable>
 {
     __weak SSubscriber *_subscriber;
     id<SDisposable> _disposable;
-    pthread_mutex_t _lock;
+    os_unfair_lock _lock;
 }
 
 @end
@@ -20,37 +21,33 @@
     if (self != nil) {
         _subscriber = subscriber;
         _disposable = disposable;
-        pthread_mutex_init(&_lock, nil);
     }
     return self;
 }
 
 - (void)dealloc {
-    pthread_mutex_destroy(&_lock);
 }
 
 - (void)dispose {
-    SSubscriber *subscriber = nil;
     id<SDisposable> disposeItem = nil;
-    pthread_mutex_lock(&_lock);
+    
+    os_unfair_lock_lock(&_lock);
     disposeItem = _disposable;
     _disposable = nil;
-    subscriber = _subscriber;
-    _subscriber = nil;
-    pthread_mutex_unlock(&_lock);
-
+    os_unfair_lock_unlock(&_lock);
+    
+    [_subscriber _markTerminatedWithoutDisposal];
     [disposeItem dispose];
-    [subscriber _markTerminatedWithoutDisposal];
 }
 
 @end
 
 @interface SStrictDisposable : NSObject<SDisposable> {
     id<SDisposable> _disposable;
+#if DEBUG
     const char *_file;
     int _line;
-
-#if DEBUG
+    
     pthread_mutex_t _lock;
     bool _isDisposed;
 #endif
@@ -67,10 +64,10 @@
     self = [super init];
     if (self != nil) {
         _disposable = disposable;
+#if DEBUG
         _file = file;
         _line = line;
-
-#if DEBUG
+        
         pthread_mutex_init(&_lock, nil);
 #endif
     }
@@ -85,7 +82,7 @@
         assert(false);
     }
     pthread_mutex_unlock(&_lock);
-
+    
     pthread_mutex_destroy(&_lock);
 #endif
 }
@@ -96,7 +93,7 @@
     _isDisposed = true;
     pthread_mutex_unlock(&_lock);
 #endif
-
+    
     [_disposable dispose];
 }
 
