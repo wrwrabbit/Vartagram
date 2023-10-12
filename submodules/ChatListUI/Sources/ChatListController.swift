@@ -211,6 +211,8 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     
     private var fullScreenEffectView: RippleEffectView?
     
+    private var disableSwipeActionsDisposable: Disposable?
+    
     public override func updateNavigationCustomData(_ data: Any?, progress: CGFloat, transition: ContainedViewLayoutTransition) {
         if self.isNodeLoaded {
             self.chatListDisplayNode.effectiveContainerNode.updateSelectedChatLocation(data: data as? ChatLocation, progress: progress, transition: transition)
@@ -751,6 +753,34 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         })
         
         self.updateNavigationMetadata()
+        
+        var skippedInitialDisableSwipeActionsValue = false
+        self.disableSwipeActionsDisposable = (context.sharedContext.ptgSettings
+        |> map { ptgSettings in
+            return ptgSettings.disableSwipeActionsForChats
+        }
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).start(next: { [weak self] _ in
+            if !skippedInitialDisableSwipeActionsValue {
+                skippedInitialDisableSwipeActionsValue = true
+                return
+            }
+            // update editing value to refresh chatlist items, otherwise when disableSwipeActionsForChats is turned on, it won't apply to existing chatlist
+            self?.chatListDisplayNode.effectiveContainerNode.updateState { state in
+                var state = state
+                state.editing = true
+                state.peerIdWithRevealedOptions = nil
+                return state
+            }
+            Queue.mainQueue().after(0.1) {
+                self?.chatListDisplayNode.effectiveContainerNode.updateState { state in
+                    var state = state
+                    state.editing = false
+                    state.peerIdWithRevealedOptions = nil
+                    return state
+                }
+            }
+        })
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -784,6 +814,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         for (_, disposable) in self.preloadStoryResourceDisposables {
             disposable.dispose()
         }
+        self.disableSwipeActionsDisposable?.dispose()
     }
     
     private func updateNavigationMetadata() {

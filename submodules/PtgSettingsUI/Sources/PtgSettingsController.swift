@@ -273,7 +273,7 @@ private struct PtgSettingsState: Equatable {
     }
 }
 
-private func ptgSettingsControllerEntries(presentationData: PresentationData, settings: PtgSettings, experimentalSettings: ExperimentalUISettings, hasPremiumAccounts: Bool, ptgAccountSettings: PtgAccountSettings) -> [PtgSettingsEntry] {
+private func ptgSettingsControllerEntries(presentationData: PresentationData, settings: PtgSettings, experimentalSettings: ExperimentalUISettings, isPremiumAccount: Bool, ptgAccountSettings: PtgAccountSettings) -> [PtgSettingsEntry] {
     var entries: [PtgSettingsEntry] = []
     
     entries.append(.showPeerId(presentationData.strings.PtgSettings_ShowPeerId, settings.showPeerId))
@@ -304,7 +304,7 @@ private func ptgSettingsControllerEntries(presentationData: PresentationData, se
     
     if experimentalSettings.localTranscription {
         entries.append(.voiceToTextHeader(presentationData.strings.PtgSettings_VoiceToTextHeader.uppercased()))
-        entries.append(.voiceToTextPremiumAccountsImplementation(presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation, ptgAccountSettings.preferAppleVoiceToText ? presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Apple : presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Telegram, hasPremiumAccounts))
+        entries.append(.voiceToTextPremiumAccountsImplementation(presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation, ptgAccountSettings.preferAppleVoiceToText ? presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Apple : presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Telegram, isPremiumAccount))
         entries.append(.voiceToTextInfo(presentationData.strings.PtgSettings_VoiceToTextHelp))
     }
     
@@ -452,26 +452,13 @@ public func ptgSettingsController(context: AccountContext) -> ViewController {
         }
     })
     
-    let hasPremiumAccounts = combineLatest(context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId)), activeAccountsAndPeers(context: context))
-    |> map { accountPeer, accountsAndPeers -> Bool in
-        if accountPeer?.isPremium == true && !context.account.testingEnvironment {
-            return true
-        }
-        for (accountContext, peer, _) in accountsAndPeers.1 {
-            if peer.isPremium && !accountContext.account.testingEnvironment {
-                return true
-            }
-        }
-        return false
-    }
-    
-    let signal = combineLatest(context.sharedContext.presentationData, statePromise.get(), context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.experimentalUISettings]), hasPremiumAccounts, context.ptgAccountSettings)
+    let signal = combineLatest(context.sharedContext.presentationData, statePromise.get(), context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.experimentalUISettings]), context.ptgAccountSettings)
     |> deliverOnMainQueue
-    |> map { presentationData, state, sharedData, hasPremiumAccounts, ptgAccountSettings -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, state, sharedData, ptgAccountSettings -> (ItemListControllerState, (ItemListNodeState, Any)) in
         let experimentalSettings: ExperimentalUISettings = sharedData.entries[ApplicationSpecificSharedDataKeys.experimentalUISettings]?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.PtgSettings_Title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back), animateChanges: false)
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: ptgSettingsControllerEntries(presentationData: presentationData, settings: state.settings, experimentalSettings: experimentalSettings, hasPremiumAccounts: hasPremiumAccounts, ptgAccountSettings: ptgAccountSettings), style: .blocks, animateChanges: false)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: ptgSettingsControllerEntries(presentationData: presentationData, settings: state.settings, experimentalSettings: experimentalSettings, isPremiumAccount: context.isPremium, ptgAccountSettings: ptgAccountSettings), style: .blocks, animateChanges: false)
         
         return (controllerState, (listState, arguments))
     }
