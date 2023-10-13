@@ -27,6 +27,7 @@ public struct PtgSettings: Codable, Equatable {
     public let hideSignatureInChannels: Bool
     public let hideMuteUnmuteButtonInChannels: Bool
     public let disableSwipeActionsForChats: Bool
+    public let disableSwipeToStoryCamera: Bool
     public let testToolsEnabled: Bool?
     
     public static var defaultSettings: PtgSettings {
@@ -45,6 +46,7 @@ public struct PtgSettings: Codable, Equatable {
             hideSignatureInChannels: false,
             hideMuteUnmuteButtonInChannels: false,
             disableSwipeActionsForChats: false,
+            disableSwipeToStoryCamera: false,
             testToolsEnabled: nil
         )
     }
@@ -64,6 +66,7 @@ public struct PtgSettings: Codable, Equatable {
         hideSignatureInChannels: Bool,
         hideMuteUnmuteButtonInChannels: Bool,
         disableSwipeActionsForChats: Bool,
+        disableSwipeToStoryCamera: Bool,
         testToolsEnabled: Bool?
     ) {
         self.showPeerId = showPeerId
@@ -80,6 +83,7 @@ public struct PtgSettings: Codable, Equatable {
         self.hideSignatureInChannels = hideSignatureInChannels
         self.hideMuteUnmuteButtonInChannels = hideMuteUnmuteButtonInChannels
         self.disableSwipeActionsForChats = disableSwipeActionsForChats
+        self.disableSwipeToStoryCamera = disableSwipeToStoryCamera
         self.testToolsEnabled = testToolsEnabled
     }
     
@@ -100,6 +104,7 @@ public struct PtgSettings: Codable, Equatable {
         self.hideSignatureInChannels = (try container.decodeIfPresent(Int32.self, forKey: "hsic") ?? 0) != 0
         self.hideMuteUnmuteButtonInChannels = (try container.decodeIfPresent(Int32.self, forKey: "hmubic") ?? 0) != 0
         self.disableSwipeActionsForChats = (try container.decodeIfPresent(Int32.self, forKey: "dsafc") ?? 0) != 0
+        self.disableSwipeToStoryCamera = (try container.decodeIfPresent(Int32.self, forKey: "dstsc") ?? 0) != 0
         self.testToolsEnabled = try container.decodeIfPresent(Int32.self, forKey: "test").flatMap({ $0 != 0 })
     }
     
@@ -120,6 +125,7 @@ public struct PtgSettings: Codable, Equatable {
         try container.encode((self.hideSignatureInChannels ? 1 : 0) as Int32, forKey: "hsic")
         try container.encode((self.hideMuteUnmuteButtonInChannels ? 1 : 0) as Int32, forKey: "hmubic")
         try container.encode((self.disableSwipeActionsForChats ? 1 : 0) as Int32, forKey: "dsafc")
+        try container.encode((self.disableSwipeToStoryCamera ? 1 : 0) as Int32, forKey: "dstsc")
         try container.encodeIfPresent(self.testToolsEnabled.flatMap({ ($0 ? 1 : 0) as Int32 }), forKey: "test")
     }
     

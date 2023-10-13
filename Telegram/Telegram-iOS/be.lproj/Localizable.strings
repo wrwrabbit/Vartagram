@@ -99,6 +99,8 @@
 "PtgSettings.HideMuteUnmuteButton" = "Хаваць кнопку «(Не) апавяшчаць»";
 "PtgSettings.SwipeActionsForChats" = "Дзеянні пры змахванні чатаў";
 "PtgSettings.SwipeActionsForChatsHelp" = "Выключыце, каб прадухіліць выпадковыя дзеянні пры змахванні чатаў налева ці направа ў спісе чатаў. Усе гэтыя дзеянні таксама даступны ў кантэксным меню чатаў.";
+"PtgSettings.SwipeToOpenStoryCamera" = "Змахванне для запісу гісторый";
+"PtgSettings.SwipeToOpenStoryCameraHelp" = "Выключыце, каб прадухіліць выпадковае адкрыццё камеры для запісу гісторый падчас прагортвання спісу чатаў.";
 
 "Conversation.ContextMenuSaveMessage" = "Захаваць паведамленне";
 

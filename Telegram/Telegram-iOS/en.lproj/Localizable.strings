@@ -101,6 +101,8 @@
 "PtgSettings.HideMuteUnmuteButton" = "Hide Mute/Unmute Button";
 "PtgSettings.SwipeActionsForChats" = "Swipe Actions for Chats";
 "PtgSettings.SwipeActionsForChatsHelp" = "Turn off to prevent accidental actions when swiping chats left or right in the chat list. All of those actions are also available in the chat context menu.";
+"PtgSettings.SwipeToOpenStoryCamera" = "Swipe to Open Story Camera";
+"PtgSettings.SwipeToOpenStoryCameraHelp" = "Turn off to prevent accidentally opening the story camera when swiping through the chat list.";
 
 "Conversation.ContextMenuSaveMessage" = "Save Message";
 
