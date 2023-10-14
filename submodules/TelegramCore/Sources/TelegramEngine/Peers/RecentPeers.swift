@@ -100,7 +100,11 @@ public func _internal_managedUpdatedRecentPeers(accountPeerId: PeerId, postbox: 
 }
 
 func _internal_removeRecentPeer(account: Account, peerId: PeerId) -> Signal<Void, NoError> {
-    return account.postbox.transaction { transaction -> Signal<Void, NoError> in
+    return _internal_removeRecentPeer(postbox: account.postbox, network: account.network, peerId: peerId)
+}
+
+func _internal_removeRecentPeer(postbox: Postbox, network: Network, peerId: PeerId) -> Signal<Void, NoError> {
+    return postbox.transaction { transaction -> Signal<Void, NoError> in
         guard let entry = transaction.retrieveItemCacheEntry(id: cachedRecentPeersEntryId())?.get(CachedRecentPeers.self) else {
             return .complete()
         }
@@ -113,7 +117,7 @@ func _internal_removeRecentPeer(account: Account, peerId: PeerId) -> Signal<Void
             }
         }
         if let peer = transaction.getPeer(peerId), let apiPeer = apiInputPeer(peer) {
-            return account.network.request(Api.functions.contacts.resetTopPeerRating(category: .topPeerCategoryCorrespondents, peer: apiPeer))
+            return network.request(Api.functions.contacts.resetTopPeerRating(category: .topPeerCategoryCorrespondents, peer: apiPeer))
                 |> `catch` { _ -> Signal<Api.Bool, NoError> in
                     return .single(.boolFalse)
                 }

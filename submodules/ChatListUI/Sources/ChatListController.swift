@@ -4831,7 +4831,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         let _ = hideAccountPromoInfoChat(account: self.context.account, peerId: id).startStandalone()
     }
     
-    func deletePeerChat(peerId: PeerId, joined: Bool) {
+    public func deletePeerChat(peerId: EnginePeer.Id, joined: Bool, suppressClear: Bool = false, presentingController: ViewController? = nil, removalStarted: (() -> Void)? = nil) {
         let _ = (self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.RenderedPeer(id: peerId))
         |> deliverOnMainQueue).startStandalone(next: { [weak self] peer in
             guard let strongSelf = self, let peer = peer, let chatPeer = peer.peers[peer.peerId], let mainPeer = peer.chatMainPeer else {
@@ -4850,7 +4850,11 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             }
             
             if case let .user(user) = chatPeer, user.botInfo == nil, canRemoveGlobally {
-                strongSelf.maybeAskForPeerChatRemoval(peer: peer, joined: joined, completion: { _ in }, removed: {})
+                strongSelf.maybeAskForPeerChatRemoval(peer: peer, joined: joined, completion: { removing in
+                    if removing {
+                        removalStarted?()
+                    }
+                }, removed: {}, presentingController: presentingController)
             } else {
                 let actionSheet = ActionSheetController(presentationData: strongSelf.presentationData)
                 var items: [ActionSheetItem] = []
@@ -4911,6 +4915,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         actionSheet?.dismissAnimated()
                         self?.schedulePeerChatRemoval(peer: peer, type: .forLocalPeer, deleteGloballyIfPossible: false, completion: {
                         })
+                        removalStarted?()
                     }))
                     
                     let deleteForAllText: String
@@ -4933,12 +4938,13 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                             deleteForAllConfirmation = strongSelf.presentationData.strings.ChannelInfo_DeleteGroupConfirmation
                         }
                         
-                        strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: strongSelf.presentationData.strings.ChatList_DeleteForEveryoneConfirmationTitle, text: deleteForAllConfirmation, actions: [
+                        (presentingController ?? strongSelf).present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: strongSelf.presentationData.strings.ChatList_DeleteForEveryoneConfirmationTitle, text: deleteForAllConfirmation, actions: [
                             TextAlertAction(type: .genericAction, title: strongSelf.presentationData.strings.Common_Cancel, action: {
                             }),
                             TextAlertAction(type: .destructiveAction, title: strongSelf.presentationData.strings.ChatList_DeleteForEveryoneConfirmationAction, action: {
                                 self?.schedulePeerChatRemoval(peer: peer, type: .forEveryone, deleteGloballyIfPossible: true, completion: {
                                 })
+                                removalStarted?()
                             })
                         ], parseMarkdown: true), in: .window(.root))
                     }))
@@ -4946,22 +4952,27 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     items.append(DeleteChatPeerActionSheetItem(context: strongSelf.context, peer: mainPeer, chatPeer: chatPeer, action: .delete, strings: strongSelf.presentationData.strings, nameDisplayOrder: strongSelf.presentationData.nameDisplayOrder))
                     
                     if canStop {
-                        items.append(ActionSheetButtonItem(title: strongSelf.presentationData.strings.DialogList_DeleteBotConversationConfirmation, color: .destructive, action: { [weak actionSheet] in
+                        items.append(ActionSheetButtonItem(title: strongSelf.presentationData.strings.Common_Delete, color: .destructive, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
                             
                             if let strongSelf = self {
-                                strongSelf.maybeAskForPeerChatRemoval(peer: peer, completion: { _ in
+                                strongSelf.maybeAskForPeerChatRemoval(peer: peer, completion: { removing in
+                                    if removing {
+                                        removalStarted?()
+                                    }
                                 }, removed: {
+                                    /*
                                     guard let strongSelf = self else {
                                         return
                                     }
                                     let _ = strongSelf.context.engine.privacy.requestUpdatePeerIsBlocked(peerId: peer.peerId, isBlocked: true).startStandalone()
-                                })
+                                    */
+                                }, presentingController: presentingController)
                             }
                         }))
                     }
                     
-                    if canClear {
+                    if canClear && !suppressClear {
                         let beginClear: (InteractiveHistoryClearingType) -> Void = { type in
                             guard let strongSelf = self else {
                                 return
@@ -4978,7 +4989,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                 return true
                             })
                             
-                            strongSelf.present(UndoOverlayController(presentationData: strongSelf.context.sharedContext.currentPresentationData.with { $0 }, content: .removedChat(title: strongSelf.presentationData.strings.Undo_ChatCleared, text: nil), elevatedLayout: false, animateInAsReplacement: true, action: { value in
+                            (presentingController ?? strongSelf).present(UndoOverlayController(presentationData: strongSelf.context.sharedContext.currentPresentationData.with { $0 }, content: .removedChat(title: strongSelf.presentationData.strings.Undo_ChatCleared, text: nil), elevatedLayout: false, animateInAsReplacement: true, action: { value in
                                 guard let strongSelf = self else {
                                     return false
                                 }
@@ -5046,9 +5057,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                             })
                                         ])
                                     ])
-                                    strongSelf.present(actionSheet, in: .window(.root))
+                                    (presentingController ?? strongSelf).present(actionSheet, in: .window(.root))
                                 } else {
-                                    strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: strongSelf.presentationData.strings.ChatList_DeleteSavedMessagesConfirmationTitle, text: strongSelf.presentationData.strings.ChatList_DeleteSavedMessagesConfirmationText, actions: [
+                                    (presentingController ?? strongSelf).present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: strongSelf.presentationData.strings.ChatList_DeleteSavedMessagesConfirmationTitle, text: strongSelf.presentationData.strings.ChatList_DeleteSavedMessagesConfirmationText, actions: [
                                         TextAlertAction(type: .genericAction, title: strongSelf.presentationData.strings.Common_Cancel, action: {
                                         }),
                                         TextAlertAction(type: .destructiveAction, title: strongSelf.presentationData.strings.ChatList_DeleteSavedMessagesConfirmationAction, action: {
@@ -5068,6 +5079,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                             }
                             strongSelf.schedulePeerChatRemoval(peer: peer, type: .forEveryone, deleteGloballyIfPossible: true, completion: {
                             })
+                            removalStarted?()
                         }))
                     } else if !canStop {
                         items.append(ActionSheetButtonItem(title: deleteTitle, color: .destructive, action: { [weak actionSheet] in
@@ -5094,6 +5106,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                     actionSheet?.dismissAnimated()
                                     self?.schedulePeerChatRemoval(peer: peer, type: .forLocalPeer, deleteGloballyIfPossible: false, completion: {
                                     })
+                                    removalStarted?()
                                 }))
                                 
                                 let deleteForAllText: String
@@ -5116,12 +5129,13 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                         deleteForAllConfirmation = strongSelf.presentationData.strings.ChatList_DeleteForAllMembersConfirmationText
                                     }
                                     
-                                    strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: strongSelf.presentationData.strings.ChatList_DeleteForEveryoneConfirmationTitle, text: deleteForAllConfirmation, actions: [
+                                    (presentingController ?? strongSelf).present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: strongSelf.presentationData.strings.ChatList_DeleteForEveryoneConfirmationTitle, text: deleteForAllConfirmation, actions: [
                                         TextAlertAction(type: .genericAction, title: strongSelf.presentationData.strings.Common_Cancel, action: {
                                         }),
                                         TextAlertAction(type: .destructiveAction, title: strongSelf.presentationData.strings.ChatList_DeleteForEveryoneConfirmationAction, action: {
                                             self?.schedulePeerChatRemoval(peer: peer, type: .forEveryone, deleteGloballyIfPossible: true, completion: {
                                             })
+                                            removalStarted?()
                                         })
                                     ], parseMarkdown: true), in: .window(.root))
                                 }))
@@ -5134,9 +5148,13 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                         })
                                     ])
                                 ])
-                                strongSelf.present(actionSheet, in: .window(.root))
+                                (presentingController ?? strongSelf).present(actionSheet, in: .window(.root))
                             } else {
-                                strongSelf.maybeAskForPeerChatRemoval(peer: peer, completion: { _ in }, removed: {})
+                                strongSelf.maybeAskForPeerChatRemoval(peer: peer, completion: { removing in
+                                    if removing {
+                                        removalStarted?()
+                                    }
+                                }, removed: {}, presentingController: presentingController)
                             }
                         }))
                     }
@@ -5149,7 +5167,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         })
                     ])
                 ])
-                strongSelf.present(actionSheet, in: .window(.root))
+                (presentingController ?? strongSelf).present(actionSheet, in: .window(.root))
             }
         })
     }
@@ -5278,7 +5296,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         }))
     }
     
-    public func maybeAskForPeerChatRemoval(peer: EngineRenderedPeer, joined: Bool = false, deleteGloballyIfPossible: Bool = false, completion: @escaping (Bool) -> Void, removed: @escaping () -> Void) {
+    public func maybeAskForPeerChatRemoval(peer: EngineRenderedPeer, joined: Bool = false, deleteGloballyIfPossible: Bool = false, completion: @escaping (Bool) -> Void, removed: @escaping () -> Void, presentingController: ViewController? = nil) {
         guard let chatPeer = peer.peers[peer.peerId], let mainPeer = peer.chatMainPeer else {
             completion(false)
             return
@@ -5324,7 +5342,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     guard let strongSelf = self else {
                         return
                     }
-                    strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: strongSelf.presentationData.strings.ChatList_DeleteForEveryoneConfirmationTitle, text: strongSelf.presentationData.strings.ChatList_DeleteForEveryoneConfirmationText, actions: [
+                    (presentingController ?? strongSelf).present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: strongSelf.presentationData.strings.ChatList_DeleteForEveryoneConfirmationTitle, text: strongSelf.presentationData.strings.ChatList_DeleteForEveryoneConfirmationText, actions: [
                         TextAlertAction(type: .genericAction, title: strongSelf.presentationData.strings.Common_Cancel, action: {
                             completion(false)
                         }),
@@ -5346,9 +5364,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     })
                 ])
             ])
-            self.present(actionSheet, in: .window(.root))
+            (presentingController ?? self).present(actionSheet, in: .window(.root))
         } else if peer.peerId == self.context.account.peerId {
-            self.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: self.presentationData.strings.ChatList_DeleteSavedMessagesConfirmationTitle, text: self.presentationData.strings.ChatList_DeleteSavedMessagesConfirmationText, actions: [
+            (presentingController ?? self).present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: self.presentationData.strings.ChatList_DeleteSavedMessagesConfirmationTitle, text: self.presentationData.strings.ChatList_DeleteSavedMessagesConfirmationText, actions: [
                 TextAlertAction(type: .genericAction, title: self.presentationData.strings.Common_Cancel, action: {
                     completion(false)
                 }),

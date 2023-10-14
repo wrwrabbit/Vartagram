@@ -5546,6 +5546,30 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                         }
                     }
                     
+                    items.append(.action(ContextMenuActionItem(text: presentationData.strings.ChatList_DeleteChat, textColor: .destructive, icon: { theme in
+                        generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Delete"), color: theme.contextMenu.destructiveColor)
+                    }, action: { _, f in
+                        f(.dismissWithoutContent)
+                        
+                        guard let strongSelf = self else {
+                            return
+                        }
+                        guard let controller = strongSelf.controller, let navigationController = controller.navigationController as? NavigationController else {
+                            return
+                        }
+                        guard let tabController = navigationController.viewControllers.first as? TabBarController else {
+                            return
+                        }
+                        for childController in tabController.controllers {
+                            if let chatListController = childController as? ChatListController {
+                                chatListController.deletePeerChat(peerId: strongSelf.peerId, joined: false, suppressClear: true, presentingController: strongSelf.controller, removalStarted: { [weak navigationController] in
+                                    navigationController?.popToRoot(animated: true)
+                                })
+                                break
+                            }
+                        }
+                    })))
+                    
                     let finalItemsCount = items.count
                     
                     if finalItemsCount > itemsCount {
@@ -7758,7 +7782,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                         navigationController?.popToRoot(animated: true)
                     }
                 }, removed: {
-                })
+                }, presentingController: nil)
                 break
             }
         }
