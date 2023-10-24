@@ -284,11 +284,20 @@ public class ShareRootControllerImpl {
             } else {
                 systemUserInterfaceStyle = .light
             }
-            let _ = currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: systemUserInterfaceStyle).start(next: { value in
+            var loggingSettings: LoggingSettings!
+            let loggingSettingsSignal = accountManager.transaction { transaction in
+                return transaction.getSharedData(SharedDataKeys.loggingSettings)?.get(LoggingSettings.self) ?? LoggingSettings.defaultSettings
+            }
+            let _ = combineLatest(currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: systemUserInterfaceStyle), loggingSettingsSignal).start(next: { value, ls in
                 initialPresentationDataAndSettings = value
+                loggingSettings = ls
                 semaphore.signal()
             })
             semaphore.wait()
+            
+            Logger.shared.logToFile = loggingSettings.logToFile
+            Logger.shared.logToConsole = loggingSettings.logToConsole
+            Logger.shared.redactSensitiveData = loggingSettings.redactSensitiveData
             
             initialPresentationDataAndSettings = initialPresentationDataAndSettings!.withUpdatedPtgSecretPasscodes(initialPresentationDataAndSettings!.ptgSecretPasscodes.withCheckedTimeoutUsingLockStateFile(rootPath: rootPath))
             
