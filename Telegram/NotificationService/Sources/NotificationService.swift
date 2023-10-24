@@ -1,6 +1,4 @@
 import PtgForeignAgentNoticeRemoval
-import PtgSettings
-import PtgSecretPasscodes
 
 import Foundation
 import UserNotifications

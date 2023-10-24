@@ -1,5 +1,3 @@
-import PtgSettings
-import PtgSecretPasscodes
 import PtgSecretPasscodesUI
 import GalleryUI
 import ContextUI

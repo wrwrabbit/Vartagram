@@ -1,6 +1,5 @@
 import Foundation
 import Postbox
-import TelegramCore
 
 extension ApplicationSpecificSharedDataKeys {
     public static let ptgSettings = applicationSpecificPreferencesKey(102)

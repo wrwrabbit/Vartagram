@@ -15,7 +15,6 @@ swift_library(
         "//submodules/TelegramUIPreferences:TelegramUIPreferences",
         "//submodules/ItemListUI:ItemListUI",
         "//submodules/SettingsUI:SettingsUI",
-        "//submodules/PtgSecretPasscodes:PtgSecretPasscodes",
         "//Telegram:GeneratedSources",
     ],
     visibility = [

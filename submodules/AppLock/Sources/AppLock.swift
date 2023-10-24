@@ -1,4 +1,3 @@
-import PtgSecretPasscodes
 import QuickLook
 
 import Foundation

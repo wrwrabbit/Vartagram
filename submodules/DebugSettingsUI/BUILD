@@ -10,6 +10,8 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
+        "//submodules/PtgSettingsUI:PtgSettingsUI",
+        
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/Display:Display",
         "//submodules/Postbox:Postbox",

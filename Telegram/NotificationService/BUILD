@@ -8,8 +8,6 @@ swift_library(
     ]),
     deps = [
         "//submodules/PtgForeignAgentNoticeRemoval:PtgForeignAgentNoticeRemoval",
-        "//submodules/PtgSettings:PtgSettings",
-        "//submodules/PtgSecretPasscodes:PtgSecretPasscodes",
         
         "//submodules/Postbox:Postbox",
         "//submodules/TelegramCore:TelegramCore",

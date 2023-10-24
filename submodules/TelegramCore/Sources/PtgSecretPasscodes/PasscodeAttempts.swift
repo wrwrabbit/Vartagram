@@ -1,6 +1,5 @@
 import Foundation
 import Postbox
-import TelegramCore
 import SwiftSignalKit
 import MonotonicTime
 

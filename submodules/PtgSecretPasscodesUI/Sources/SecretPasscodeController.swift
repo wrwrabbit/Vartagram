@@ -20,7 +20,6 @@ import WidgetKit
 import GeneratedSources
 import PresentationDataUtils
 import AvatarNode
-import PtgSecretPasscodes
 
 private final class SecretPasscodeControllerArguments {
     let changePasscode: () -> Void

@@ -1,7 +1,6 @@
 import ItemListUI
 import MonotonicTime
 import AppLockState
-import PtgSecretPasscodes
 import PtgSecretPasscodesUI
 
 import UIKit

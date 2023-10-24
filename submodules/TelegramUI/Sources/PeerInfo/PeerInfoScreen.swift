@@ -1,6 +1,5 @@
 import PasscodeUI
 import PtgSettingsUI
-import PtgSecretPasscodes
 import PtgSecretPasscodesUI
 
 import Foundation
@@ -9051,9 +9050,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         items.append(ActionSheetButtonItem(title: self.presentationData.strings.Settings_Logout, color: .destructive, action: { [weak self] in
             dismissAction()
             if let strongSelf = self {
-                let _ = logoutFromAccount(id: id, accountManager: strongSelf.context.sharedContext.accountManager, alreadyLoggedOutRemotely: false, getExcludedAccountIds: { transaction in
-                    return PtgSecretPasscodes(transaction).allHidableAccountIds()
-                }).start()
+                let _ = logoutFromAccount(id: id, accountManager: strongSelf.context.sharedContext.accountManager, alreadyLoggedOutRemotely: false).start()
             }
         }))
         controller.setItemGroups([

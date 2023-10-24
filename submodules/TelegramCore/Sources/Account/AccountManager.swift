@@ -312,7 +312,7 @@ public func currentAccount(allocateIfNotExists: Bool, networkArguments: NetworkI
     }
 }
 
-public func logoutFromAccount(id: AccountRecordId, accountManager: AccountManager<TelegramAccountManagerTypes>, alreadyLoggedOutRemotely: Bool, getExcludedAccountIds: @escaping (AccountManagerModifier<TelegramAccountManagerTypes>) -> Set<AccountRecordId>) -> Signal<Void, NoError> {
+public func logoutFromAccount(id: AccountRecordId, accountManager: AccountManager<TelegramAccountManagerTypes>, alreadyLoggedOutRemotely: Bool) -> Signal<Void, NoError> {
     Logger.shared.log("AccountManager", "logoutFromAccount \(id)")
     return accountManager.transaction { transaction -> Void in
         transaction.updateRecord(id, { current in
@@ -337,7 +337,7 @@ public func logoutFromAccount(id: AccountRecordId, accountManager: AccountManage
         })
         
         if transaction.getCurrent([])?.0 == id {
-            let records = transaction.getRecords(getExcludedAccountIds(transaction))
+            let records = transaction.getRecords(PtgSecretPasscodes(transaction).allHidableAccountIds())
                 .filter { !$0.isLoggedOut }
                 .sorted { $0 < $1 }
             if !records.isEmpty {

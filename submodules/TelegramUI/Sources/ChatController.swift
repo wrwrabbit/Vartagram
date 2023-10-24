@@ -1,5 +1,4 @@
 import PtgForeignAgentNoticeSearchFiltering
-import PtgSettings
 import PtgSettingsUI
 
 import Foundation

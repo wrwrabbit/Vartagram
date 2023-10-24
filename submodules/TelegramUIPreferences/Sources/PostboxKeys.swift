@@ -8,6 +8,8 @@ private enum ApplicationSpecificPreferencesKeyValues: Int32 {
     case chatListFilterSettings = 18
     case widgetSettings = 19
     case mediaAutoSaveSettings = 20
+    
+    // ptgAccountSettings = 100
 }
 
 extension ApplicationSpecificPreferencesKeys {
@@ -40,6 +42,10 @@ private enum ApplicationSpecificSharedDataKeyValues: Int32 {
     case translationSettings = 18
     case drawingSettings = 19
     case mediaDisplaySettings = 20
+    
+    // ptgSettings = 102
+    // ptgSecretPasscodes = 103
+    // ptgPasscodeAttempts = 104
 }
 
 extension ApplicationSpecificSharedDataKeys {

@@ -9,7 +9,6 @@ import TelegramCore
 import TelegramUIPreferences
 import AccountUtils
 import PresentationDataUtils
-import PtgSettings
 
 private final class PtgSettingsControllerArguments {
     let switchShowPeerId: (Bool) -> Void
@@ -584,11 +583,15 @@ extension PtgSettings {
 
 extension PtgAccountSettings {
     public func withUpdated(ignoreAllContentRestrictions: Bool) -> PtgAccountSettings {
-        return PtgAccountSettings(ignoreAllContentRestrictions: ignoreAllContentRestrictions, preferAppleVoiceToText: self.preferAppleVoiceToText)
+        return PtgAccountSettings(ignoreAllContentRestrictions: ignoreAllContentRestrictions, preferAppleVoiceToText: self.preferAppleVoiceToText, skipSetTyping: self.skipSetTyping)
     }
     
     public func withUpdated(preferAppleVoiceToText: Bool) -> PtgAccountSettings {
-        return PtgAccountSettings(ignoreAllContentRestrictions: self.ignoreAllContentRestrictions, preferAppleVoiceToText: preferAppleVoiceToText)
+        return PtgAccountSettings(ignoreAllContentRestrictions: self.ignoreAllContentRestrictions, preferAppleVoiceToText: preferAppleVoiceToText, skipSetTyping: self.skipSetTyping)
+    }
+    
+    public func withUpdated(skipSetTyping: Bool) -> PtgAccountSettings {
+        return PtgAccountSettings(ignoreAllContentRestrictions: self.ignoreAllContentRestrictions, preferAppleVoiceToText: self.preferAppleVoiceToText, skipSetTyping: skipSetTyping)
     }
 }
 

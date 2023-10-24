@@ -1,3 +1,5 @@
+import PtgSettingsUI
+
 import Foundation
 import UIKit
 import Display
@@ -75,6 +77,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     #endif
     case keepChatNavigationStack(PresentationTheme, Bool)
     case skipReadHistory(PresentationTheme, Bool)
+    case skipSetTyping(Bool)
     #if TEST_BUILD
     case crashOnSlowQueries(PresentationTheme, Bool)
     case crashOnMemoryPressure(PresentationTheme, Bool)
@@ -140,7 +143,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
         case .logToFile, .logToConsole, .redactSensitiveData:
             return DebugControllerSection.logging.rawValue
         #endif
-        case .keepChatNavigationStack, .skipReadHistory:
+        case .keepChatNavigationStack, .skipReadHistory, .skipSetTyping:
             return DebugControllerSection.experiments.rawValue
         case .clearTips, .resetNotifications, .resetHoles, .reindexUnread, .reindexCache, .resetBiometricsData, .resetWebViewCache, .photoPreview, .knockoutWallpaper, .storiesExperiment, .storiesJpegExperiment, .playlistPlayback, .enableQuickReactionSwitch, .voiceConference, .experimentalCompatibility, .enableDebugDataDisplay, .acceleratedStickers, .inlineForums, .localTranscription, .enableReactionOverrides, .restorePurchases:
             return DebugControllerSection.experiments.rawValue
@@ -203,6 +206,8 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 14
         case .skipReadHistory:
             return 15
+        case .skipSetTyping:
+            return 15.5
         #if TEST_BUILD
         case .crashOnSlowQueries:
             return 16
@@ -1089,6 +1094,14 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     return settings
                 }).start()
             })
+        case let .skipSetTyping(value):
+            return ItemListSwitchItem(presentationData: presentationData, title: "Skip set typing (per account)", value: value, sectionId: self.section, style: .blocks, updated: { value in
+                if let context = arguments.context {
+                    let _ = updatePtgAccountSettings(engine: context.engine, { settings in
+                        return settings.withUpdated(skipSetTyping: value)
+                    }).start()
+                }
+            })
         #if TEST_BUILD
         case let .crashOnSlowQueries(_, value):
             return ItemListSwitchItem(presentationData: presentationData, title: "Crash when slow", value: value, sectionId: self.section, style: .blocks, updated: { value in
@@ -1528,7 +1541,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     }
 }
 
-private func debugControllerEntries(sharedContext: SharedAccountContext, presentationData: PresentationData, loggingSettings: LoggingSettings, mediaInputSettings: MediaInputSettings, experimentalSettings: ExperimentalUISettings, networkSettings: NetworkSettings?, hasLegacyAppData: Bool, useBetaFeatures: Bool) -> [DebugControllerEntry] {
+private func debugControllerEntries(sharedContext: SharedAccountContext, presentationData: PresentationData, loggingSettings: LoggingSettings, mediaInputSettings: MediaInputSettings, experimentalSettings: ExperimentalUISettings, networkSettings: NetworkSettings?, ptgAccountSettings: PtgAccountSettings?, hasLegacyAppData: Bool, useBetaFeatures: Bool) -> [DebugControllerEntry] {
     var entries: [DebugControllerEntry] = []
 
     let isMainApp = sharedContext.applicationBindings.isMainApp
@@ -1559,9 +1572,12 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
 
     if isMainApp {
         entries.append(.keepChatNavigationStack(presentationData.theme, experimentalSettings.keepChatNavigationStack))
-//        #if DEBUG
+        #if TEST_BUILD
         entries.append(.skipReadHistory(presentationData.theme, experimentalSettings.skipReadHistory))
-//        #endif
+        if let ptgAccountSettings {
+            entries.append(.skipSetTyping(ptgAccountSettings.skipSetTyping))
+        }
+        #endif
     }
     #if TEST_BUILD
     entries.append(.crashOnSlowQueries(presentationData.theme, experimentalSettings.crashOnLongQueries))
@@ -1682,7 +1698,7 @@ public func debugController(sharedContext: SharedAccountContext, context: Accoun
     
     let preferencesSignal: Signal<PreferencesView?, NoError>
     if let context = context {
-        preferencesSignal = context.account.postbox.preferencesView(keys: [PreferencesKeys.networkSettings])
+        preferencesSignal = context.account.postbox.preferencesView(keys: [PreferencesKeys.networkSettings, ApplicationSpecificPreferencesKeys.ptgAccountSettings])
         |> map(Optional.init)
     } else {
         preferencesSignal = .single(nil)
@@ -1721,7 +1737,7 @@ public func debugController(sharedContext: SharedAccountContext, context: Accoun
         }
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text("Debug"), leftNavigationButton: leftNavigationButton, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: debugControllerEntries(sharedContext: sharedContext, presentationData: presentationData, loggingSettings: loggingSettings, mediaInputSettings: mediaInputSettings, experimentalSettings: experimentalSettings, networkSettings: networkSettings, hasLegacyAppData: hasLegacyAppData, useBetaFeatures: useBetaFeatures), style: .blocks)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: debugControllerEntries(sharedContext: sharedContext, presentationData: presentationData, loggingSettings: loggingSettings, mediaInputSettings: mediaInputSettings, experimentalSettings: experimentalSettings, networkSettings: networkSettings, ptgAccountSettings: preferences.flatMap { PtgAccountSettings($0.values[ApplicationSpecificPreferencesKeys.ptgAccountSettings]) }, hasLegacyAppData: hasLegacyAppData, useBetaFeatures: useBetaFeatures), style: .blocks)
         
         return (controllerState, (listState, arguments))
     }

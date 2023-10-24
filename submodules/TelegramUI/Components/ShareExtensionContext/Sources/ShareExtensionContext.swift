@@ -1,5 +1,3 @@
-import PtgSettings
-
 import UIKit
 import AsyncDisplayKit
 import Display

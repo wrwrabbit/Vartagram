@@ -1,5 +1,3 @@
-import PtgSecretPasscodes
-
 import Foundation
 import Intents
 import TelegramCore

@@ -1,5 +1,3 @@
-import PtgSettings
-
 import Foundation
 import SwiftSignalKit
 import Postbox
