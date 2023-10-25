@@ -50,7 +50,7 @@ final class NetworkStatsContext {
     
     private final class Impl {
         let queue: Queue
-        let postbox: Postbox
+        weak var postbox: Postbox?
         
         var averageTargetStats: [TargetKey: AverageStats] = [:]
         
@@ -86,12 +86,14 @@ final class NetworkStatsContext {
             var removeKeys: [TargetKey] = []
             for (targetKey, averageStats) in self.averageTargetStats {
                 if averageStats.count >= 1000 || averageStats.size >= 4 * 1024 * 1024 {
-                    addAppLogEvent(postbox: self.postbox, type: "download", data: .dictionary([
-                        "n": .number(Double(targetKey.networkType.rawValue)),
-                        "d": .number(Double(targetKey.datacenterId)),
-                        "b": .number(averageStats.networkBps / Double(averageStats.count)),
-                        "nd": .number(averageStats.networkDelay / Double(averageStats.count))
-                    ]))
+                    if let postbox = self.postbox {
+                        addAppLogEvent(postbox: postbox, type: "download", data: .dictionary([
+                            "n": .number(Double(targetKey.networkType.rawValue)),
+                            "d": .number(Double(targetKey.datacenterId)),
+                            "b": .number(averageStats.networkBps / Double(averageStats.count)),
+                            "nd": .number(averageStats.networkDelay / Double(averageStats.count))
+                        ]))
+                    }
                     removeKeys.append(targetKey)
                 }
             }
