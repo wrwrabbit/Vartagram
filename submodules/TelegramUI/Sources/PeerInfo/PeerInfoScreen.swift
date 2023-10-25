@@ -8795,22 +8795,42 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                     return PtgSecretPasscodes(secretPasscodes: updated, dbCoveringAccounts: dbCoveringAccounts, cacheCoveringAccounts: cacheCoveringAccounts)
                                 })
                                 |> ignoreValues
-                                |> afterCompleted {
-                                    if let onRevealNavigateTo = sp.onRevealNavigateTo {
-                                        Queue.mainQueue().async {
-                                            if onRevealNavigateTo.peerId != nil {
-                                                strongSelf.context.sharedContext.navigateToChat(accountId: onRevealNavigateTo.accountId, peerId: onRevealNavigateTo.peerId!, messageId: nil)
-                                            } else {
-                                                strongSelf.context.sharedContext.switchToAccount(id: onRevealNavigateTo.accountId, fromSettingsController: nil, withChatListController: nil)
-                                            }
-                                        }
-                                    }
-                                }
                             }
                             |> then (
                                 strongSelf.context.sharedContext.activeAccountContexts
                                 |> take(1)
                                 |> mapToSignal { activeAccountContexts in
+                                    if let onRevealNavigateTo = sp.onRevealNavigateTo {
+                                        if onRevealNavigateTo.peerId != nil {
+                                            // it is possible that account of this secret chat is currently hidden
+                                            // then don't call navigateToChat which waits indefinitely and may navigate to this chat when it is no longer expected
+                                            if let context = activeAccountContexts.accounts.first(where: { $0.0 == onRevealNavigateTo.accountId })?.1 {
+                                                // secret chat may already be deleted
+                                                let _ = (context.account.postbox.transaction { transaction in
+                                                    if transaction.getPeerChatListIndex(onRevealNavigateTo.peerId!) != nil {
+                                                        Queue.mainQueue().async {
+                                                            context.sharedContext.navigateToChat(accountId: onRevealNavigateTo.accountId, peerId: onRevealNavigateTo.peerId!, messageId: nil)
+                                                        }
+                                                    }
+                                                }).start()
+                                            }
+                                        } else {
+                                            assert(sp.accountIds.contains(onRevealNavigateTo.accountId))
+                                            // account can already be logged out
+                                            if let context = (activeAccountContexts.accounts + activeAccountContexts.inactiveAccounts).first(where: { $0.0 == onRevealNavigateTo.accountId })?.1 {
+                                                // wait for account to be activated before switching to it
+                                                let _ = (context.sharedContext.activeAccountContexts
+                                                |> filter { activeAccountContexts in
+                                                    return activeAccountContexts.accounts.contains(where: { $0.0 == onRevealNavigateTo.accountId })
+                                                }
+                                                |> take(1)
+                                                |> deliverOnMainQueue).start(next: { _ in
+                                                    context.sharedContext.switchToAccount(id: onRevealNavigateTo.accountId, fromSettingsController: nil, withChatListController: nil)
+                                                })
+                                            }
+                                        }
+                                    }
+                                    
                                     var signals: [Signal<Never, NoError>] = []
                                     for (_, context, _) in (activeAccountContexts.accounts + activeAccountContexts.inactiveAccounts) {
                                         if sp.accountIds.contains(context.account.id) {
