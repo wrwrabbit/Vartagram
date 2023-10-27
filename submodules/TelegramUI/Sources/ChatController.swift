@@ -7391,7 +7391,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     if counterAndTimestamp.0 >= 3 {
                         maybeSuggestPremium = true
                     }
-                    if (isPremium || maybeSuggestPremium) && !isHidden {
+                    if (isPremium || true || maybeSuggestPremium) && !isHidden {
                         return chatTranslationState(context: context, peerId: peerId)
                         |> map { translationState -> ChatPresentationTranslationState? in
                             if let translationState, !translationState.fromLang.isEmpty && (translationState.fromLang != baseLanguageCode || translationState.isEnabled) {
