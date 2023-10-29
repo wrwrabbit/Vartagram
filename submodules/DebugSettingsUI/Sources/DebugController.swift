@@ -75,7 +75,10 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     #endif
     case keepChatNavigationStack(PresentationTheme, Bool)
     case skipReadHistory(PresentationTheme, Bool)
+    #if TEST_BUILD
     case crashOnSlowQueries(PresentationTheme, Bool)
+    case crashOnMemoryPressure(PresentationTheme, Bool)
+    #endif
     case clearTips(PresentationTheme)
     case resetNotifications
     #if TEST_BUILD
@@ -104,6 +107,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     case localTranscription(Bool)
     case enableReactionOverrides(Bool)
     case storiesExperiment(Bool)
+    case storiesJpegExperiment(Bool)
     case playlistPlayback(Bool)
     case enableQuickReactionSwitch(Bool)
     case voiceConference
@@ -136,12 +140,12 @@ private enum DebugControllerEntry: ItemListNodeEntry {
         case .logToFile, .logToConsole, .redactSensitiveData:
             return DebugControllerSection.logging.rawValue
         #endif
-        case .keepChatNavigationStack, .skipReadHistory, .crashOnSlowQueries:
+        case .keepChatNavigationStack, .skipReadHistory:
             return DebugControllerSection.experiments.rawValue
-        case .clearTips, .resetNotifications, .resetHoles, .reindexUnread, .reindexCache, .resetBiometricsData, .resetWebViewCache, .photoPreview, .knockoutWallpaper, .storiesExperiment, .playlistPlayback, .enableQuickReactionSwitch, .voiceConference, .experimentalCompatibility, .enableDebugDataDisplay, .acceleratedStickers, .inlineForums, .localTranscription, .enableReactionOverrides, .restorePurchases:
+        case .clearTips, .resetNotifications, .resetHoles, .reindexUnread, .reindexCache, .resetBiometricsData, .resetWebViewCache, .photoPreview, .knockoutWallpaper, .storiesExperiment, .storiesJpegExperiment, .playlistPlayback, .enableQuickReactionSwitch, .voiceConference, .experimentalCompatibility, .enableDebugDataDisplay, .acceleratedStickers, .inlineForums, .localTranscription, .enableReactionOverrides, .restorePurchases:
             return DebugControllerSection.experiments.rawValue
         #if TEST_BUILD
-        case .crash, .resetData, .resetDatabase, .resetDatabaseAndCache, .resetCacheIndex, .optimizeDatabase:
+        case .crashOnSlowQueries, .crashOnMemoryPressure, .crash, .resetData, .resetDatabase, .resetDatabaseAndCache, .resetCacheIndex, .optimizeDatabase:
             return DebugControllerSection.experiments.rawValue
         case .logTranslationRecognition:
             return DebugControllerSection.translation.rawValue
@@ -199,10 +203,14 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 14
         case .skipReadHistory:
             return 15
+        #if TEST_BUILD
         case .crashOnSlowQueries:
             return 16
-        case .clearTips:
+        case .crashOnMemoryPressure:
             return 17
+        #endif
+        case .clearTips:
+            return 18
         case .resetNotifications:
             return 19
         #if TEST_BUILD
@@ -259,14 +267,16 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 42
         case .storiesExperiment:
             return 43
-        case .playlistPlayback:
+        case .storiesJpegExperiment:
             return 44
-        case .enableQuickReactionSwitch:
+        case .playlistPlayback:
             return 45
-        case .voiceConference:
+        case .enableQuickReactionSwitch:
             return 46
+        case .voiceConference:
+            return 47
         case let .preferredVideoCodec(index, _, _, _):
-            return Double(47 + index)
+            return Double(48 + index)
         case .disableVideoAspectScaling:
             return 100
         case .enableNetworkFramework:
@@ -1079,6 +1089,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     return settings
                 }).start()
             })
+        #if TEST_BUILD
         case let .crashOnSlowQueries(_, value):
             return ItemListSwitchItem(presentationData: presentationData, title: "Crash when slow", value: value, sectionId: self.section, style: .blocks, updated: { value in
                 let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
@@ -1087,6 +1098,15 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     return settings
                 }).start()
             })
+        case let .crashOnMemoryPressure(_, value):
+            return ItemListSwitchItem(presentationData: presentationData, title: "Crash on memory pressure", value: value, sectionId: self.section, style: .blocks, updated: { value in
+                let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
+                    var settings = settings
+                    settings.crashOnMemoryPressure = value
+                    return settings
+                }).start()
+            })
+        #endif
         case .clearTips:
             return ItemListActionItem(presentationData: presentationData, title: "Clear Tips", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
                 let _ = (arguments.sharedContext.accountManager.transaction { transaction -> Void in
@@ -1386,11 +1406,21 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                 }).start()
             })
         case let .storiesExperiment(value):
-            return ItemListSwitchItem(presentationData: presentationData, title: "Gallery X", value: value, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, title: "Story Search Debug", value: value, sectionId: self.section, style: .blocks, updated: { value in
                 let _ = arguments.sharedContext.accountManager.transaction ({ transaction in
                     transaction.updateSharedData(ApplicationSpecificSharedDataKeys.experimentalUISettings, { settings in
                         var settings = settings?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
                         settings.storiesExperiment = value
+                        return PreferencesEntry(settings)
+                    })
+                }).start()
+            })
+        case let .storiesJpegExperiment(value):
+            return ItemListSwitchItem(presentationData: presentationData, title: "JPEG X", value: value, sectionId: self.section, style: .blocks, updated: { value in
+                let _ = arguments.sharedContext.accountManager.transaction ({ transaction in
+                    transaction.updateSharedData(ApplicationSpecificSharedDataKeys.experimentalUISettings, { settings in
+                        var settings = settings?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
+                        settings.storiesJpegExperiment = value
                         return PreferencesEntry(settings)
                     })
                 }).start()
@@ -1533,7 +1563,10 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
         entries.append(.skipReadHistory(presentationData.theme, experimentalSettings.skipReadHistory))
 //        #endif
     }
+    #if TEST_BUILD
     entries.append(.crashOnSlowQueries(presentationData.theme, experimentalSettings.crashOnLongQueries))
+    entries.append(.crashOnMemoryPressure(presentationData.theme, experimentalSettings.crashOnMemoryPressure))
+    #endif
     if isMainApp {
         entries.append(.clearTips(presentationData.theme))
         entries.append(.resetNotifications)
@@ -1583,6 +1616,7 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
         
         if case .internal = sharedContext.applicationBindings.appBuildType {
             entries.append(.storiesExperiment(experimentalSettings.storiesExperiment))
+            entries.append(.storiesJpegExperiment(experimentalSettings.storiesJpegExperiment))
         }
         entries.append(.playlistPlayback(experimentalSettings.playlistPlayback))
         entries.append(.enableQuickReactionSwitch(!experimentalSettings.disableQuickReaction))

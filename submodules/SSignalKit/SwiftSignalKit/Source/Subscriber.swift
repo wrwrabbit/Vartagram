@@ -1,13 +1,55 @@
 import Foundation
 
-public final class Subscriber<T, E> {
+/*
+final class WrappedSubscriberDisposable: Disposable {
+    private var lock = pthread_mutex_t()
+    private var disposable: Disposable?
+    
+    init(_ disposable: Disposable) {
+        self.disposable = disposable
+        
+        pthread_mutex_init(&self.lock, nil)
+    }
+    
+    deinit {
+        pthread_mutex_destroy(&self.lock)
+    }
+    
+    func dispose() {
+        var disposableValue: Disposable?
+        pthread_mutex_lock(&self.lock)
+        disposableValue = self.disposable
+        self.disposable = nil
+        pthread_mutex_unlock(&self.lock)
+        
+        disposableValue?.dispose()
+    }
+    
+    func markTerminated() {
+        var disposableValue: Disposable?
+        pthread_mutex_lock(&self.lock)
+        disposableValue = self.disposable
+        self.disposable = nil
+        pthread_mutex_unlock(&self.lock)
+        
+        if let disposableValue = disposableValue {
+            withExtendedLifetime(disposableValue, {
+            })
+        }
+    }
+}
+*/
+
+public final class Subscriber<T, E>: CustomStringConvertible {
     private var next: ((T) -> Void)!
     private var error: ((E) -> Void)!
     private var completed: (() -> Void)!
     
+    private var keepAliveObjects: [AnyObject]?
+    
     private let lock = createOSUnfairLock()
     private var terminated = false
-    internal var disposable: Disposable!
+    internal var disposable: Disposable?
     
     public init(next: ((T) -> Void)! = nil, error: ((E) -> Void)! = nil, completed: (() -> Void)! = nil) {
         self.next = next
@@ -15,18 +57,31 @@ public final class Subscriber<T, E> {
         self.completed = completed
     }
     
+    public var description: String {
+        return "Subscriber { next: \(self.next == nil ? "nil" : "hasValue"), error: \(self.error == nil ? "nil" : "hasValue"), completed: \(self.completed == nil ? "nil" : "hasValue"), disposable: \(self.disposable == nil ? "nil" : "hasValue"), terminated: \(self.terminated) }"
+    }
+    
     deinit {
         var freeDisposable: Disposable?
+        var keepAliveObjects: [AnyObject]?
+        
         self.lock.lock()
         if let disposable = self.disposable {
             freeDisposable = disposable
             self.disposable = nil
         }
+        keepAliveObjects = self.keepAliveObjects
+        self.keepAliveObjects = nil
         self.lock.unlock()
         if let freeDisposableValue = freeDisposable {
             withExtendedLifetime(freeDisposableValue, {
             })
             freeDisposable = nil
+        }
+        
+        if let keepAliveObjects = keepAliveObjects {
+            withExtendedLifetime(keepAliveObjects, {
+            })
         }
     }
     
@@ -46,7 +101,8 @@ public final class Subscriber<T, E> {
     }
     
     internal func markTerminatedWithoutDisposal() {
-        var disposable: Disposable?
+        var freeDisposable: Disposable?
+        var keepAliveObjects: [AnyObject]?
         
         var next: ((T) -> Void)?
         var error: ((E) -> Void)?
@@ -61,9 +117,13 @@ public final class Subscriber<T, E> {
             self.error = nil
             completed = self.completed
             self.completed = nil
-            disposable = self.disposable
+            freeDisposable = self.disposable
             self.disposable = nil
         }
+        
+        keepAliveObjects = self.keepAliveObjects
+        self.keepAliveObjects = nil
+        
         self.lock.unlock()
         
         if let next = next {
@@ -76,7 +136,16 @@ public final class Subscriber<T, E> {
             withExtendedLifetime(completed, {})
         }
         
-        withExtendedLifetime(disposable, {})
+        if let freeDisposableValue = freeDisposable {
+            withExtendedLifetime(freeDisposableValue, {
+            })
+            freeDisposable = nil
+        }
+        
+        if let keepAliveObjects = keepAliveObjects {
+            withExtendedLifetime(keepAliveObjects, {
+            })
+        }
     }
     
     public func putNext(_ next: T) {
@@ -96,6 +165,7 @@ public final class Subscriber<T, E> {
         var action: ((E) -> Void)! = nil
         
         var disposeDisposable: Disposable?
+        var keepAliveObjects: [AnyObject]?
         
         var next: ((T) -> Void)?
         var completed: (() -> Void)?
@@ -111,8 +181,9 @@ public final class Subscriber<T, E> {
             self.terminated = true
             disposeDisposable = self.disposable
             self.disposable = nil
-            
         }
+        keepAliveObjects = self.keepAliveObjects
+        self.keepAliveObjects = nil
         self.lock.unlock()
         
         if let next = next {
@@ -129,12 +200,18 @@ public final class Subscriber<T, E> {
         if let disposeDisposable = disposeDisposable {
             disposeDisposable.dispose()
         }
+        
+        if let keepAliveObjects = keepAliveObjects {
+            withExtendedLifetime(keepAliveObjects, {
+            })
+        }
     }
     
     public func putCompletion() {
         var action: (() -> Void)! = nil
         
         var disposeDisposable: Disposable? = nil
+        var keepAliveObjects: [AnyObject]?
         
         var next: ((T) -> Void)?
         var error: ((E) -> Void)?
@@ -154,6 +231,8 @@ public final class Subscriber<T, E> {
             disposeDisposable = self.disposable
             self.disposable = nil
         }
+        keepAliveObjects = self.keepAliveObjects
+        self.keepAliveObjects = nil
         self.lock.unlock()
         
         if let next = next {
@@ -173,5 +252,21 @@ public final class Subscriber<T, E> {
         if let disposeDisposable = disposeDisposable {
             disposeDisposable.dispose()
         }
+        
+        if let keepAliveObjects = keepAliveObjects {
+            withExtendedLifetime(keepAliveObjects, {
+            })
+        }
+    }
+    
+    public func keepAlive(_ object: AnyObject) {
+        self.lock.lock()
+        if !self.terminated {
+            if self.keepAliveObjects == nil {
+                self.keepAliveObjects = []
+            }
+            self.keepAliveObjects?.append(object)
+        }
+        self.lock.unlock()
     }
 }

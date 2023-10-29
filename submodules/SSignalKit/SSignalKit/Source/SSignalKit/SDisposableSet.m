@@ -8,85 +8,71 @@
 {
     os_unfair_lock _lock;
     bool _disposed;
-    id<SDisposable> _singleDisposable;
-    NSArray *_multipleDisposables;
+    NSMutableArray<id<SDisposable>> *_disposables;
 }
 
 @end
 
 @implementation SDisposableSet
 
-- (void)add:(id<SDisposable>)disposable
-{
-    if (disposable == nil)
-        return;
+- (instancetype)init {
+    self = [super init];
+    if (self != nil) {
+        _disposables = [[NSMutableArray alloc] init];
+    }
+    return self;
+}
+
+- (void)dealloc {
+    NSArray<id<SDisposable>> *disposables = nil;
+    os_unfair_lock_lock(&_lock);
+    disposables = _disposables;
+    _disposables = nil;
+    os_unfair_lock_unlock(&_lock);
     
-    bool dispose = false;
+    if (disposables) {
+    }
+}
+
+- (void)add:(id<SDisposable>)disposable {
+    bool disposeImmediately = false;
     
     os_unfair_lock_lock(&_lock);
-    dispose = _disposed;
-    if (!dispose)
-    {
-        if (_multipleDisposables != nil)
-        {
-            NSMutableArray *multipleDisposables = [[NSMutableArray alloc] initWithArray:_multipleDisposables];
-            [multipleDisposables addObject:disposable];
-            _multipleDisposables = multipleDisposables;
-        }
-        else if (_singleDisposable != nil)
-        {
-            NSMutableArray *multipleDisposables = [[NSMutableArray alloc] initWithObjects:_singleDisposable, disposable, nil];
-            _multipleDisposables = multipleDisposables;
-            _singleDisposable = nil;
-        }
-        else
-        {
-            _singleDisposable = disposable;
-        }
+    if (_disposed) {
+        disposeImmediately = true;
+    } else {
+        [_disposables addObject:disposable];
     }
     os_unfair_lock_unlock(&_lock);
     
-    if (dispose)
+    if (disposeImmediately) {
         [disposable dispose];
+    }
 }
 
 - (void)remove:(id<SDisposable>)disposable {
     os_unfair_lock_lock(&_lock);
-    if (_multipleDisposables != nil)
-    {
-        NSMutableArray *multipleDisposables = [[NSMutableArray alloc] initWithArray:_multipleDisposables];
-        [multipleDisposables removeObject:disposable];
-        _multipleDisposables = multipleDisposables;
-    }
-    else if (_singleDisposable == disposable)
-    {
-        _singleDisposable = nil;
+    for (NSInteger i = 0; i < _disposables.count; i++) {
+        if (_disposables[i] == disposable) {
+            [_disposables removeObjectAtIndex:i];
+            break;
+        }
     }
     os_unfair_lock_unlock(&_lock);
 }
 
-- (void)dispose
-{
-    id<SDisposable> singleDisposable = nil;
-    NSArray *multipleDisposables = nil;
-    
+- (void)dispose {
+    NSArray<id<SDisposable>> *disposables = nil;
     os_unfair_lock_lock(&_lock);
-    if (!_disposed)
-    {
+    if (!_disposed) {
         _disposed = true;
-        singleDisposable = _singleDisposable;
-        multipleDisposables = _multipleDisposables;
-        _singleDisposable = nil;
-        _multipleDisposables = nil;
+        disposables = _disposables;
+        _disposables = nil;
     }
     os_unfair_lock_unlock(&_lock);
     
-    if (singleDisposable != nil)
-        [singleDisposable dispose];
-    if (multipleDisposables != nil)
-    {
-        for (id<SDisposable> disposable in multipleDisposables)
-        {
+    if (disposables) {
+        for (id<SDisposable> disposable in disposables) {
             [disposable dispose];
         }
     }

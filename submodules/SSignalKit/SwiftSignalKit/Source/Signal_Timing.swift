@@ -3,10 +3,11 @@ import Foundation
 public func delay<T, E>(_ timeout: Double, queue: Queue) -> (_ signal: Signal<T, E>) -> Signal<T, E> {
     return { signal in
         return Signal<T, E> { subscriber in
-            let disposable = MetaDisposable()
+            let timerDisposable = MetaDisposable()
+            let runDisposable = MetaDisposable()
             queue.async {
                 let timer = Timer(timeout: timeout, repeat: false, completion: {
-                    disposable.set(signal.start(next: { next in
+                    runDisposable.set(signal.start(next: { next in
                         subscriber.putNext(next)
                     }, error: { error in
                         subscriber.putError(error)
@@ -15,7 +16,7 @@ public func delay<T, E>(_ timeout: Double, queue: Queue) -> (_ signal: Signal<T,
                     }))
                 }, queue: queue)
                 
-                disposable.set(ActionDisposable {
+                timerDisposable.set(ActionDisposable {
                     queue.async {
                         timer.invalidate()
                     }
@@ -23,7 +24,10 @@ public func delay<T, E>(_ timeout: Double, queue: Queue) -> (_ signal: Signal<T,
                 
                 timer.start()
             }
-            return disposable
+            return ActionDisposable {
+                timerDisposable.dispose()
+                runDisposable.dispose()
+            }
         }
     }
 }
@@ -31,7 +35,9 @@ public func delay<T, E>(_ timeout: Double, queue: Queue) -> (_ signal: Signal<T,
 public func suspendAwareDelay<T, E>(_ timeout: Double, granularity: Double = 4.0, queue: Queue) -> (_ signal: Signal<T, E>) -> Signal<T, E> {
     return { signal in
         return Signal<T, E> { subscriber in
-            let disposable = MetaDisposable()
+            let timerDisposable = MetaDisposable()
+            let runDisposable = MetaDisposable()
+            
             queue.async {
                 let beginTimestamp = CFAbsoluteTimeGetCurrent()
                 
@@ -40,7 +46,7 @@ public func suspendAwareDelay<T, E>(_ timeout: Double, granularity: Double = 4.0
                     // when app restored from suspended state, many timers may trigger immediately
                     // since we may need to quickly hide some secrets, delay these tasks for 0.5 seconds
                     let timer = Timer(timeout: max(0.5, finalTimeout), repeat: false, completion: {
-                        disposable.set(signal.start(next: { next in
+                        runDisposable.set(signal.start(next: { next in
                             subscriber.putNext(next)
                         }, error: { error in
                             subscriber.putError(error)
@@ -48,7 +54,7 @@ public func suspendAwareDelay<T, E>(_ timeout: Double, granularity: Double = 4.0
                             subscriber.putCompletion()
                         }))
                     }, queue: queue)
-                    disposable.set(ActionDisposable {
+                    timerDisposable.set(ActionDisposable {
                         queue.async {
                             timer.invalidate()
                         }
@@ -60,30 +66,31 @@ public func suspendAwareDelay<T, E>(_ timeout: Double, granularity: Double = 4.0
                     startFinalTimer()
                 } else {
                     var invalidateImpl: (() -> Void)?
-                    let timer = Timer(timeout: granularity, repeat: true, completion: {
+                    let timer = Timer(timeout: granularity, repeat: true, completion: { timer in
                         let currentTimestamp = CFAbsoluteTimeGetCurrent()
                         if beginTimestamp + timeout - granularity * 1.1 <= currentTimestamp {
-                            invalidateImpl?()
+                            timer.invalidate()
                             startFinalTimer()
                         }
                     }, queue: queue)
                     
-                    invalidateImpl = { [weak timer] in
-                        queue.async {
-                            timer?.invalidate()
-                        }
-                    }
-                    
-                    disposable.set(ActionDisposable {
+                    invalidateImpl = {
                         queue.async {
                             timer.invalidate()
                         }
+                    }
+                    
+                    timerDisposable.set(ActionDisposable {
+                        invalidateImpl?()
                     })
                     
                     timer.start()
                 }
             }
-            return disposable
+            return ActionDisposable {
+                timerDisposable.dispose()
+                runDisposable.dispose()
+            }
         }
     }
 }

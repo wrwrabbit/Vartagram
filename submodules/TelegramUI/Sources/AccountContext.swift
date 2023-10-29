@@ -23,6 +23,7 @@ import InAppPurchaseManager
 import AnimationCache
 import MultiAnimationRenderer
 import AppBundle
+import DirectMediaImageCache
 
 private final class DeviceSpecificContactImportContext {
     let disposable = MetaDisposable()
@@ -263,13 +264,20 @@ public final class AccountContextImpl: AccountContext {
         return self.sharedContext.currentPtgSecretPasscodes.with { $0.allHidableAccountIds().contains(accountId) }
     }
     
+    public private(set) var isPremium: Bool
+    
+    public let imageCache: AnyObject?
+    
     public init(sharedContext: SharedAccountContextImpl, account: Account, limitsConfiguration: LimitsConfiguration, contentSettings: ContentSettings, appConfiguration: AppConfiguration, temp: Bool = false)
     {
         self.sharedContextImpl = sharedContext
         self.account = account
         self.engine = TelegramEngine(account: account)
         
+        self.imageCache = DirectMediaImageCache(account: account)
+        
         self.userLimits = EngineConfiguration.UserLimits(UserLimitsConfiguration.defaultValue)
+        self.isPremium = false
         
         self.downloadedMediaStoreManager = DownloadedMediaStoreManagerImpl(postbox: account.postbox, accountManager: sharedContext.accountManager, mediaStoreAllowed: sharedContext.allHidableAccountIds |> map { !$0.contains(account.id) })
         
@@ -435,14 +443,22 @@ public final class AccountContextImpl: AccountContext {
         }
         
         self.userLimitsConfigurationDisposable = (self.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: account.peerId))
-        |> mapToSignal { [weak self] peer -> Signal<EngineConfiguration.UserLimits, NoError> in
-            return self?.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.UserLimits(isPremium: peer?.isPremium ?? false)) ?? .complete()
+        |> mapToSignal { [weak self] peer -> Signal<(Bool, EngineConfiguration.UserLimits), NoError> in
+            guard let strongSelf = self else {
+                return .complete()
+            }
+            let isPremium = peer?.isPremium ?? false
+            return strongSelf.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.UserLimits(isPremium: isPremium))
+            |> map { userLimits in
+                return (isPremium, userLimits)
+            }
         }
-        |> deliverOnMainQueue).start(next: { [weak self] value in
+        |> deliverOnMainQueue).start(next: { [weak self] isPremium, userLimits in
             guard let strongSelf = self else {
                 return
             }
-            strongSelf.userLimits = value
+            strongSelf.isPremium = isPremium
+            strongSelf.userLimits = userLimits
         })
     }
     

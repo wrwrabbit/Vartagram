@@ -4,6 +4,44 @@ public protocol Disposable: AnyObject {
     func dispose()
 }
 
+public final class StrictDisposable: Disposable {
+    private let disposable: Disposable
+    #if DEBUG
+    private let file: String
+    private let line: Int
+    private let isDisposed = Atomic<Bool>(value: false)
+    #endif
+    
+    public init(_ disposable: Disposable, file: String, line: Int) {
+        self.disposable = disposable
+        #if DEBUG
+        self.file = file
+        self.line = line
+        #endif
+    }
+    
+    deinit {
+        #if DEBUG
+        if !self.isDisposed.with({ $0 }) {
+            assertionFailure("Leaked disposable \(self.disposable) from \(self.file):\(self.line)")
+        }
+        #endif
+    }
+    
+    public func dispose() {
+        #if DEBUG
+        let _ = self.isDisposed.swap(true)
+        #endif
+        self.disposable.dispose()
+    }
+}
+
+public extension Disposable {
+    func strict(file: String = #file, line: Int = #line) -> Disposable {
+        return StrictDisposable(self, file: file, line: line)
+    }
+}
+
 final class _EmptyDisposable: Disposable {
     func dispose() {
     }

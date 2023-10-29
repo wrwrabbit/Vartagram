@@ -2112,7 +2112,6 @@ final class StorageUsageScreenComponent: Component {
                             let items = ContextController.Items(content: .list(itemList))
                             
                             let controller = ContextController(
-                                account: component.context.account,
                                 presentationData: presentationData,
                                 source: .extracted(StorageUsageListContextExtractedContentSource(contentView: sourceView)), items: .single(items), recognizer: nil, gesture: gesture)
                             
@@ -2330,7 +2329,7 @@ final class StorageUsageScreenComponent: Component {
             }
             
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
-            controller.present(UndoOverlayController(presentationData: presentationData, content: .succeed(text: presentationData.strings.ClearCache_Success("\(dataSizeString(size, formatting: DataSizeStringFormatting(presentationData: presentationData)))", stringForDeviceType()).string), elevatedLayout: false, action: { _ in return false }), in: .current)
+            controller.present(UndoOverlayController(presentationData: presentationData, content: .succeed(text: presentationData.strings.ClearCache_Success("\(dataSizeString(size, formatting: DataSizeStringFormatting(presentationData: presentationData)))", stringForDeviceType()).string, timeout: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
         }
         
         private func reloadStats(firstTime: Bool, completion: @escaping () -> Void) {
@@ -2708,7 +2707,6 @@ final class StorageUsageScreenComponent: Component {
                 case let .gallery(gallery):
                     gallery.setHintWillBePresentedInPreviewingContext(true)
                     let contextController = ContextController(
-                        account: component.context.account,
                         presentationData: presentationData,
                         source: .controller(StorageUsageListContextGalleryContentSourceImpl(
                             controller: gallery,
@@ -2812,7 +2810,6 @@ final class StorageUsageScreenComponent: Component {
             let items = ContextController.Items(content: .list(itemList))
             
             let controller = ContextController(
-                account: component.context.account,
                 presentationData: presentationData,
                 source: .extracted(StorageUsageListContextExtractedContentSource(contentView: sourceView)), items: .single(items), recognizer: nil, gesture: gesture)
             
@@ -3384,12 +3381,15 @@ final class StorageUsageScreenComponent: Component {
                 }
                 */
                 
+                if case .separator = subItems.last {
+                    subItems.removeLast()
+                }
+                
                 if let sourceLabelView = sourceView.labelView {
                     let items: Signal<ContextController.Items, NoError> = .single(ContextController.Items(content: .list(subItems)))
                     let source: ContextContentSource = .reference(StorageUsageContextReferenceContentSource(sourceView: sourceLabelView))
                     
                     let contextController = ContextController(
-                        account: context.account,
                         presentationData: presentationData,
                         source: source,
                         items: items,

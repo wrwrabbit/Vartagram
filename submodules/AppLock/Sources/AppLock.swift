@@ -69,8 +69,6 @@ public final class AppLockContextImpl: AppLockContext {
     
     private var lastActiveValue: Bool = false
     
-    public weak var sharedAccountContext: SharedAccountContext?
-    
     private var savedNativeViewController: UIViewController?
     private let syncingWait = ValuePromise<Bool>(false, ignoreRepeated: true)
     
@@ -246,7 +244,7 @@ public final class AppLockContextImpl: AppLockContext {
                             } else {
                                 return CGRect()
                             }
-                        }), sharedAccountContext: strongSelf.sharedAccountContext)
+                        }))
                         if becameActiveRecently, appInForeground {
                             passcodeController.presentationCompleted = { [weak passcodeController] in
                                 if case .enabled = biometrics {

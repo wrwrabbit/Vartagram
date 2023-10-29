@@ -29,7 +29,7 @@ struct ChatListNodeViewUpdate {
     let scrollPosition: ChatListNodeViewScrollPosition?
 }
 
-public func chatListFilterPredicate(filter: ChatListFilterData) -> ChatListFilterPredicate {
+public func chatListFilterPredicate(filter: ChatListFilterData, accountPeerId: EnginePeer.Id) -> ChatListFilterPredicate {
     let includePeers = Set(filter.includePeers.peers)
     let excludePeers = Set(filter.excludePeers)
     
@@ -75,6 +75,9 @@ public func chatListFilterPredicate(filter: ChatListFilterData) -> ChatListFilte
                 return false
             }
         }
+        if peer.id == accountPeerId {
+            return false
+        }
         if !filter.categories.contains(.nonContacts) && !isContact {
             if let user = peer as? TelegramUser {
                 if user.botInfo == nil {
@@ -116,7 +119,7 @@ func chatListViewForLocation(chatListLocation: ChatListControllerLocation, locat
     case let .chatList(groupId):
         let filterPredicate: ChatListFilterPredicate?
         if let filter = location.filter, case let .filter(_, _, _, data) = filter {
-            filterPredicate = chatListFilterPredicate(filter: data)
+            filterPredicate = chatListFilterPredicate(filter: data, accountPeerId: account.peerId)
         } else {
             filterPredicate = nil
         }

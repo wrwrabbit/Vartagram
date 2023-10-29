@@ -2,11 +2,11 @@
 
 #import <os/lock.h>
 #import <objc/runtime.h>
-#import <libkern/OSAtomic.h>
+#import <os/lock.h>
 
-@interface SBlockDisposable ()
-{
-    void *_block;
+@interface SBlockDisposable () {
+    void (^_action)();
+    os_unfair_lock _lock;
 }
 
 @end
@@ -18,47 +18,32 @@
     self = [super init];
     if (self != nil)
     {
-        _block = (__bridge_retained void *)[block copy];
+        _action = [block copy];
     }
     return self;
 }
 
-- (void)dealloc
-{
-    void *block = _block;
-    if (block != NULL)
-    {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        if (OSAtomicCompareAndSwapPtr(block, 0, &_block))
-        {
-            if (block != nil)
-            {
-                __unused __strong id strongBlock = (__bridge_transfer id)block;
-                strongBlock = nil;
-            }
-        }
-#pragma clang diagnostic pop
+- (void)dealloc {
+    void (^freeAction)() = nil;
+    os_unfair_lock_lock(&_lock);
+    freeAction = _action;
+    _action = nil;
+    os_unfair_lock_unlock(&_lock);
+    
+    if (freeAction) {
     }
 }
 
-- (void)dispose
-{
-    void *block = _block;
-    if (block != NULL)
-    {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        if (OSAtomicCompareAndSwapPtr(block, 0, &_block))
-        {
-            if (block != nil)
-            {
-                __strong id strongBlock = (__bridge_transfer id)block;
-                ((dispatch_block_t)strongBlock)();
-                strongBlock = nil;
-            }
-        }
-#pragma clang diagnostic pop
+- (void)dispose {
+    void (^disposeAction)() = nil;
+    
+    os_unfair_lock_lock(&_lock);
+    disposeAction = _action;
+    _action = nil;
+    os_unfair_lock_unlock(&_lock);
+    
+    if (disposeAction) {
+        disposeAction();
     }
 }
 
