@@ -1,6 +1,5 @@
 import PasscodeUI
 import PtgSettingsUI
-import PtgSecretPasscodes
 import PtgSecretPasscodesUI
 
 import Foundation
@@ -5546,6 +5545,30 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                         }
                     }
                     
+                    items.append(.action(ContextMenuActionItem(text: presentationData.strings.ChatList_DeleteChat, textColor: .destructive, icon: { theme in
+                        generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Delete"), color: theme.contextMenu.destructiveColor)
+                    }, action: { _, f in
+                        f(.dismissWithoutContent)
+                        
+                        guard let strongSelf = self else {
+                            return
+                        }
+                        guard let controller = strongSelf.controller, let navigationController = controller.navigationController as? NavigationController else {
+                            return
+                        }
+                        guard let tabController = navigationController.viewControllers.first as? TabBarController else {
+                            return
+                        }
+                        for childController in tabController.controllers {
+                            if let chatListController = childController as? ChatListController {
+                                chatListController.deletePeerChat(peerId: strongSelf.peerId, joined: false, suppressClear: true, presentingController: strongSelf.controller, removalStarted: { [weak navigationController] in
+                                    navigationController?.popToRoot(animated: true)
+                                })
+                                break
+                            }
+                        }
+                    })))
+                    
                     let finalItemsCount = items.count
                     
                     if finalItemsCount > itemsCount {
@@ -7758,7 +7781,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                         navigationController?.popToRoot(animated: true)
                     }
                 }, removed: {
-                })
+                }, presentingController: nil)
                 break
             }
         }
@@ -8777,6 +8800,37 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                 strongSelf.context.sharedContext.activeAccountContexts
                                 |> take(1)
                                 |> mapToSignal { activeAccountContexts in
+                                    if let onRevealNavigateTo = sp.onRevealNavigateTo {
+                                        if onRevealNavigateTo.peerId != nil {
+                                            // it is possible that account of this secret chat is currently hidden
+                                            // then don't call navigateToChat which waits indefinitely and may navigate to this chat when it is no longer expected
+                                            if let context = activeAccountContexts.accounts.first(where: { $0.0 == onRevealNavigateTo.accountId })?.1 {
+                                                // secret chat may already be deleted
+                                                let _ = (context.account.postbox.transaction { transaction in
+                                                    if transaction.getPeerChatListIndex(onRevealNavigateTo.peerId!) != nil {
+                                                        Queue.mainQueue().async {
+                                                            context.sharedContext.navigateToChat(accountId: onRevealNavigateTo.accountId, peerId: onRevealNavigateTo.peerId!, messageId: nil)
+                                                        }
+                                                    }
+                                                }).start()
+                                            }
+                                        } else {
+                                            assert(sp.accountIds.contains(onRevealNavigateTo.accountId))
+                                            // account can already be logged out
+                                            if let context = (activeAccountContexts.accounts + activeAccountContexts.inactiveAccounts).first(where: { $0.0 == onRevealNavigateTo.accountId })?.1 {
+                                                // wait for account to be activated before switching to it
+                                                let _ = (context.sharedContext.activeAccountContexts
+                                                |> filter { activeAccountContexts in
+                                                    return activeAccountContexts.accounts.contains(where: { $0.0 == onRevealNavigateTo.accountId })
+                                                }
+                                                |> take(1)
+                                                |> deliverOnMainQueue).start(next: { _ in
+                                                    context.sharedContext.switchToAccount(id: onRevealNavigateTo.accountId, fromSettingsController: nil, withChatListController: nil)
+                                                })
+                                            }
+                                        }
+                                    }
+                                    
                                     var signals: [Signal<Never, NoError>] = []
                                     for (_, context, _) in (activeAccountContexts.accounts + activeAccountContexts.inactiveAccounts) {
                                         if sp.accountIds.contains(context.account.id) {
@@ -9016,9 +9070,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         items.append(ActionSheetButtonItem(title: self.presentationData.strings.Settings_Logout, color: .destructive, action: { [weak self] in
             dismissAction()
             if let strongSelf = self {
-                let _ = logoutFromAccount(id: id, accountManager: strongSelf.context.sharedContext.accountManager, alreadyLoggedOutRemotely: false, getExcludedAccountIds: { transaction in
-                    return PtgSecretPasscodes(transaction).allHidableAccountIds()
-                }).start()
+                let _ = logoutFromAccount(id: id, accountManager: strongSelf.context.sharedContext.accountManager, alreadyLoggedOutRemotely: false).start()
             }
         }))
         controller.setItemGroups([

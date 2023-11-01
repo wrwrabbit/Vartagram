@@ -326,8 +326,9 @@ private func removeChat(transaction: Transaction, postbox: Postbox, network: Net
             } else {
                 reportSignal = .complete()
             }
-            return requestClearHistory(postbox: postbox, network: network, stateManager: stateManager, inputPeer: inputPeer, maxId: operation.topMessageId?.id ?? Int32.max - 1, justClear: false, minTimestamp: nil, maxTimestamp: nil, type: operation.deleteGloballyIfPossible ? .forEveryone : .forLocalPeer)
+            return requestClearHistory(postbox: postbox, network: network, stateManager: stateManager, inputPeer: inputPeer, maxId: /*operation.topMessageId?.id ??*/ Int32.max - 1, justClear: false, minTimestamp: nil, maxTimestamp: nil, type: operation.deleteGloballyIfPossible ? .forEveryone : .forLocalPeer)
             |> then(reportSignal)
+            |> then((peer as? TelegramUser)?.botInfo == nil ? _internal_removeRecentPeer(postbox: postbox, network: network, peerId: peer.id) : .complete())
             |> then(postbox.transaction { transaction -> Void in
                 _internal_clearHistory(transaction: transaction, mediaBox: postbox.mediaBox, peerId: peer.id, threadId: nil, namespaces: .not(Namespaces.Message.allScheduled))
             })

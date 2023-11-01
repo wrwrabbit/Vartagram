@@ -1176,7 +1176,7 @@ open class ListView: ASDisplayNode, UIScrollViewAccessibilityDelegate, UIGesture
     
     private func getAdjustedContentHeight(effectiveInsets: UIEdgeInsets) -> CGFloat {
         if let keepMinimalScrollHeightWithTopInset = self.keepMinimalScrollHeightWithTopInset, !keepMinimalScrollHeightWithTopInset.isZero {
-            return self.visibleSize.height + effectiveInsets.top + effectiveInsets.bottom// - 137.0
+            return self.visibleSize.height + 52.0 + self.tempTopInset
         } else {
             return 0.0
         }

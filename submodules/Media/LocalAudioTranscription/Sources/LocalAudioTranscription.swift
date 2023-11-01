@@ -41,10 +41,12 @@ public func transcribeAudio(path: String, locale: String, audioDuration: Int32) 
                         if #available(iOS 16.0, *) {
                             request.addsPunctuation = true
                         }
+                        /*
                         if #available(iOS 13.0, *) {
                             // on-device recognition allows full recognition of audio > 1 min
                             request.requiresOnDeviceRecognition = speechRecognizer.supportsOnDeviceRecognition
                         }
+                        */
                         request.shouldReportPartialResults = true
                         
                         // during on-device recognition the result text is delivered in multiple parts
@@ -52,8 +54,26 @@ public func transcribeAudio(path: String, locale: String, audioDuration: Int32) 
                         var lastResultString = ""
                         var lastEndingTimestamp = 0.0
                         
+                        weak var weakTask: SFSpeechRecognitionTask?
+                        var supportsOnDeviceRecognition = false
+                        if #available(iOS 13.0, *), speechRecognizer.supportsOnDeviceRecognition {
+                            supportsOnDeviceRecognition = true
+                        }
+                        
                         let task = speechRecognizer.recognitionTask(with: request, resultHandler: { result, error in
                             if let result = result {
+                                // when task is cancelled, sometimes getting incomplete result here with isFinal=true
+                                // detecting this by checking isCancelled value
+                                if weakTask?.isCancelled == true {
+                                    subscriber.putError(NSError(domain: "kLSRErrorDomain", code: 301, userInfo: [
+                                        NSLocalizedDescriptionKey: "Recognition request was canceled"
+                                    ]))
+                                    
+                                    let _ = try? FileManager.default.removeItem(atPath: tempFilePath)
+                                    
+                                    return
+                                }
+                                
                                 if let lastSegment = result.bestTranscription.segments.last {
                                     if lastSegment.timestamp + lastSegment.duration < lastEndingTimestamp {
                                         accumulatedString += lastResultString + " "
@@ -64,7 +84,7 @@ public func transcribeAudio(path: String, locale: String, audioDuration: Int32) 
                                 
                                 var maybeCutMark = ""
                                 if result.isFinal {
-                                    if #available(iOS 13.0, *), request.requiresOnDeviceRecognition {
+                                    if supportsOnDeviceRecognition {
                                     } else if lastEndingTimestamp <= 60.0 && audioDuration > 60 {
                                         maybeCutMark = " ✂"
                                     }
@@ -80,16 +100,18 @@ public func transcribeAudio(path: String, locale: String, audioDuration: Int32) 
                             } else {
                                 print("transcribeAudio: locale: \(locale), error: \(String(describing: error))")
                                 
-//                                if !accumulatedString.isEmpty || !lastResultString.isEmpty {
-//                                    subscriber.putNext(LocallyTranscribedAudio(text: accumulatedString + lastResultString + " ❌", isFinal: true))
-//                                    subscriber.putCompletion()
-//                                } else {
+                                if weakTask?.isCancelled == false && weakTask?.state == .completed && (!accumulatedString.isEmpty || !lastResultString.isEmpty) {
+                                    subscriber.putNext(LocallyTranscribedAudio(text: accumulatedString + lastResultString, isFinal: true))
+                                    subscriber.putCompletion()
+                                } else {
                                     subscriber.putError(error!)
-//                                }
+                                }
                                 
                                 let _ = try? FileManager.default.removeItem(atPath: tempFilePath)
                             }
                         })
+                        
+                        weakTask = task
                         
                         disposable.set(ActionDisposable {
                             task.cancel()

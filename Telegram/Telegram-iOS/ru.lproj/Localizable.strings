@@ -96,6 +96,11 @@
 "PtgSettings.JumpToNextUnreadChannel.TopFirst" = "Верхние сначала";
 "PtgSettings.JumpToNextUnreadChannel.BottomFirst" = "Нижние сначала";
 "PtgSettings.HideSignatures" = "Скрывать подписи";
+"PtgSettings.HideMuteUnmuteButton" = "Скрывать кнопку «Вкл./Убрать звук»";
+"PtgSettings.SwipeActionsForChats" = "Действия при смахивании чатов";
+"PtgSettings.SwipeActionsForChatsHelp" = "Выключите, чтобы предотвратить случайные действия при смахивании чатов влево или вправо в списке чатов. Все эти действия также доступны в контекстном меню чатов.";
+"PtgSettings.SwipeToOpenStoryCamera" = "Смахивание для записи историй";
+"PtgSettings.SwipeToOpenStoryCameraHelp" = "Выключите, чтобы предотвратить случайное открытие камеры для записи историй при пролистывании списка чатов.";
 
 "Conversation.ContextMenuSaveMessage" = "Сохранить сообщение";
 
@@ -121,6 +126,9 @@
 "SecretPasscodeSettings.DeleteSecretPasscodeNotice" = "Все указанные здесь аккаунты и секретные чаты станут видимыми все время.";
 "SecretPasscodeSettings.AtLeastOneAccountMustRemainUnhidden" = "Хотя бы один аккаунт должен оставаться видимым все время.";
 "SecretPasscodeSettings.Intro" = "Укажите секреты: аккаунты и секретные чаты, которые будут скрыты, пока вы не введете этот секретный код.";
+"SecretPasscodeSettings.OnRevealNavigateTo" = "Переход при открытии секретов";
+"SecretPasscodeSettings.OnRevealNavigateTo.None" = "Отключен";
+"SecretPasscodeSettings_OnRevealNavigateToDesc" = "Укажите аккаунт, на который вы хотите переключиться, или секретный чат, в который вы хотите перейти после ввода секретного кода.";
 "Settings.EnterSecretPasscode" = "Ввести секретный код";
 "Settings.ManageSecretPasscodes" = "Управлять секретными кодами";
 "SecretPasscodeMenu.Add" = "Добавить секретный код";

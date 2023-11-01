@@ -221,7 +221,7 @@ public func chatTranslationState(context: AccountContext, peerId: EnginePeer.Id)
                                         }
                                     }
                                     
-                                    if message.text.count < 10 {
+                                    if text.count < 10 {
                                         continue
                                     }
                                     
@@ -241,12 +241,20 @@ public func chatTranslationState(context: AccountContext, peerId: EnginePeer.Id)
                                     
                                     let filteredLanguages = hypotheses.filter { supportedTranslationLanguages.contains(normalize($0.key.rawValue)) }.sorted(by: { $0.value > $1.value })
                                     if let language = filteredLanguages.first {
-                                        let fromLang = normalize(language.key.rawValue)
+                                        var fromLang = normalize(language.key.rawValue)
+                                        // NLLanguageRecognizer currently does not support belarusian language
+                                        // we detect it here by occurrence of "ў" character
+                                        if ["bg", "kk", "ru", "uk"].contains(fromLang) {
+                                            if message.text.contains(Character("ў")) || message.text.contains(Character("Ў")) {
+                                                fromLang = "be"
+                                            }
+                                        }
+                                        
                                         if loggingEnabled && !["en", "ru"].contains(fromLang) && !dontTranslateLanguages.contains(fromLang) {
                                             Logger.shared.log("ChatTranslation", "\(text)")
                                             Logger.shared.log("ChatTranslation", "Recognized as: \(fromLang), other hypotheses: \(hypotheses.map { $0.key.rawValue }.joined(separator: ",")) ")
                                         }
-                                        fromLangs[fromLang] = (fromLangs[fromLang] ?? 0) + message.text.count
+                                        fromLangs[fromLang] = (fromLangs[fromLang] ?? 0) + text.count
                                         count += 1
                                     }
                                 }

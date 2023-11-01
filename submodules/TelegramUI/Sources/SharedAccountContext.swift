@@ -1,5 +1,3 @@
-import PtgSettings
-import PtgSecretPasscodes
 import PtgSecretPasscodesUI
 import GalleryUI
 import ContextUI
@@ -1094,11 +1092,11 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             return true
         })
         
-        let _ = managedCleanupAccounts(networkArguments: networkArguments, accountManager: self.accountManager, rootPath: rootPath, auxiliaryMethods: makeTelegramAccountAuxiliaryMethods(uploadInBackground: appDelegate?.uploadInBackround), encryptionParameters: encryptionParameters, maybeTriggerCoveringProtection: { [weak self] maybeCoveringAccountId in
-            return self?.maybeTriggerCoveringProtection(maybeCoveringAccountId: maybeCoveringAccountId, cleanCache: true) ?? .complete()
-        }).start()
-        
         if applicationBindings.isMainApp {
+            let _ = managedCleanupAccounts(networkArguments: networkArguments, accountManager: self.accountManager, rootPath: rootPath, auxiliaryMethods: makeTelegramAccountAuxiliaryMethods(uploadInBackground: appDelegate?.uploadInBackround), encryptionParameters: encryptionParameters, maybeTriggerCoveringProtection: { [weak self] maybeCoveringAccountId in
+                return self?.maybeTriggerCoveringProtection(maybeCoveringAccountId: maybeCoveringAccountId, cleanCache: true) ?? .complete()
+            }).start()
+            
             self.updateNotificationTokensRegistration()
         }
         

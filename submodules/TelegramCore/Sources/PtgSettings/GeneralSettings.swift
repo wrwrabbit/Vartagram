@@ -1,6 +1,5 @@
 import Foundation
 import Postbox
-import TelegramCore
 
 extension ApplicationSpecificSharedDataKeys {
     public static let ptgSettings = applicationSpecificPreferencesKey(102)
@@ -16,7 +15,6 @@ public struct PtgSettings: Codable, Equatable {
     public let showPeerId: Bool
     public let showChannelCreationDate: Bool
     public let suppressForeignAgentNotice: Bool
-    public let preferAppleVoiceToText: Bool
     public let useRearCameraByDefault: Bool
     public let hideReactionsInChannels: Bool
     public let hideCommentsInChannels: Bool
@@ -26,6 +24,9 @@ public struct PtgSettings: Codable, Equatable {
     public let addContextMenuShare: Bool
     public let jumpToNextUnreadChannel: JumpToNextUnreadChannel
     public let hideSignatureInChannels: Bool
+    public let hideMuteUnmuteButtonInChannels: Bool
+    public let disableSwipeActionsForChats: Bool
+    public let disableSwipeToStoryCamera: Bool
     public let testToolsEnabled: Bool?
     
     public static var defaultSettings: PtgSettings {
@@ -33,7 +34,6 @@ public struct PtgSettings: Codable, Equatable {
             showPeerId: true,
             showChannelCreationDate: true,
             suppressForeignAgentNotice: false,
-            preferAppleVoiceToText: false,
             useRearCameraByDefault: false,
             hideReactionsInChannels: false,
             hideCommentsInChannels: false,
@@ -43,6 +43,9 @@ public struct PtgSettings: Codable, Equatable {
             addContextMenuShare: false,
             jumpToNextUnreadChannel: .topFirst,
             hideSignatureInChannels: false,
+            hideMuteUnmuteButtonInChannels: false,
+            disableSwipeActionsForChats: false,
+            disableSwipeToStoryCamera: false,
             testToolsEnabled: nil
         )
     }
@@ -51,7 +54,6 @@ public struct PtgSettings: Codable, Equatable {
         showPeerId: Bool,
         showChannelCreationDate: Bool,
         suppressForeignAgentNotice: Bool,
-        preferAppleVoiceToText: Bool,
         useRearCameraByDefault: Bool,
         hideReactionsInChannels: Bool,
         hideCommentsInChannels: Bool,
@@ -61,12 +63,14 @@ public struct PtgSettings: Codable, Equatable {
         addContextMenuShare: Bool,
         jumpToNextUnreadChannel: JumpToNextUnreadChannel,
         hideSignatureInChannels: Bool,
+        hideMuteUnmuteButtonInChannels: Bool,
+        disableSwipeActionsForChats: Bool,
+        disableSwipeToStoryCamera: Bool,
         testToolsEnabled: Bool?
     ) {
         self.showPeerId = showPeerId
         self.showChannelCreationDate = showChannelCreationDate
         self.suppressForeignAgentNotice = suppressForeignAgentNotice
-        self.preferAppleVoiceToText = preferAppleVoiceToText
         self.useRearCameraByDefault = useRearCameraByDefault
         self.hideReactionsInChannels = hideReactionsInChannels
         self.hideCommentsInChannels = hideCommentsInChannels
@@ -76,6 +80,9 @@ public struct PtgSettings: Codable, Equatable {
         self.addContextMenuShare = addContextMenuShare
         self.jumpToNextUnreadChannel = jumpToNextUnreadChannel
         self.hideSignatureInChannels = hideSignatureInChannels
+        self.hideMuteUnmuteButtonInChannels = hideMuteUnmuteButtonInChannels
+        self.disableSwipeActionsForChats = disableSwipeActionsForChats
+        self.disableSwipeToStoryCamera = disableSwipeToStoryCamera
         self.testToolsEnabled = testToolsEnabled
     }
     
@@ -85,7 +92,6 @@ public struct PtgSettings: Codable, Equatable {
         self.showPeerId = (try container.decodeIfPresent(Int32.self, forKey: "spi") ?? 1) != 0
         self.showChannelCreationDate = (try container.decodeIfPresent(Int32.self, forKey: "sccd") ?? 1) != 0
         self.suppressForeignAgentNotice = (try container.decodeIfPresent(Int32.self, forKey: "sfan") ?? 0) != 0
-        self.preferAppleVoiceToText = (try container.decodeIfPresent(Int32.self, forKey: "pavtt") ?? 0) != 0
         self.useRearCameraByDefault = (try container.decodeIfPresent(Int32.self, forKey: "urcbd") ?? 0) != 0
         self.hideReactionsInChannels = (try container.decodeIfPresent(Int32.self, forKey: "hric") ?? 0) != 0
         self.hideCommentsInChannels = (try container.decodeIfPresent(Int32.self, forKey: "hcic") ?? 0) != 0
@@ -95,6 +101,9 @@ public struct PtgSettings: Codable, Equatable {
         self.addContextMenuShare = (try container.decodeIfPresent(Int32.self, forKey: "acms") ?? 0) != 0
         self.jumpToNextUnreadChannel = (try container.decodeIfPresent(Int32.self, forKey: "jtnuc")).flatMap({ JumpToNextUnreadChannel(rawValue: $0) }) ?? .topFirst
         self.hideSignatureInChannels = (try container.decodeIfPresent(Int32.self, forKey: "hsic") ?? 0) != 0
+        self.hideMuteUnmuteButtonInChannels = (try container.decodeIfPresent(Int32.self, forKey: "hmubic") ?? 0) != 0
+        self.disableSwipeActionsForChats = (try container.decodeIfPresent(Int32.self, forKey: "dsafc") ?? 0) != 0
+        self.disableSwipeToStoryCamera = (try container.decodeIfPresent(Int32.self, forKey: "dstsc") ?? 0) != 0
         self.testToolsEnabled = try container.decodeIfPresent(Int32.self, forKey: "test").flatMap({ $0 != 0 })
     }
     
@@ -104,7 +113,6 @@ public struct PtgSettings: Codable, Equatable {
         try container.encode((self.showPeerId ? 1 : 0) as Int32, forKey: "spi")
         try container.encode((self.showChannelCreationDate ? 1 : 0) as Int32, forKey: "sccd")
         try container.encode((self.suppressForeignAgentNotice ? 1 : 0) as Int32, forKey: "sfan")
-        try container.encode((self.preferAppleVoiceToText ? 1 : 0) as Int32, forKey: "pavtt")
         try container.encode((self.useRearCameraByDefault ? 1 : 0) as Int32, forKey: "urcbd")
         try container.encode((self.hideReactionsInChannels ? 1 : 0) as Int32, forKey: "hric")
         try container.encode((self.hideCommentsInChannels ? 1 : 0) as Int32, forKey: "hcic")
@@ -114,6 +122,9 @@ public struct PtgSettings: Codable, Equatable {
         try container.encode((self.addContextMenuShare ? 1 : 0) as Int32, forKey: "acms")
         try container.encode(self.jumpToNextUnreadChannel.rawValue, forKey: "jtnuc")
         try container.encode((self.hideSignatureInChannels ? 1 : 0) as Int32, forKey: "hsic")
+        try container.encode((self.hideMuteUnmuteButtonInChannels ? 1 : 0) as Int32, forKey: "hmubic")
+        try container.encode((self.disableSwipeActionsForChats ? 1 : 0) as Int32, forKey: "dsafc")
+        try container.encode((self.disableSwipeToStoryCamera ? 1 : 0) as Int32, forKey: "dstsc")
         try container.encodeIfPresent(self.testToolsEnabled.flatMap({ ($0 ? 1 : 0) as Int32 }), forKey: "test")
     }
     

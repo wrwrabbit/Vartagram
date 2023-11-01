@@ -1,3 +1,4 @@
+import GZip
 
 public enum Api {
     public enum account {}
@@ -1213,6 +1214,14 @@ public extension Api {
         static func parse(_ reader: BufferReader, signature: Int32) -> Any? {
             if let parser = parsers[signature] {
                 return parser(reader)
+            } else if signature == 0x3072cfa1 {
+                telegramApiLog("Found gzip_packed signature")
+                if let bytes = parseBytes(reader) {
+                    if let unpackedData = TGGUnzipData(bytes.makeData(), 8 * 1024 * 1024) {
+                        return parse(Buffer(data: unpackedData))
+                    }
+                }
+                return nil
             }
             else {
                 telegramApiLog("Type constructor \(String(signature, radix: 16, uppercase: false)) not found")

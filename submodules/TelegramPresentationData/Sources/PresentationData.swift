@@ -1,6 +1,3 @@
-import PtgSettings
-import PtgSecretPasscodes
-
 import Foundation
 import UIKit
 import SwiftSignalKit

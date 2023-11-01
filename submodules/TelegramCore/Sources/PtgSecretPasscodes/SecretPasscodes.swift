@@ -1,6 +1,5 @@
 import Foundation
 import Postbox
-import TelegramCore
 import SwiftSignalKit
 import AppLockState
 import MonotonicTime
@@ -33,19 +32,45 @@ public struct PtgSecretChatId: Codable, Hashable {
     }
 }
 
+public struct PtgNavigateTo: Codable, Equatable {
+    public let accountId: AccountRecordId
+    public let peerId: PeerId?
+    
+    public init(accountId: AccountRecordId, peerId: PeerId?) {
+        self.accountId = accountId
+        self.peerId = peerId
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: StringCodingKey.self)
+        
+        self.accountId = try container.decode(AccountRecordId.self, forKey: "ai")
+        self.peerId = try container.decodeIfPresent(PeerId.self, forKey: "pi")
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: StringCodingKey.self)
+        
+        try container.encode(self.accountId, forKey: "ai")
+        try container.encodeIfPresent(self.peerId, forKey: "pi")
+    }
+}
+
 public struct PtgSecretPasscode: Codable, Equatable {
     public let passcode: String
     public let active: Bool
     public let timeout: Int32?
     public let accountIds: Set<AccountRecordId>
     public let secretChats: Set<PtgSecretChatId>
+    public let onRevealNavigateTo: PtgNavigateTo?
     
-    public init(passcode: String, active: Bool, timeout: Int32?, accountIds: Set<AccountRecordId>, secretChats: Set<PtgSecretChatId>) {
+    public init(passcode: String, active: Bool, timeout: Int32?, accountIds: Set<AccountRecordId>, secretChats: Set<PtgSecretChatId>, onRevealNavigateTo: PtgNavigateTo?) {
         self.passcode = passcode
         self.active = active
         self.timeout = timeout
         self.accountIds = accountIds
         self.secretChats = secretChats
+        self.onRevealNavigateTo = onRevealNavigateTo
     }
     
     public init(from decoder: Decoder) throws {
@@ -56,6 +81,7 @@ public struct PtgSecretPasscode: Codable, Equatable {
         self.timeout = try container.decodeIfPresent(Int32.self, forKey: "t")
         self.accountIds = try container.decodeIfPresent(Set<AccountRecordId>.self, forKey: "ac") ?? []
         self.secretChats = try container.decodeIfPresent(Set<PtgSecretChatId>.self, forKey: "sc") ?? []
+        self.onRevealNavigateTo = try container.decodeIfPresent(PtgNavigateTo.self, forKey: "ornt")
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -66,10 +92,11 @@ public struct PtgSecretPasscode: Codable, Equatable {
         try container.encodeIfPresent(self.timeout, forKey: "t")
         try container.encodeIfPresent(self.accountIds, forKey: "ac")
         try container.encodeIfPresent(self.secretChats, forKey: "sc")
+        try container.encodeIfPresent(self.onRevealNavigateTo, forKey: "ornt")
     }
     
     public func withUpdated(active: Bool) -> PtgSecretPasscode {
-        return PtgSecretPasscode(passcode: self.passcode, active: active, timeout: self.timeout, accountIds: self.accountIds, secretChats: self.secretChats)
+        return PtgSecretPasscode(passcode: self.passcode, active: active, timeout: self.timeout, accountIds: self.accountIds, secretChats: self.secretChats, onRevealNavigateTo: self.onRevealNavigateTo)
     }
 }
 

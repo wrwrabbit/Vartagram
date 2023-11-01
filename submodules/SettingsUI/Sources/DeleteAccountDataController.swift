@@ -1,5 +1,3 @@
-import PtgSecretPasscodes
-
 import Foundation
 import UIKit
 import Display
@@ -470,9 +468,7 @@ func deleteAccountDataController(context: AccountContext, mode: DeleteAccountDat
                         dismissImpl?()
                                                 
                         let presentGlobalController = context.sharedContext.presentGlobalController
-                        let _ = logoutFromAccount(id: accountId, accountManager: accountManager, alreadyLoggedOutRemotely: false, getExcludedAccountIds: { transaction in
-                            return PtgSecretPasscodes(transaction).allHidableAccountIds()
-                        }).start(completed: {
+                        let _ = logoutFromAccount(id: accountId, accountManager: accountManager, alreadyLoggedOutRemotely: false).start(completed: {
                             Queue.mainQueue().after(0.1) {
                                 presentGlobalController(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: presentationData.strings.DeleteAccount_Success, timeout: nil), elevatedLayout: true, animateInAsReplacement: false, action: { _ in return false }), nil)
                             }

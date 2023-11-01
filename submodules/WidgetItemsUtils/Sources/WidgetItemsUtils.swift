@@ -1,4 +1,3 @@
-import PtgSettings
 import PtgForeignAgentNoticeRemoval
 
 import Foundation

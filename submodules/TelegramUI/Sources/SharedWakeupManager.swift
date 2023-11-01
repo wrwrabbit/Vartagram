@@ -72,14 +72,18 @@ public final class SharedWakeupManager {
     private var accountsAndTasks: [(Account, Bool, AccountTasks)] = []
     
     private var activeBGTaskSchedulerTasks: Set<String> = []
+    private let accountManager: AccountManager<TelegramAccountManagerTypes>
+    var canBeginTransactions: Bool = true
     
-    public init(beginBackgroundTask: @escaping (String, @escaping () -> Void) -> UIBackgroundTaskIdentifier?, endBackgroundTask: @escaping (UIBackgroundTaskIdentifier) -> Void, backgroundTimeRemaining: @escaping () -> Double, acquireIdleExtension: @escaping () -> Disposable?, activeAccounts: Signal<(primary: Account?, accounts: [(AccountRecordId, Account)]), NoError>, liveLocationPolling: Signal<AccountRecordId?, NoError>, watchTasks: Signal<AccountRecordId?, NoError>, inForeground: Signal<Bool, NoError>, hasActiveAudioSession: Signal<Bool, NoError>, notificationManager: SharedNotificationManager?, mediaManager: MediaManager, callManager: PresentationCallManager?, accountUserInterfaceInUse: @escaping (AccountRecordId) -> Signal<Bool, NoError>) {
+    public init(beginBackgroundTask: @escaping (String, @escaping () -> Void) -> UIBackgroundTaskIdentifier?, endBackgroundTask: @escaping (UIBackgroundTaskIdentifier) -> Void, backgroundTimeRemaining: @escaping () -> Double, acquireIdleExtension: @escaping () -> Disposable?, activeAccounts: Signal<(primary: Account?, accounts: [(AccountRecordId, Account)]), NoError>, liveLocationPolling: Signal<AccountRecordId?, NoError>, watchTasks: Signal<AccountRecordId?, NoError>, inForeground: Signal<Bool, NoError>, hasActiveAudioSession: Signal<Bool, NoError>, notificationManager: SharedNotificationManager?, mediaManager: MediaManager, callManager: PresentationCallManager?, accountUserInterfaceInUse: @escaping (AccountRecordId) -> Signal<Bool, NoError>, accountManager: AccountManager<TelegramAccountManagerTypes>) {
         assert(Queue.mainQueue().isCurrent())
         
         self.beginBackgroundTask = beginBackgroundTask
         self.endBackgroundTask = endBackgroundTask
         self.backgroundTimeRemaining = backgroundTimeRemaining
         self.acquireIdleExtension = acquireIdleExtension
+        
+        self.accountManager = accountManager
         
         self.inForegroundDisposable = (inForeground
         |> deliverOnMainQueue).startStrict(next: { [weak self] value in
@@ -434,6 +438,8 @@ public final class SharedWakeupManager {
             Logger.shared.log("Wakeup", "inForeground: \(self.inForeground), hasActiveAudioSession: \(self.hasActiveAudioSession), isInBackgroundExtension: \(self.isInBackgroundExtension), hasTasks: \(hasTasks), currentExternalCompletion != nil: \(self.currentExternalCompletion != nil), activeExplicitExtensionTimer != nil: \(self.activeExplicitExtensionTimer != nil), !activeBGTaskSchedulerTasks.isEmpty: \(!self.activeBGTaskSchedulerTasks.isEmpty)")
 #endif
             
+            self.canBeginTransactions = true
+            self.accountManager.setCanBeginTransactions(true)
             for (account, primary, tasks) in self.accountsAndTasks {
                 account.postbox.setCanBeginTransactions(true)
                 
@@ -460,20 +466,24 @@ public final class SharedWakeupManager {
             final class CompletionObservationState {
                 var isCompleted: Bool = false
                 var remainingAccounts: [AccountRecordId]
+                var accountManagerCompleted: Bool = false
                 
                 init(remainingAccounts: [AccountRecordId]) {
                     self.remainingAccounts = remainingAccounts
                 }
             }
             let completionState = Atomic<CompletionObservationState>(value: CompletionObservationState(remainingAccounts: self.accountsAndTasks.map(\.0.id)))
-            let checkCompletionState: (AccountRecordId?) -> Void = { id in
+            let checkCompletionState: (AccountRecordId?, Bool) -> Void = { id, accMngrDone in
                 Queue.mainQueue().async {
                     var shouldComplete = false
                     completionState.with { state in
                         if let id {
                             state.remainingAccounts.removeAll(where: { $0 == id })
                         }
-                        if state.remainingAccounts.isEmpty && !state.isCompleted {
+                        if accMngrDone {
+                            state.accountManagerCompleted = true
+                        }
+                        if state.remainingAccounts.isEmpty && state.accountManagerCompleted && !state.isCompleted {
                             state.isCompleted = true
                             shouldComplete = true
                         }
@@ -487,14 +497,18 @@ public final class SharedWakeupManager {
             for (account, _, _) in self.accountsAndTasks {
                 let accountId = account.id
                 account.postbox.setCanBeginTransactions(enableBeginTransactions, afterTransactionIfRunning: {
-                    checkCompletionState(accountId)
+                    checkCompletionState(accountId, false)
                 })
                 account.shouldBeServiceTaskMaster.set(.single(.never))
                 account.shouldKeepOnlinePresence.set(.single(false))
                 account.shouldKeepBackgroundDownloadConnections.set(.single(false))
             }
+            self.accountManager.setCanBeginTransactions(enableBeginTransactions, afterTransactionIfRunning: {
+                checkCompletionState(nil, true)
+            })
+            self.canBeginTransactions = enableBeginTransactions
             
-            checkCompletionState(nil)
+            checkCompletionState(nil, false)
         }
     }
     

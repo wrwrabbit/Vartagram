@@ -1,5 +1,3 @@
-import PtgSecretPasscodes
-
 import Foundation
 import Intents
 import TelegramPresentationData
@@ -325,9 +323,7 @@ final class AuthorizedApplicationContext {
         |> deliverOnMainQueue).start(next: { [weak self] value in
             if value {
                 Logger.shared.log("ApplicationContext", "account logged out")
-                let _ = logoutFromAccount(id: accountId, accountManager: accountManager, alreadyLoggedOutRemotely: false, getExcludedAccountIds: { transaction in
-                    return PtgSecretPasscodes(transaction).allHidableAccountIds()
-                }).start()
+                let _ = logoutFromAccount(id: accountId, accountManager: accountManager, alreadyLoggedOutRemotely: false).start()
                 if let strongSelf = self {
                     strongSelf.rootController.currentWindow?.forEachController { controller in
                         if let controller = controller as? TermsOfServiceController {
@@ -599,9 +595,7 @@ final class AuthorizedApplicationContext {
                         (strongSelf.rootController.viewControllers.last as? ViewController)?.present(controller, in: .window(.root))
                     }, completed: {
                         controller?.dismiss()
-                        let _ = logoutFromAccount(id: accountId, accountManager: accountManager, alreadyLoggedOutRemotely: true, getExcludedAccountIds: { transaction in
-                            return PtgSecretPasscodes(transaction).allHidableAccountIds()
-                        }).start()
+                        let _ = logoutFromAccount(id: accountId, accountManager: accountManager, alreadyLoggedOutRemotely: true).start()
                     })
                 }
                 
@@ -786,9 +780,7 @@ final class AuthorizedApplicationContext {
                     if isDropAuth {
                         actions = [TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}), TextAlertAction(type: .genericAction, title: presentationData.strings.LogoutOptions_LogOut, action: {
                             if let strongSelf = self {
-                                let _ = logoutFromAccount(id: strongSelf.context.account.id, accountManager: strongSelf.context.sharedContext.accountManager, alreadyLoggedOutRemotely: false, getExcludedAccountIds: { transaction in
-                                    return PtgSecretPasscodes(transaction).allHidableAccountIds()
-                                }).start()
+                                let _ = logoutFromAccount(id: strongSelf.context.account.id, accountManager: strongSelf.context.sharedContext.accountManager, alreadyLoggedOutRemotely: false).start()
                             }
                         })]
                     } else {

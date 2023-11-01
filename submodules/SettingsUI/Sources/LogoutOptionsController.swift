@@ -1,5 +1,3 @@
-import PtgSecretPasscodes
-
 import Foundation
 import UIKit
 import Display
@@ -256,9 +254,7 @@ public func logoutOptionsController(context: AccountContext, navigationControlle
             TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {
             }),
             TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {
-                let _ = logoutFromAccount(id: context.account.id, accountManager: context.sharedContext.accountManager, alreadyLoggedOutRemotely: false, getExcludedAccountIds: { transaction in
-                    return PtgSecretPasscodes(transaction).allHidableAccountIds()
-                }).start()
+                let _ = logoutFromAccount(id: context.account.id, accountManager: context.sharedContext.accountManager, alreadyLoggedOutRemotely: false).start()
                 dismissImpl?()
             })
         ])

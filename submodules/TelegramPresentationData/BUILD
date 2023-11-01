@@ -10,9 +10,6 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
-        "//submodules/PtgSettings:PtgSettings",
-        "//submodules/PtgSecretPasscodes:PtgSecretPasscodes",
-        
         "//submodules/TelegramCore:TelegramCore",
         "//submodules/Postbox:Postbox",
         "//submodules/Display:Display",

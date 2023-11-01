@@ -1402,9 +1402,6 @@ swift_library(
         ":WidgetAssets",
     ],
     deps = [
-        "//submodules/PtgSettings:PtgSettings",
-        "//submodules/PtgSecretPasscodes:PtgSecretPasscodes",
-        
         "//submodules/BuildConfig:BuildConfig",
         "//submodules/WidgetItems:WidgetItems_iOS14",
         "//submodules/WidgetItemsUtils:WidgetItemsUtils",
@@ -1544,8 +1541,6 @@ swift_library(
         ":IntentsAssets"
     ],
     deps = [
-        "//submodules/PtgSecretPasscodes:PtgSecretPasscodes",
-        
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/Postbox:Postbox",
         "//submodules/TelegramApi:TelegramApi",

@@ -7,13 +7,13 @@
 "PtgSettings.Title" = "Vartagram";
 "PtgSettings.ShowPeerId" = "Показувати ID профілів";
 "PtgSettings.ShowChannelCreationDate" = "Показувати дату створення каналів";
-"PtgSettings.SuppressForeignAgentNotice" = "Приховувати мітки іноагентів РФ";
+"PtgSettings.SuppressForeignAgentNotice" = "Приховати мітки іноагентів РФ";
 "PtgSettings.EnableQuickReaction" = "Швидкі реакції";
 "PtgSettings.EnableQuickReactionHelp" = "Увімкніть, щоб швидко залишати реакції, двічі торкаючись повідомлень або натискаючи на наявні реакції. Вимкніть, щоб запобігти випадковим реакціям.";
 "PtgSettings.ChannelAppearanceHeader" = "Подання каналів";
-"PtgSettings.HideReactions" = "Приховувати реакції";
-"PtgSettings.HideComments" = "Приховувати коментарі";
-"PtgSettings.HideShareButton" = "Приховувати кнопку пересилання";
+"PtgSettings.HideReactions" = "Приховати реакції";
+"PtgSettings.HideComments" = "Приховати коментарі";
+"PtgSettings.HideShareButton" = "Приховати кнопку пересилання";
 "PtgSettings.UseFullWidth" = "На всю ширину екрана";
 "PtgSettings.EnableLiveText" = "Текст наживо";
 "PtgSettings.EnableLiveTextHelp" = "Автоматично виконувати розпізнавання тексту і штрих-кодів (наприклад, QR-коду) на кожному зображенні, яке ви переглядаєте в повноекранному режимі. Вимкніть, щоб заощадити заряд батареї.";
@@ -30,7 +30,12 @@
 "PtgSettings.JumpToNextUnreadChannel.Disabled" = "Вимкнено";
 "PtgSettings.JumpToNextUnreadChannel.TopFirst" = "Верхні спочатку";
 "PtgSettings.JumpToNextUnreadChannel.BottomFirst" = "Нижні спочатку";
-"PtgSettings.HideSignatures" = "Приховувати підписи";
+"PtgSettings.HideSignatures" = "Приховати підписи";
+"PtgSettings.HideMuteUnmuteButton" = "Приховати кнопку «(Не) сповіщати»";
+"PtgSettings.SwipeActionsForChats" = "Дії при проведенні по чатах";
+"PtgSettings.SwipeActionsForChatsHelp" = "Вимкніть, щоб запобігти випадковим діям при проведенні вліво або вправо по чатах у списку чатів. Всі ці дії також доступні в контекстному меню чатів.";
+"PtgSettings.SwipeToOpenStoryCamera" = "Проведення для запису історій";
+"PtgSettings.SwipeToOpenStoryCameraHelp" = "Вимкніть, щоб запобігти випадковому відкриттю камери для запису історій під час гортання списку чатів.";
 
 "Conversation.ContextMenuSaveMessage" = "Зберегти повідомлення";
 
@@ -56,6 +61,9 @@
 "SecretPasscodeSettings.DeleteSecretPasscodeNotice" = "Усі зазначені тут акаунти і секретні чати стануть видимими весь час.";
 "SecretPasscodeSettings.AtLeastOneAccountMustRemainUnhidden" = "Принаймні один акаунт має залишатися видимим весь час.";
 "SecretPasscodeSettings.Intro" = "Вкажіть секрети: акаунти та секретні чати, які будуть приховані, поки ви не введете цей секретний код.";
+"SecretPasscodeSettings.OnRevealNavigateTo" = "Перехід при відкритті секретів";
+"SecretPasscodeSettings.OnRevealNavigateTo.None" = "Вимкнено";
+"SecretPasscodeSettings_OnRevealNavigateToDesc" = "Вкажіть акаунт, на який ви хочете переключитися, або секретний чат, у який ви хочете перейти після введення секретного коду.";
 "Settings.EnterSecretPasscode" = "Ввести секретний код";
 "Settings.ManageSecretPasscodes" = "Керувати секретними кодами";
 "SecretPasscodeMenu.Add" = "Додати секретний код";

@@ -49,10 +49,8 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
-        "//submodules/PtgSettings:PtgSettings",
         "//submodules/PtgSettingsUI:PtgSettingsUI",
         "//submodules/PtgForeignAgentNoticeSearchFiltering:PtgForeignAgentNoticeSearchFiltering",
-        "//submodules/PtgSecretPasscodes:PtgSecretPasscodes",
         "//submodules/PtgSecretPasscodesUI:PtgSecretPasscodesUI",
         
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",

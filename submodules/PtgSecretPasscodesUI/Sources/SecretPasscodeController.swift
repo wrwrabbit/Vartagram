@@ -19,7 +19,7 @@ import TelegramIntents
 import WidgetKit
 import GeneratedSources
 import PresentationDataUtils
-import PtgSecretPasscodes
+import AvatarNode
 
 private final class SecretPasscodeControllerArguments {
     let changePasscode: () -> Void
@@ -29,8 +29,18 @@ private final class SecretPasscodeControllerArguments {
     let removeAccount: (AccountRecordId) -> Void
     let addSecretChats: () -> Void
     let removeSecretChat: (PtgSecretChatId) -> Void
+    let changeOnRevealNavigateTo: () -> Void
     
-    init(changePasscode: @escaping () -> Void, changeTimeout: @escaping () -> Void, deletePasscode: @escaping () -> Void, addAccount: @escaping () -> Void, removeAccount: @escaping (AccountRecordId) -> Void, addSecretChats: @escaping () -> Void, removeSecretChat: @escaping (PtgSecretChatId) -> Void) {
+    init(
+        changePasscode: @escaping () -> Void,
+        changeTimeout: @escaping () -> Void,
+        deletePasscode: @escaping () -> Void,
+        addAccount: @escaping () -> Void,
+        removeAccount: @escaping (AccountRecordId) -> Void,
+        addSecretChats: @escaping () -> Void,
+        removeSecretChat: @escaping (PtgSecretChatId) -> Void,
+        changeOnRevealNavigateTo: @escaping () -> Void
+    ) {
         self.changePasscode = changePasscode
         self.changeTimeout = changeTimeout
         self.deletePasscode = deletePasscode
@@ -38,6 +48,7 @@ private final class SecretPasscodeControllerArguments {
         self.removeAccount = removeAccount
         self.addSecretChats = addSecretChats
         self.removeSecretChat = removeSecretChat
+        self.changeOnRevealNavigateTo = changeOnRevealNavigateTo
     }
 }
 
@@ -46,6 +57,7 @@ private enum SecretPasscodeControllerSection: Int32 {
     case timeout
     case accounts
     case secretChats
+    case onRevealNavigateTo
     case changePasscode
     case delete
 }
@@ -60,6 +72,8 @@ private enum SecretPasscodeControllerEntry: ItemListNodeEntry {
     case secretChatsHeader(String)
     case secretChatsAdd(String)
     case secretChat(Int32, PresentationDateTimeFormat, PresentationPersonNameOrder, SecretChatEntry)
+    case onRevealNavigateTo(UIImage?, Bool)
+    case onRevealNavigateToDesc(String)
     case changePasscode(String)
     case delete(String)
     case deleteDesc(String)
@@ -74,6 +88,8 @@ private enum SecretPasscodeControllerEntry: ItemListNodeEntry {
             return SecretPasscodeControllerSection.accounts.rawValue
         case .secretChatsHeader, .secretChatsAdd, .secretChat:
             return SecretPasscodeControllerSection.secretChats.rawValue
+        case .onRevealNavigateTo, .onRevealNavigateToDesc:
+            return SecretPasscodeControllerSection.onRevealNavigateTo.rawValue
         case .changePasscode:
             return SecretPasscodeControllerSection.changePasscode.rawValue
         case .delete, .deleteDesc:
@@ -91,6 +107,8 @@ private enum SecretPasscodeControllerEntry: ItemListNodeEntry {
         case secretChatsHeader
         case secretChatsAdd
         case secretChat(PtgSecretChatId)
+        case onRevealNavigateTo
+        case onRevealNavigateToDesc
         case changePasscode
         case delete
         case deleteDesc
@@ -116,6 +134,10 @@ private enum SecretPasscodeControllerEntry: ItemListNodeEntry {
             return .secretChatsAdd
         case let .secretChat(_, _, _, entry):
             return .secretChat(entry.secretChatId)
+        case .onRevealNavigateTo:
+            return .onRevealNavigateTo
+        case .onRevealNavigateToDesc:
+            return .onRevealNavigateToDesc
         case .changePasscode:
             return .changePasscode
         case .delete:
@@ -158,6 +180,10 @@ private enum SecretPasscodeControllerEntry: ItemListNodeEntry {
             return true
         case .deleteDesc:
             return false
+        case .onRevealNavigateTo:
+            return true
+        case .onRevealNavigateToDesc:
+            return false
         default:
             assertionFailure()
             return false
@@ -173,7 +199,7 @@ private enum SecretPasscodeControllerEntry: ItemListNodeEntry {
             return ItemListDisclosureItem(presentationData: presentationData, title: title, label: value, sectionId: self.section, style: .blocks, action: {
                 arguments.changeTimeout()
             })
-        case let .timeoutDesc(text), let .deleteDesc(text):
+        case let .timeoutDesc(text), let .deleteDesc(text), let .onRevealNavigateToDesc(text):
             return ItemListTextItem(presentationData: presentationData, text: .markdown(text), sectionId: self.section)
         case let .accountsHeader(text), let .secretChatsHeader(text):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
@@ -201,6 +227,10 @@ private enum SecretPasscodeControllerEntry: ItemListNodeEntry {
             return ItemListActionItem(presentationData: presentationData, title: title, kind: .destructive, alignment: .natural, sectionId: self.section, style: .blocks, action: {
                 arguments.deletePasscode()
             })
+        case let .onRevealNavigateTo(avatarImage, enabled):
+            return ItemListDisclosureItem(presentationData: presentationData, title: presentationData.strings.SecretPasscodeSettings_OnRevealNavigateTo, enabled: enabled, label: avatarImage != nil ? "" : presentationData.strings.SecretPasscodeSettings_OnRevealNavigateTo_None, labelStyle: avatarImage != nil ? .image(image: avatarImage!, size: avatarImage!.size) : .text, sectionId: self.section, style: .blocks, action: {
+                arguments.changeOnRevealNavigateTo()
+            })
         }
     }
 }
@@ -213,7 +243,7 @@ private struct SecretPasscodeControllerState: Equatable {
     }
 }
 
-private func secretPasscodeControllerEntries(presentationData: PresentationData, state: SecretPasscodeControllerState, accountEntries: [AccountEntry], secretChatEntries: [SecretChatEntry]) -> [SecretPasscodeControllerEntry] {
+private func secretPasscodeControllerEntries(presentationData: PresentationData, state: SecretPasscodeControllerState, accountEntries: [AccountEntry], secretChatEntries: [SecretChatEntry], onRevealNavigateToAvatarImage: UIImage?) -> [SecretPasscodeControllerEntry] {
     var entries: [SecretPasscodeControllerEntry] = []
     
     entries.append(.state(state.settings.active ? presentationData.strings.SecretPasscodeStatus_Revealed : presentationData.strings.SecretPasscodeStatus_Hidden))
@@ -234,6 +264,9 @@ private func secretPasscodeControllerEntries(presentationData: PresentationData,
     for (index, value) in secretChatEntries.enumerated() {
         entries.append(.secretChat(Int32(index), presentationData.dateTimeFormat, presentationData.nameDisplayOrder, value))
     }
+    
+    entries.append(.onRevealNavigateTo(onRevealNavigateToAvatarImage, !accountEntries.isEmpty || !secretChatEntries.isEmpty))
+    entries.append(.onRevealNavigateToDesc(presentationData.strings.SecretPasscodeSettings_OnRevealNavigateToDesc))
     
     entries.append(.changePasscode(presentationData.strings.SecretPasscodeSettings_ChangePasscode))
     
@@ -504,9 +537,13 @@ public func secretPasscodeController(context: AccountContext, passcode: String, 
                         |> mapToSignal { coveringAccount in
                             return updatePtgSecretPasscodes(context.sharedContext.accountManager, { current in
                                 let updated = current.withUpdatedItem(passcode: state.settings.passcode) { sp in
-                                    return sp
+                                    var usp = sp
                                         .withUpdated(accountIds: sp.accountIds.union([selectedContext.account.id]))
                                         .withUpdated(secretChats: sp.secretChats.filter({ $0.accountId != selectedContext.account.id }))
+                                    if usp.onRevealNavigateTo?.accountId == selectedContext.account.id && usp.onRevealNavigateTo?.peerId != nil {
+                                        usp = usp.withUpdated(onRevealNavigateTo: nil)
+                                    }
+                                    return usp
                                 }.secretPasscodes
                                 var dbCoveringAccounts = current.dbCoveringAccounts
                                 var cacheCoveringAccounts = current.cacheCoveringAccounts
@@ -525,15 +562,19 @@ public func secretPasscodeController(context: AccountContext, passcode: String, 
                             }
                         })
                         
-                        return state.withUpdated(settings: state.settings
+                        var usp = state.settings
                             .withUpdated(accountIds: state.settings.accountIds.union([selectedContext.account.id]))
                             .withUpdated(secretChats: state.settings.secretChats.filter({ $0.accountId != selectedContext.account.id }))
-                        )
+                        if usp.onRevealNavigateTo?.accountId == selectedContext.account.id && usp.onRevealNavigateTo?.peerId != nil {
+                            usp = usp.withUpdated(onRevealNavigateTo: nil)
+                        }
+                        return state.withUpdated(settings: usp)
                     }
                     
-                    let _ = context.sharedContext.maybeTriggerCoveringProtection(maybeCoveringAccountId: selectedContext.account.id, cleanCache: false).start()
-                    
-                    let _ = (selectedContext.account.cleanOldCloudMessages()
+                    let _ = (context.sharedContext.maybeTriggerCoveringProtection(maybeCoveringAccountId: selectedContext.account.id, cleanCache: false)
+                    |> then (
+                        selectedContext.account.cleanOldCloudMessages()
+                    )
                     |> then (
                         selectedContext.account.postbox.optimizeStorage(minFreePagesFraction: 0.2)
                     )).start()
@@ -580,7 +621,11 @@ public func secretPasscodeController(context: AccountContext, passcode: String, 
         updateState { state in
             let _ = updatePtgSecretPasscodes(context.sharedContext.accountManager, { current in
                 let updated = current.withUpdatedItem(passcode: state.settings.passcode) { sp in
-                    return sp.withUpdated(accountIds: sp.accountIds.filter({ $0 != accountId }))
+                    var usp = sp.withUpdated(accountIds: sp.accountIds.filter({ $0 != accountId }))
+                    if usp.onRevealNavigateTo == PtgNavigateTo(accountId: accountId, peerId: nil) {
+                        usp = usp.withUpdated(onRevealNavigateTo: nil)
+                    }
+                    return usp
                 }.secretPasscodes
                 let updatedAllHidableAccountIds = updated.reduce(into: Set<AccountRecordId>()) { result, sp in
                     result.formUnion(sp.accountIds)
@@ -588,7 +633,11 @@ public func secretPasscodeController(context: AccountContext, passcode: String, 
                 return PtgSecretPasscodes(secretPasscodes: updated, dbCoveringAccounts: current.dbCoveringAccounts.filter({ updatedAllHidableAccountIds.contains($0.key) }), cacheCoveringAccounts: current.cacheCoveringAccounts.filter({ updatedAllHidableAccountIds.contains($0.key) }))
             }).start()
             
-            return state.withUpdated(settings: state.settings.withUpdated(accountIds: state.settings.accountIds.filter({ $0 != accountId })))
+            var usp = state.settings.withUpdated(accountIds: state.settings.accountIds.filter({ $0 != accountId }))
+            if usp.onRevealNavigateTo == PtgNavigateTo(accountId: accountId, peerId: nil) {
+                usp = usp.withUpdated(onRevealNavigateTo: nil)
+            }
+            return state.withUpdated(settings: usp)
         }
     }, addSecretChats: {
         let openSecretChatsSelection: (AccountContext, ViewController?) -> Void = { context, pushToController in
@@ -680,22 +729,133 @@ public func secretPasscodeController(context: AccountContext, passcode: String, 
         updateState { state in
             let _ = updatePtgSecretPasscodes(context.sharedContext.accountManager, { current in
                 return current.withUpdatedItem(passcode: state.settings.passcode) { sp in
-                    return sp.withUpdated(secretChats: sp.secretChats.filter({ $0 != secretChatId }))
+                    var usp = sp.withUpdated(secretChats: sp.secretChats.filter({ $0 != secretChatId }))
+                    if usp.onRevealNavigateTo == PtgNavigateTo(accountId: secretChatId.accountId, peerId: secretChatId.peerId) {
+                        usp = usp.withUpdated(onRevealNavigateTo: nil)
+                    }
+                    return usp
                 }
             }).start()
             
-            return state.withUpdated(settings: state.settings.withUpdated(secretChats: state.settings.secretChats.filter({ $0 != secretChatId })))
+            var usp = state.settings.withUpdated(secretChats: state.settings.secretChats.filter({ $0 != secretChatId }))
+            if usp.onRevealNavigateTo == PtgNavigateTo(accountId: secretChatId.accountId, peerId: secretChatId.peerId) {
+                usp = usp.withUpdated(onRevealNavigateTo: nil)
+            }
+            return state.withUpdated(settings: usp)
         }
+    }, changeOnRevealNavigateTo: {
+        let _ = (statePromise.get()
+        |> take(1)
+        |> mapToSignal { state in
+            return combineLatest(getAccountEntries(sharedContext: context.sharedContext, accountIds: state.settings.accountIds), getSecretChatEntries(sharedContext: context.sharedContext, secretChats: state.settings.secretChats, presentationData: context.sharedContext.currentPresentationData.with { $0 }))
+            |> take(1)
+        }
+        |> deliverOnMainQueue).start(next: { accountEntries, secretChatEntries in
+            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+            let actionSheet = ActionSheetController(presentationData: presentationData)
+            
+            var itemGroups: [ActionSheetItemGroup] = []
+            
+            if !accountEntries.isEmpty {
+                var items: [ActionSheetItem] = []
+                items.append(ActionSheetTextItem(title: presentationData.strings.SecretPasscodeSettings_AccountsHeader.uppercased()))
+                
+                for entry in accountEntries {
+                    items.append(ActionSheetButtonItem(title: entry.peer.debugDisplayTitle, action: { [weak actionSheet] in
+                        actionSheet?.dismissAnimated()
+                        
+                        updateState { state in
+                            let _ = updatePtgSecretPasscodes(context.sharedContext.accountManager, { current in
+                                return current.withUpdatedItem(passcode: state.settings.passcode) { sp in
+                                    return sp.withUpdated(onRevealNavigateTo: PtgNavigateTo(accountId: entry.accountId, peerId: nil))
+                                }
+                            }).start()
+                            
+                            return state.withUpdated(settings: state.settings.withUpdated(onRevealNavigateTo: PtgNavigateTo(accountId: entry.accountId, peerId: nil)))
+                        }
+                    }))
+                }
+                
+                itemGroups.append(ActionSheetItemGroup(items: items))
+            }
+            
+            if !secretChatEntries.isEmpty {
+                var items: [ActionSheetItem] = []
+                items.append(ActionSheetTextItem(title: presentationData.strings.SecretPasscodeSettings_SecretChatsHeader.uppercased()))
+                
+                for entry in secretChatEntries {
+                    items.append(ActionSheetButtonItem(title: entry.peer.chatMainPeer!.debugDisplayTitle, action: { [weak actionSheet] in
+                        actionSheet?.dismissAnimated()
+                        
+                        updateState { state in
+                            let _ = updatePtgSecretPasscodes(context.sharedContext.accountManager, { current in
+                                return current.withUpdatedItem(passcode: state.settings.passcode) { sp in
+                                    return sp.withUpdated(onRevealNavigateTo: PtgNavigateTo(accountId: entry.secretChatId.accountId, peerId: entry.secretChatId.peerId))
+                                }
+                            }).start()
+                            
+                            return state.withUpdated(settings: state.settings.withUpdated(onRevealNavigateTo: PtgNavigateTo(accountId: entry.secretChatId.accountId, peerId: entry.secretChatId.peerId)))
+                        }
+                    }))
+                }
+                
+                itemGroups.append(ActionSheetItemGroup(items: items))
+            }
+            
+            itemGroups.append(ActionSheetItemGroup(items: [
+                ActionSheetButtonItem(title: presentationData.strings.SecretPasscodeSettings_OnRevealNavigateTo_None, action: { [weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                    
+                    updateState { state in
+                        let _ = updatePtgSecretPasscodes(context.sharedContext.accountManager, { current in
+                            return current.withUpdatedItem(passcode: state.settings.passcode) { sp in
+                                return sp.withUpdated(onRevealNavigateTo: nil)
+                            }
+                        }).start()
+                        
+                        return state.withUpdated(settings: state.settings.withUpdated(onRevealNavigateTo: nil))
+                    }
+                })
+            ]))
+            
+            itemGroups.append(ActionSheetItemGroup(items: [
+                ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, font: .bold, action: { [weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                })
+            ]))
+            
+            actionSheet.setItemGroups(itemGroups)
+            
+            presentControllerImpl?(actionSheet, ViewControllerPresentationArguments(presentationAnimation: .modalSheet))
+        })
     })
     
     let signal = combineLatest(context.sharedContext.presentationData, statePromise.get())
     |> mapToSignal { presentationData, state in
         return combineLatest(.single(presentationData), .single(state), getAccountEntries(sharedContext: context.sharedContext, accountIds: state.settings.accountIds), getSecretChatEntries(sharedContext: context.sharedContext, secretChats: state.settings.secretChats, presentationData: presentationData))
     }
+    |> mapToSignal {  presentationData, state, accountEntries, secretChatEntries -> Signal<(PresentationData, SecretPasscodeControllerState, [AccountEntry], [SecretChatEntry], UIImage?), NoError> in
+        var onRevealNavigateToAvatarImage: Signal<UIImage?, NoError> = .single(nil)
+        let avatarImageSize = CGSize(width: 30.0, height: 30.0)
+        
+        if let accountId = state.settings.onRevealNavigateTo?.accountId {
+            if let secretChatPeerId = state.settings.onRevealNavigateTo?.peerId {
+                if let entry = secretChatEntries.first(where: { $0.secretChatId == PtgSecretChatId(accountId: accountId, peerId: secretChatPeerId) }) {
+                    onRevealNavigateToAvatarImage = peerAvatarCompleteImage(account: entry._peerItemContext.context.account, peer: entry.peer.chatMainPeer!, size: avatarImageSize)
+                }
+            } else {
+                if let entry = accountEntries.first(where: { $0.accountId == accountId }) {
+                    onRevealNavigateToAvatarImage = peerAvatarCompleteImage(account: entry._peerItemContext.context.account, peer: entry.peer, size: avatarImageSize)
+                }
+            }
+        }
+        
+        return combineLatest(.single(presentationData), .single(state), .single(accountEntries), .single(secretChatEntries), onRevealNavigateToAvatarImage)
+    }
     |> deliverOnMainQueue
-    |> map { presentationData, state, accountEntries, secretChatEntries -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, state, accountEntries, secretChatEntries, onRevealNavigateToAvatarImage -> (ItemListControllerState, (ItemListNodeState, Any)) in
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.SecretPasscodeSettings_Title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: secretPasscodeControllerEntries(presentationData: presentationData, state: state, accountEntries: accountEntries, secretChatEntries: secretChatEntries), style: .blocks)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: secretPasscodeControllerEntries(presentationData: presentationData, state: state, accountEntries: accountEntries, secretChatEntries: secretChatEntries, onRevealNavigateToAvatarImage: onRevealNavigateToAvatarImage), style: .blocks)
         
         return (controllerState, (listState, arguments))
     }
@@ -764,23 +924,27 @@ extension ItemListController {
 
 extension PtgSecretPasscode {
     public init(passcode: String, active: Bool) {
-        self.init(passcode: passcode, active: active, timeout: 5 * 60, accountIds: [], secretChats: [])
+        self.init(passcode: passcode, active: active, timeout: 5 * 60, accountIds: [], secretChats: [], onRevealNavigateTo: nil)
     }
     
     public func withUpdated(passcode: String) -> PtgSecretPasscode {
-        return PtgSecretPasscode(passcode: passcode, active: self.active, timeout: self.timeout, accountIds: self.accountIds, secretChats: self.secretChats)
+        return PtgSecretPasscode(passcode: passcode, active: self.active, timeout: self.timeout, accountIds: self.accountIds, secretChats: self.secretChats, onRevealNavigateTo: self.onRevealNavigateTo)
     }
     
     public func withUpdated(timeout: Int32?) -> PtgSecretPasscode {
-        return PtgSecretPasscode(passcode: self.passcode, active: self.active, timeout: timeout, accountIds: self.accountIds, secretChats: self.secretChats)
+        return PtgSecretPasscode(passcode: self.passcode, active: self.active, timeout: timeout, accountIds: self.accountIds, secretChats: self.secretChats, onRevealNavigateTo: self.onRevealNavigateTo)
     }
     
     public func withUpdated(accountIds: Set<AccountRecordId>) -> PtgSecretPasscode {
-        return PtgSecretPasscode(passcode: self.passcode, active: self.active, timeout: self.timeout, accountIds: accountIds, secretChats: self.secretChats)
+        return PtgSecretPasscode(passcode: self.passcode, active: self.active, timeout: self.timeout, accountIds: accountIds, secretChats: self.secretChats, onRevealNavigateTo: self.onRevealNavigateTo)
     }
     
     public func withUpdated(secretChats: Set<PtgSecretChatId>) -> PtgSecretPasscode {
-        return PtgSecretPasscode(passcode: self.passcode, active: self.active, timeout: self.timeout, accountIds: self.accountIds, secretChats: secretChats)
+        return PtgSecretPasscode(passcode: self.passcode, active: self.active, timeout: self.timeout, accountIds: self.accountIds, secretChats: secretChats, onRevealNavigateTo: self.onRevealNavigateTo)
+    }
+    
+    public func withUpdated(onRevealNavigateTo: PtgNavigateTo?) -> PtgSecretPasscode {
+        return PtgSecretPasscode(passcode: self.passcode, active: self.active, timeout: self.timeout, accountIds: self.accountIds, secretChats: self.secretChats, onRevealNavigateTo: onRevealNavigateTo)
     }
 }
 

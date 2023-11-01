@@ -7,7 +7,14 @@ public protocol OSUnfairLock {
     func lock()
     func unlock()
     func tryLock() -> Bool
-    func withLock<R>(_ f: () throws -> R) rethrows -> R where R: Sendable
+}
+
+extension OSUnfairLock {
+    func withLock<R>(_ f: () throws -> R) rethrows -> R where R: Sendable {
+        self.lock()
+        defer { self.unlock() }
+        return try f()
+    }
 }
 
 @available(iOS 16.0, *)
@@ -24,12 +31,6 @@ private struct NewOSUnfairLock: OSUnfairLock {
     
     func tryLock() -> Bool {
         return self._lock.lockIfAvailable()
-    }
-    
-    func withLock<R>(_ f: () throws -> R) rethrows -> R where R: Sendable {
-        self.lock()
-        defer { self.unlock() }
-        return try f()
     }
 }
 
@@ -56,12 +57,6 @@ private final class OldOSUnfairLock: OSUnfairLock {
     
     func tryLock() -> Bool {
         return os_unfair_lock_trylock(self._lock)
-    }
-    
-    func withLock<R>(_ f: () throws -> R) rethrows -> R where R: Sendable {
-        self.lock()
-        defer { self.unlock() }
-        return try f()
     }
 }
 

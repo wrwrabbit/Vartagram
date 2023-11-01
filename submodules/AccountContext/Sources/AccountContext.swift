@@ -1,6 +1,3 @@
-import PtgSettings
-import PtgSecretPasscodes
-
 import Foundation
 import UIKit
 import AsyncDisplayKit
@@ -747,6 +744,8 @@ public protocol AppLockContext: AnyObject {
     func lock()
     func unlock()
     func failedUnlockAttempt()
+    
+    func secretPasscodesTimeoutCheck(completion: (() -> Void)?)
 }
 
 public protocol RecentSessionsController: AnyObject {
@@ -1070,6 +1069,8 @@ public protocol AccountContext: AnyObject {
     var currentInactiveSecretChatPeerIds: Atomic<Set<PeerId>> { get }
     var isHidable: Signal<Bool, NoError> { get }
     var immediateIsHidable: Bool { get }
+    var ptgAccountSettings: Signal<PtgAccountSettings, NoError> { get }
+    var currentPtgAccountSettings: Atomic<PtgAccountSettings?> { get }
     
     func shouldSuppressForeignAgentNotice(in message: Message) -> Bool
     func shouldHideChannelSignature(in message: Message) -> Bool

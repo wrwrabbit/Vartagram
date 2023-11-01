@@ -212,6 +212,12 @@ func inputPanelForChatPresentationIntefaceState(_ chatPresentationInterfaceState
                 if chatPresentationInterfaceState.interfaceState.editMessage != nil, channel.hasPermission(.editAllMessages) {
                     displayInputTextPanel = true
                 } else if !channel.hasPermission(.sendSomething) || !isMember {
+                    if isMember, case .peer = chatPresentationInterfaceState.chatLocation {
+                        if case .pinnedMessages = chatPresentationInterfaceState.subject {
+                        } else if context.sharedContext.currentPtgSettings.with({ $0.hideMuteUnmuteButtonInChannels }) {
+                            return (nil, nil)
+                        }
+                    }
                     if let currentPanel = (currentPanel as? ChatChannelSubscriberInputPanelNode) ?? (currentSecondaryPanel as? ChatChannelSubscriberInputPanelNode) {
                         return (currentPanel, nil)
                     } else {

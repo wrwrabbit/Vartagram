@@ -33,12 +33,13 @@ private let ensureInitialized: Void = {
 
 public final class Database {
     internal var handle: OpaquePointer? = nil
+    private var guard_fd: Int32?
 
     public init?(_ location: String, readOnly: Bool) {
         let _ = ensureInitialized
         
         if location != ":memory:" {
-            let _ = open(location + "-guard", O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)
+            self.guard_fd = open(location + "-guard", O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)
         }
         let flags: Int32
         if readOnly {
@@ -55,6 +56,7 @@ public final class Database {
             } else {
                 postboxLog("sqlite3_open_v2 sys err: unknown")
             }
+            Thread.sleep(forTimeInterval: 0.5) // for logging to complete before crash
             #endif
             return nil
         }
@@ -62,6 +64,9 @@ public final class Database {
 
     deinit {
         sqlite3_close(self.handle)
+        if let guard_fd = self.guard_fd {
+            close(guard_fd)
+        }
     } // sqlite3_close_v2 in Yosemite/iOS 8?
 
     public func execute(_ SQL: String) -> Bool {

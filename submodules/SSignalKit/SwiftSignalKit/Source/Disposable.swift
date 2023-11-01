@@ -23,7 +23,7 @@ public final class StrictDisposable: Disposable {
     deinit {
         #if DEBUG
         if !self.isDisposed.with({ $0 }) {
-            assertionFailure("Leaked disposable \(self.disposable) from \(self.file):\(self.line)")
+            NSLog("Leaked disposable \(self.disposable) from \(self.file):\(self.line)")
         }
         #endif
     }

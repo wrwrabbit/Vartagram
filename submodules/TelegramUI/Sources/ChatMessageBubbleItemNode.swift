@@ -1880,7 +1880,8 @@ class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewItemNode
             })
             
             if innerSize.height > maxSize.height, maxDimensions.width != layoutConstants.image.maxDimensions.width {
-                maxSize = layoutConstants.image.maxDimensions.fittedToWidthOrSmaller(maximumContentWidth - layoutConstants.image.bubbleInsets.left - layoutConstants.image.bubbleInsets.right)
+                maxDimensions.width = max(round(maxDimensions.width * maxSize.height / innerSize.height), layoutConstants.image.maxDimensions.width)
+                maxSize = maxDimensions.fittedToWidthOrSmaller(maximumContentWidth - layoutConstants.image.bubbleInsets.left - layoutConstants.image.bubbleInsets.right)
                 (innerFramesAndPositions, innerSize) = chatMessageBubbleMosaicLayout(maxSize: maxSize, itemSizes: contentPropertiesAndLayouts[mosaicRange].map { item in
                     guard let size = item.0, size.width > 0.0, size.height > 0 else {
                         return CGSize(width: 256.0, height: 256.0)

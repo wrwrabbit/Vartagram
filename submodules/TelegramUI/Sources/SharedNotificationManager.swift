@@ -1,5 +1,3 @@
-import PtgSecretPasscodes
-
 import Foundation
 import UIKit
 import UserNotifications
@@ -378,9 +376,7 @@ public final class SharedNotificationManager {
                 self.clearNotificationsManager?.clearAll()
                 
                 if let accountManager = self.accountManager {
-                    let _ = logoutFromAccount(id: account.id, accountManager: accountManager, alreadyLoggedOutRemotely: true, getExcludedAccountIds: { transaction in
-                        return PtgSecretPasscodes(transaction).allHidableAccountIds()
-                    }).startStandalone()
+                    let _ = logoutFromAccount(id: account.id, accountManager: accountManager, alreadyLoggedOutRemotely: true).startStandalone()
                 }
                 return
             }

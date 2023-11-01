@@ -16,7 +16,8 @@ public protocol ChatListController: ViewController {
     func activateSearch(filter: ChatListSearchFilter, query: String?)
     func deactivateSearch(animated: Bool)
     func activateCompose()
-    func maybeAskForPeerChatRemoval(peer: EngineRenderedPeer, joined: Bool, deleteGloballyIfPossible: Bool, completion: @escaping (Bool) -> Void, removed: @escaping () -> Void)
+    func maybeAskForPeerChatRemoval(peer: EngineRenderedPeer, joined: Bool, deleteGloballyIfPossible: Bool, completion: @escaping (Bool) -> Void, removed: @escaping () -> Void, presentingController: ViewController?)
+    func deletePeerChat(peerId: EnginePeer.Id, joined: Bool, suppressClear: Bool, presentingController: ViewController?, removalStarted: (() -> Void)?)
     
     func playSignUpCompletedAnimation()
     

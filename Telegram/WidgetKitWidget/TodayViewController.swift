@@ -1,8 +1,5 @@
 #if arch(arm64) || arch(x86_64)
 
-import PtgSettings
-import PtgSecretPasscodes
-
 import UIKit
 import NotificationCenter
 import BuildConfig
