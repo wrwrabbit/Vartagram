@@ -613,7 +613,7 @@ public func secretPasscodeController(context: AccountContext, passcode: String, 
             
             func presentWarningAtLeastOneAccountMustRemainUnhidden() {
                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-                presentControllerInCurrentImpl?(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: presentationData.strings.SecretPasscodeSettings_AtLeastOneAccountMustRemainUnhidden, timeout: nil), elevatedLayout: false, action: { _ in return false }))
+                presentControllerInCurrentImpl?(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: presentationData.strings.SecretPasscodeSettings_AtLeastOneAccountMustRemainUnhidden, timeout: nil, customUndoText: nil), elevatedLayout: false, action: { _ in return false }))
                 hapticFeedback.warning()
             }
         })

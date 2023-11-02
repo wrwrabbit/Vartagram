@@ -207,7 +207,14 @@ public func chatTranslationState(context: AccountContext, peerId: EnginePeer.Id)
                             for message in messages {
                                 if message.effectivelyIncoming(context.account.peerId), message.text.count >= 10 {
                                     var text = String(message.text.prefix(256))
-                                    if var entities = message.textEntitiesAttribute?.entities.filter({ [.Pre, .Code, .Url, .Email, .Mention, .Hashtag, .BotCommand].contains($0.type) }) {
+                                    if var entities = message.textEntitiesAttribute?.entities.filter({ entity in
+                                        switch entity.type {
+                                        case .Pre, .Code, .Url, .Email, .Mention, .Hashtag, .BotCommand:
+                                            return true
+                                        default:
+                                            return false
+                                        }
+                                    }) {
                                         entities = entities.sorted(by: { $0.range.lowerBound > $1.range.lowerBound })
                                         var ranges: [Range<String.Index>] = []
                                         for entity in entities {
@@ -217,7 +224,9 @@ public func chatTranslationState(context: AccountContext, peerId: EnginePeer.Id)
                                             ranges.append(text.index(text.startIndex, offsetBy: entity.range.lowerBound) ..< text.index(text.startIndex, offsetBy: entity.range.upperBound))
                                         }
                                         for range in ranges {
-                                            text.removeSubrange(range)
+                                            if range.upperBound < text.endIndex {
+                                                text.removeSubrange(range)
+                                            }
                                         }
                                     }
                                     

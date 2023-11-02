@@ -8,12 +8,14 @@ final class PeerInfoScreenDisclosureItem: PeerInfoScreenItem {
         case none
         case text(String)
         case badge(String, UIColor)
+        case semitransparentBadge(String, UIColor)
+        case titleBadge(String, UIColor)
         
         var text: String {
             switch self {
                 case .none:
                     return ""
-                case let .text(text), let .badge(text, _):
+            case let .text(text), let .badge(text, _), let .semitransparentBadge(text, _), let .titleBadge(text, _):
                     return text
             }
         }
@@ -22,7 +24,7 @@ final class PeerInfoScreenDisclosureItem: PeerInfoScreenItem {
             switch self {
                 case .none, .text:
                     return nil
-                case let .badge(_, color):
+                case let .badge(_, color), let .semitransparentBadge(_, color), let .titleBadge(_, color):
                     return color
             }
         }
@@ -60,7 +62,7 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
     private let bottomSeparatorNode: ASDisplayNode
     private let activateArea: AccessibilityAreaNode
     
-    private var iconDisposable: Disposable?
+    private var iconDisposable = MetaDisposable()
     
     private var item: PeerInfoScreenDisclosureItem?
     
@@ -115,7 +117,7 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
     }
     
     deinit {
-        self.iconDisposable?.dispose()
+        self.iconDisposable.dispose()
     }
     
     override func update(width: CGFloat, safeInsets: UIEdgeInsets, presentationData: PresentationData, item: PeerInfoScreenItem, topItem: PeerInfoScreenItem?, bottomItem: PeerInfoScreenItem?, hasCorners: Bool, transition: ContainedViewLayoutTransition) -> CGFloat {
@@ -135,13 +137,19 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
         let titleFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
         
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
-                
+        
         let textColorValue: UIColor = presentationData.theme.list.itemPrimaryTextColor
         let labelColorValue: UIColor
         let labelFont: UIFont
-        if case .badge = item.label {
+        if case let .semitransparentBadge(_, color) = item.label {
+            labelColorValue = color
+            labelFont = Font.semibold(14.0)
+        } else if case .badge = item.label {
             labelColorValue = presentationData.theme.list.itemCheckColors.foregroundColor
             labelFont = Font.regular(15.0)
+        } else if case .titleBadge = item.label {
+            labelColorValue = presentationData.theme.list.itemCheckColors.foregroundColor
+            labelFont = Font.medium(11.0)
         } else {
             labelColorValue = presentationData.theme.list.itemSecondaryTextColor
             labelFont = titleFont
@@ -152,7 +160,11 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
         self.textNode.attributedText = NSAttributedString(string: item.text, font: titleFont, textColor: textColorValue)
         
         let textSize = self.textNode.updateLayout(CGSize(width: width - (leftInset + rightInset), height: .greatestFiniteMagnitude))
-        let labelSize = self.labelNode.updateLayout(CGSize(width: width - textSize.width - (leftInset + rightInset), height: .greatestFiniteMagnitude))
+        var labelConstrainWidth = width - textSize.width - (leftInset + rightInset)
+        if case .semitransparentBadge = item.label {
+            labelConstrainWidth -= 16.0
+        }
+        let labelSize = self.labelNode.updateLayout(CGSize(width: labelConstrainWidth, height: .greatestFiniteMagnitude))
         
         let textFrame = CGRect(origin: CGPoint(x: leftInset, y: 12.0), size: textSize)
         
@@ -169,12 +181,12 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
             } else if let iconSignal = item.iconSignal {
                 if previousItem?.text != item.text {
                     self.iconNode.image = nil
-                    self.iconDisposable = (iconSignal
-                    |> deliverOnMainQueue).start(next: { [weak self] icon in
+                    self.iconDisposable.set((iconSignal
+                    |> deliverOnMainQueue).startStrict(next: { [weak self] icon in
                         if let self {
                             self.iconNode.image = icon
                         }
-                    })
+                    }))
                 }
                 iconSize = CGSize(width: 29.0, height: 29.0)
             } else {
@@ -193,10 +205,25 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
             transition.updateFrame(node: self.arrowNode, frame: arrowFrame)
         }
         
-        let badgeDiameter: CGFloat = 20.0
-        if case let .badge(text, badgeColor) = item.label, !text.isEmpty {
+        var badgeDiameter: CGFloat = 20.0
+        if case let .semitransparentBadge(text, badgeColor) = item.label, !text.isEmpty {
+            badgeDiameter = 24.0
+            if previousItem?.label.badgeColor != badgeColor {
+                self.labelBadgeNode.image = generateStretchableFilledCircleImage(diameter: badgeDiameter, color: badgeColor.withAlphaComponent(0.1))
+            }
+            if self.labelBadgeNode.supernode == nil {
+                self.insertSubnode(self.labelBadgeNode, belowSubnode: self.labelNode)
+            }
+        } else if case let .badge(text, badgeColor) = item.label, !text.isEmpty {
             if previousItem?.label.badgeColor != badgeColor {
                 self.labelBadgeNode.image = generateStretchableFilledCircleImage(diameter: badgeDiameter, color: badgeColor)
+            }
+            if self.labelBadgeNode.supernode == nil {
+                self.insertSubnode(self.labelBadgeNode, belowSubnode: self.labelNode)
+            }
+        } else if case let .titleBadge(text, badgeColor) = item.label, !text.isEmpty {
+            if previousItem?.label.badgeColor != badgeColor {
+                self.labelBadgeNode.image = generateFilledRoundedRectImage(size: CGSize(width: 16.0, height: 16.0), cornerRadius: 5.0, color: badgeColor)?.stretchableImage(withLeftCapWidth: 6, topCapHeight: 6)
             }
             if self.labelBadgeNode.supernode == nil {
                 self.insertSubnode(self.labelBadgeNode, belowSubnode: self.labelNode)
@@ -205,15 +232,27 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
             self.labelBadgeNode.removeFromSupernode()
         }
         
-        let badgeWidth = max(badgeDiameter, labelSize.width + 10.0)
+        var badgeWidth = max(badgeDiameter, labelSize.width + 10.0)
+        if case .semitransparentBadge = item.label {
+            badgeWidth += 2.0
+        }
         let labelFrame: CGRect
-        if case .badge = item.label {
+        if case .semitransparentBadge = item.label {
             labelFrame = CGRect(origin: CGPoint(x: width - rightInset - badgeWidth + (badgeWidth - labelSize.width) / 2.0, y: floor((height - labelSize.height) / 2.0)), size: labelSize)
+        } else if case .badge = item.label {
+            labelFrame = CGRect(origin: CGPoint(x: width - rightInset - badgeWidth + (badgeWidth - labelSize.width) / 2.0, y: floor((height - labelSize.height) / 2.0)), size: labelSize)
+        } else if case .titleBadge = item.label {
+            labelFrame = CGRect(origin: CGPoint(x: textFrame.maxX + 10.0, y: floor((height - labelSize.height) / 2.0) + 1.0), size: labelSize)
         } else {
             labelFrame = CGRect(origin: CGPoint(x: width - rightInset - labelSize.width, y: 12.0), size: labelSize)
         }
         
-        let labelBadgeNodeFrame = CGRect(origin: CGPoint(x: width - rightInset - badgeWidth, y: labelFrame.minY - 1.0), size: CGSize(width: badgeWidth, height: badgeDiameter))
+        let labelBadgeNodeFrame: CGRect
+        if case .titleBadge = item.label {
+            labelBadgeNodeFrame = labelFrame.insetBy(dx: -4.0, dy: -2.0 + UIScreenPixel)
+        } else {
+            labelBadgeNodeFrame = CGRect(origin: CGPoint(x: width - rightInset - badgeWidth, y: floorToScreenPixels(labelFrame.midY - badgeDiameter / 2.0)), size: CGSize(width: badgeWidth, height: badgeDiameter))
+        }
         
         self.activateArea.accessibilityLabel = item.text
         self.activateArea.accessibilityValue = item.label.text

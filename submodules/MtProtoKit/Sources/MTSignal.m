@@ -1,6 +1,7 @@
 #import <MtProtoKit/MTSignal.h>
 
 #import <os/lock.h>
+#import <pthread/pthread.h>
 #import <MtProtoKit/MTTimer.h>
 #import <MtProtoKit/MTQueue.h>
 #import <MtProtoKit/MTAtomic.h>
@@ -8,37 +9,93 @@
 
 @interface MTSubscriberDisposable : NSObject <MTDisposable>
 {
-    os_unfair_lock _lock;
     __weak MTSubscriber *_subscriber;
     id<MTDisposable> _disposable;
+    os_unfair_lock _lock;
 }
 
 @end
 
 @implementation MTSubscriberDisposable
 
-- (instancetype)initWithSubscriber:(MTSubscriber *)subscriber disposable:(id<MTDisposable>)disposable
-{
+- (instancetype)initWithSubscriber:(MTSubscriber *)subscriber disposable:(id<MTDisposable>)disposable {
     self = [super init];
-    if (self != nil)
-    {
+    if (self != nil) {
         _subscriber = subscriber;
         _disposable = disposable;
     }
     return self;
 }
 
-- (void)dispose
-{
-    id<MTDisposable> disposable;
-    
+- (void)dealloc {
+}
+
+- (void)dispose {
+    id<MTDisposable> disposeItem = nil;
     os_unfair_lock_lock(&_lock);
-    disposable = _disposable;
+    disposeItem = _disposable;
     _disposable = nil;
     os_unfair_lock_unlock(&_lock);
     
     [_subscriber _markTerminatedWithoutDisposal];
-    [disposable dispose];
+    [disposeItem dispose];
+}
+
+@end
+
+@interface MTStrictDisposable : NSObject<MTDisposable> {
+    id<MTDisposable> _disposable;
+#if DEBUG
+    const char *_file;
+    int _line;
+    
+    pthread_mutex_t _lock;
+    bool _isDisposed;
+#endif
+}
+
+- (instancetype)initWithDisposable:(id<MTDisposable>)disposable file:(const char *)file line:(int)line;
+- (void)dispose;
+
+@end
+
+@implementation MTStrictDisposable
+
+- (instancetype)initWithDisposable:(id<MTDisposable>)disposable file:(const char *)file line:(int)line {
+    self = [super init];
+    if (self != nil) {
+        _disposable = disposable;
+#if DEBUG
+        _file = file;
+        _line = line;
+        
+        pthread_mutex_init(&_lock, nil);
+#endif
+    }
+    return self;
+}
+
+- (void)dealloc {
+#if DEBUG
+    pthread_mutex_lock(&_lock);
+    if (!_isDisposed) {
+        NSLog(@"Leaked disposable from %s:%d", _file, _line);
+        assert(false);
+    }
+    pthread_mutex_unlock(&_lock);
+    
+    pthread_mutex_destroy(&_lock);
+#endif
+}
+
+- (void)dispose {
+#if DEBUG
+    pthread_mutex_lock(&_lock);
+    _isDisposed = true;
+    pthread_mutex_unlock(&_lock);
+#endif
+    
+    [_disposable dispose];
 }
 
 @end
@@ -89,6 +146,9 @@
         _queueMode = queueMode;
     }
     return self;
+}
+
+- (void)dealloc {
 }
 
 - (void)enqueueSignal:(MTSignal *)signal
@@ -231,6 +291,14 @@
     return [[MTSubscriberDisposable alloc] initWithSubscriber:subscriber disposable:disposable];
 }
 
+- (id<MTDisposable>)startWithNextStrict:(void (^)(id next))next error:(void (^)(id error))error completed:(void (^)())completed file:(const char *)file line:(int)line
+{
+    MTSubscriber *subscriber = [[MTSubscriber alloc] initWithNext:next error:error completed:completed];
+    id<MTDisposable> disposable = _generator(subscriber);
+    [subscriber _assignDisposable:disposable];
+    return [[MTStrictDisposable alloc] initWithDisposable:[[MTSubscriberDisposable alloc] initWithSubscriber:subscriber disposable:disposable] file:file line:line];
+}
+
 - (id<MTDisposable>)startWithNext:(void (^)(id next))next
 {
     MTSubscriber *subscriber = [[MTSubscriber alloc] initWithNext:next error:nil completed:nil];
@@ -239,12 +307,28 @@
     return [[MTSubscriberDisposable alloc] initWithSubscriber:subscriber disposable:disposable];
 }
 
+- (id<MTDisposable>)startWithNextStrict:(void (^)(id next))next file:(const char *)file line:(int)line
+{
+    MTSubscriber *subscriber = [[MTSubscriber alloc] initWithNext:next error:nil completed:nil];
+    id<MTDisposable> disposable = _generator(subscriber);
+    [subscriber _assignDisposable:disposable];
+    return [[MTStrictDisposable alloc] initWithDisposable:[[MTSubscriberDisposable alloc] initWithSubscriber:subscriber disposable:disposable] file:file line:line];
+}
+
 - (id<MTDisposable>)startWithNext:(void (^)(id next))next completed:(void (^)())completed
 {
     MTSubscriber *subscriber = [[MTSubscriber alloc] initWithNext:next error:nil completed:completed];
     id<MTDisposable> disposable = _generator(subscriber);
     [subscriber _assignDisposable:disposable];
     return [[MTSubscriberDisposable alloc] initWithSubscriber:subscriber disposable:disposable];
+}
+
+- (id<MTDisposable>)startWithNextStrict:(void (^)(id next))next completed:(void (^)())completed file:(const char *)file line:(int)line
+{
+    MTSubscriber *subscriber = [[MTSubscriber alloc] initWithNext:next error:nil completed:completed];
+    id<MTDisposable> disposable = _generator(subscriber);
+    [subscriber _assignDisposable:disposable];
+    return [[MTStrictDisposable alloc] initWithDisposable:[[MTSubscriberDisposable alloc] initWithSubscriber:subscriber disposable:disposable] file:file line:line];
 }
 
 + (MTSignal *)single:(id)next
@@ -320,11 +404,11 @@
 {
     return [[MTSignal alloc] initWithGenerator:^id<MTDisposable> (MTSubscriber *subscriber)
     {
-        MTMetaDisposable *disposable = [[MTMetaDisposable alloc] init];
+        MTMetaDisposable *startDisposable = [[MTMetaDisposable alloc] init];
+        MTMetaDisposable *timerDisposable = [[MTMetaDisposable alloc] init];
         
-        MTTimer *timer = [[MTTimer alloc] initWithTimeout:seconds repeat:false completion:^
-        {
-            [disposable setDisposable:[self startWithNext:^(id next)
+        MTTimer *timer = [[MTTimer alloc] initWithTimeout:seconds repeat:false completion:^{
+            [startDisposable setDisposable:[self startWithNext:^(id next)
             {
                 [subscriber putNext:next];
             } error:^(id error)
@@ -338,12 +422,15 @@
         
         [timer start];
         
-        [disposable setDisposable:[[MTBlockDisposable alloc] initWithBlock:^
+        [timerDisposable setDisposable:[[MTBlockDisposable alloc] initWithBlock:^
         {
             [timer invalidate];
         }]];
         
-        return disposable;
+        return [[MTBlockDisposable alloc] initWithBlock:^{
+            [startDisposable dispose];
+            [timerDisposable dispose];
+        }];
     }];
 }
 
@@ -351,11 +438,11 @@
 {
     return [[MTSignal alloc] initWithGenerator:^id<MTDisposable> (MTSubscriber *subscriber)
     {
-        MTMetaDisposable *disposable = [[MTMetaDisposable alloc] init];
-        
-        MTTimer *timer = [[MTTimer alloc] initWithTimeout:seconds repeat:false completion:^
-        {
-            [disposable setDisposable:[signal startWithNext:^(id next)
+        MTMetaDisposable *startDisposable = [[MTMetaDisposable alloc] init];
+        MTMetaDisposable *timerDisposable = [[MTMetaDisposable alloc] init];
+
+        MTTimer *timer = [[MTTimer alloc] initWithTimeout:seconds repeat:false completion:^{
+            [startDisposable setDisposable:[signal startWithNext:^(id next)
             {
                 [subscriber putNext:next];
             } error:^(id error)
@@ -368,7 +455,7 @@
         } queue:queue.nativeQueue];
         [timer start];
         
-        [disposable setDisposable:[self startWithNext:^(id next)
+        [timerDisposable setDisposable:[self startWithNext:^(id next)
         {
             [timer invalidate];
             [subscriber putNext:next];
@@ -382,7 +469,10 @@
             [subscriber putCompletion];
         }]];
         
-        return disposable;
+        return [[MTBlockDisposable alloc] initWithBlock:^{
+            [startDisposable dispose];
+            [timerDisposable dispose];
+        }];
     }];
 }
 

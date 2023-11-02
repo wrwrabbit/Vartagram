@@ -54,7 +54,7 @@ public func _internal_recentlySearchedPeers(postbox: Postbox) -> Signal<[Recentl
         keys.append(contentsOf: peerIds.map({ .peer(peerId: $0, components: .all) }))
         
         return postbox.combinedView(keys: keys)
-        |> map { view -> [RecentlySearchedPeer] in
+        |> mapToSignal { view -> Signal<[RecentlySearchedPeer], NoError> in
             var result: [RecentlySearchedPeer] = []
             var unreadCounts: [PeerId: Int32] = [:]
             if let unreadCountsView = view.views[unreadCountsKey] as? UnreadMessageCountsView {
@@ -65,6 +65,7 @@ public func _internal_recentlySearchedPeers(postbox: Postbox) -> Signal<[Recentl
                 }
             }
             
+            var migratedPeerIds: [EnginePeer.Id: EnginePeer.Id] = [:]
             for peerId in peerIds {
                 if let peerView = view.views[.peer(peerId: peerId, components: .all)] as? PeerView {
                     var presence: TelegramUserPresence?
@@ -82,6 +83,10 @@ public func _internal_recentlySearchedPeers(postbox: Postbox) -> Signal<[Recentl
                                 unreadCount = 0
                             }
                         }
+                        
+                        if let group = peer as? TelegramGroup, let migrationReference = group.migrationReference {
+                            migratedPeerIds = [group.id: migrationReference.peerId]
+                        }
                     }
                     
                     var subpeerSummary: RecentlySearchedPeerSubpeerSummary?
@@ -94,7 +99,20 @@ public func _internal_recentlySearchedPeers(postbox: Postbox) -> Signal<[Recentl
                 }
             }
             
-            return result
+            if !migratedPeerIds.isEmpty {
+                return postbox.transaction { transaction -> Signal<[RecentlySearchedPeer], NoError> in
+                    for (previousPeerId, updatedPeerId) in migratedPeerIds {
+                        transaction.removeOrderedItemListItem(collectionId: Namespaces.OrderedItemList.RecentlySearchedPeerIds, itemId: RecentPeerItemId(previousPeerId).rawValue)
+                        if let entry = CodableEntry(RecentPeerItem(rating: 0.0)) {
+                            transaction.addOrMoveToFirstPositionOrderedItemListItem(collectionId: Namespaces.OrderedItemList.RecentlySearchedPeerIds, item: OrderedItemListEntry(id: RecentPeerItemId(updatedPeerId).rawValue, contents: entry), removeTailIfCountExceeds: 20)
+                        }
+                    }
+                    return .complete()
+                }
+                |> switchToLatest
+            } else {
+                return .single(result)
+            }
         }
     }
 }

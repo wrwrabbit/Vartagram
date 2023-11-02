@@ -54,7 +54,7 @@ final class NetworkStatsContext {
         
         var averageTargetStats: [TargetKey: AverageStats] = [:]
         
-        init(queue: Queue, postbox: Postbox) {
+        init(queue: Queue, postbox: Postbox?) {
             self.queue = queue
             self.postbox = postbox
         }
@@ -111,7 +111,7 @@ final class NetworkStatsContext {
     init(postbox: Postbox) {
         let queue = NetworkStatsContext.sharedQueue
         self.queue = queue
-        self.impl = QueueLocalObject(queue: queue, generate: {
+        self.impl = QueueLocalObject(queue: queue, generate: { [weak postbox] in
             return Impl(queue: queue, postbox: postbox)
         })
     }

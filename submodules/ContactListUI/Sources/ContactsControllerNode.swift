@@ -164,7 +164,7 @@ final class ContactsControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         unavailableImpl = { [weak self] in
             if let strongSelf = self {
                 strongSelf.contactListNode.listNode.clearHighlightAnimated(true)
-                let controller = UndoOverlayController(presentationData: strongSelf.presentationData, content: .info(title: nil, text: strongSelf.presentationData.strings.FunctionalityUnavailableForHidableAccounts, timeout: nil), elevatedLayout: false, action: { _ in return false })
+                let controller = UndoOverlayController(presentationData: strongSelf.presentationData, content: .info(title: nil, text: strongSelf.presentationData.strings.FunctionalityUnavailableForHidableAccounts, timeout: nil, customUndoText: nil), elevatedLayout: false, action: { _ in return false })
                 strongSelf.controller?.present(controller, in: .current)
             }
         }
