@@ -45,6 +45,7 @@ import ManagedFile
 import DeviceProximity
 import MediaEditor
 import TelegramUIDeclareEncodables
+import ContextMenuScreen
 
 #if canImport(AppCenter)
 import AppCenter
@@ -600,6 +601,9 @@ extension UserDefaults {
         }, openUrl: { url in
             UIApplication.shared.open(url, options: [:], completionHandler: nil)
         })
+        setContextMenuControllerProvider { arguments in
+            return ContextMenuControllerImpl(arguments)
+        }
         
         if #available(iOS 10.0, *) {
             UNUserNotificationCenter.current().delegate = self
@@ -794,7 +798,7 @@ extension UserDefaults {
                 icons.append(PresentationAppIcon(name: "Premium", imageName: "Premium", isPremium: true))
                 icons.append(PresentationAppIcon(name: "PremiumBlack", imageName: "PremiumBlack", isPremium: true))
                 icons.append(PresentationAppIcon(name: "PremiumTurbo", imageName: "PremiumTurbo", isPremium: true))
-                
+                                
                 return icons
             } else {
                 return []
@@ -1684,7 +1688,6 @@ extension UserDefaults {
                 if !buildConfig.isAppStoreBuild {
                     if value >= 2000 * 1024 * 1024 {
                         if self.contextValue?.context.sharedContext.immediateExperimentalUISettings.crashOnMemoryPressure == true {
-                            preconditionFailure()
                         }
                     }
                 }
@@ -2784,7 +2787,7 @@ extension UserDefaults {
                         if let threadId {
                             replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: threadId))
                         }
-                        return enqueueMessages(account: account, peerId: peerId, messages: [EnqueueMessage.message(text: text, attributes: [], inlineStickers: [:], mediaReference: nil, replyToMessageId: replyToMessageId, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])])
+                        return enqueueMessages(account: account, peerId: peerId, messages: [EnqueueMessage.message(text: text, attributes: [], inlineStickers: [:], mediaReference: nil, threadId: nil, replyToMessageId: replyToMessageId.flatMap { EngineMessageReplySubject(messageId: $0, quote: nil) }, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])])
                         |> map { messageIds -> MessageId? in
                             if messageIds.isEmpty {
                                 return nil

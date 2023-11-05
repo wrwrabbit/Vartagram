@@ -1060,15 +1060,17 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
                         __weak MTContext *weakSelf = self;
                         MTMetaDisposable *disposable = [[MTMetaDisposable alloc] init];
                         _fetchPublicKeysActions[@(datacenterId)] = disposable;
-                        [disposable setDisposable:[signal startWithNext:^(NSArray<NSDictionary *> *next) {
+                        [disposable setDisposable:[signal startWithNextStrict:^(NSArray<NSDictionary *> *next) {
                             [[MTContext contextQueue] dispatchOnQueue:^{
                                 __strong MTContext *strongSelf = weakSelf;
                                 if (strongSelf != nil) {
+                                    id<MTDisposable> disposable = strongSelf->_fetchPublicKeysActions[@(datacenterId)];
                                     [strongSelf->_fetchPublicKeysActions removeObjectForKey:@(datacenterId)];
+                                    [disposable dispose];
                                     [strongSelf updatePublicKeysForDatacenterWithId:datacenterId publicKeys:next];
                                 }
                             } synchronous:false];
-                        }]];
+                        } file:__FILE_NAME__ line:__LINE__]];
                         break;
                     }
                 }
@@ -1187,10 +1189,12 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
                 {
                     [[MTContext contextQueue] dispatchOnQueue:^
                     {
+                        id<MTDisposable> disposable = strongSelf->_transportSchemeDisposableByDatacenterId[@(datacenterId)];
                         [strongSelf->_transportSchemeDisposableByDatacenterId removeObjectForKey:@(datacenterId)];
+                        [disposable dispose];
                     }];
                 }
-            }] startWithNext:^(MTTransportScheme *next)
+            }] startWithNextStrict:^(MTTransportScheme *next)
             {
                 if (MTLogEnabled()) {
                     MTLog(@"scheme: %@", next);
@@ -1206,7 +1210,7 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
             } completed:^
             {
                 
-            }];
+            } file:__FILE_NAME__ line:__LINE__];
         }
     }];
 }
@@ -1323,7 +1327,7 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
                 [strongSelf->_backupAddressListDisposable dispose];
                 strongSelf->_backupAddressListDisposable = nil;
             }
-        }] startWithNext:nil];
+        }] startWithNextStrict:nil file:__FILE_NAME__ line:__LINE__];
     }
 }
 
@@ -1521,7 +1525,7 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
             _datacenterCheckKeyRemovedActionTimestamps[@(datacenterId)] = currentTimestamp;
             [_datacenterCheckKeyRemovedActions[@(datacenterId)] dispose];
             __weak MTContext *weakSelf = self;
-            _datacenterCheckKeyRemovedActions[@(datacenterId)] = [[MTDiscoverConnectionSignals checkIfAuthKeyRemovedWithContext:self datacenterId:datacenterId authKey:[[MTDatacenterAuthKey alloc] initWithAuthKey:authInfo.authKey authKeyId:authInfo.authKeyId validUntilTimestamp:authInfo.validUntilTimestamp notBound:false]] startWithNext:^(NSNumber* isRemoved) {
+            _datacenterCheckKeyRemovedActions[@(datacenterId)] = [[MTDiscoverConnectionSignals checkIfAuthKeyRemovedWithContext:self datacenterId:datacenterId authKey:[[MTDatacenterAuthKey alloc] initWithAuthKey:authInfo.authKey authKeyId:authInfo.authKeyId validUntilTimestamp:authInfo.validUntilTimestamp notBound:false]] startWithNextStrict:^(NSNumber* isRemoved) {
                 [[MTContext contextQueue] dispatchOnQueue:^{
                     __strong MTContext *strongSelf = weakSelf;
                     if (strongSelf == nil) {
@@ -1536,7 +1540,7 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
                         }
                     }
                 }];
-            }];
+            } file:__FILE_NAME__ line:__LINE__];
         }
     }];
 }

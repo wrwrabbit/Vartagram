@@ -1,3 +1,4 @@
+import Foundation
 import Postbox
 
 public enum MessageTextEntityType: Equatable {
@@ -12,7 +13,7 @@ public enum MessageTextEntityType: Equatable {
     case Bold
     case Italic
     case Code
-    case Pre
+    case Pre(language: String?)
     case TextUrl(url: String)
     case TextMention(peerId: PeerId)
     case PhoneNumber
@@ -26,8 +27,8 @@ public enum MessageTextEntityType: Equatable {
 }
 
 public struct MessageTextEntity: PostboxCoding, Codable, Equatable {
-    public let range: Range<Int>
-    public let type: MessageTextEntityType
+    public var range: Range<Int>
+    public var type: MessageTextEntityType
     
     public init(range: Range<Int>, type: MessageTextEntityType) {
         self.range = range
@@ -55,7 +56,7 @@ public struct MessageTextEntity: PostboxCoding, Codable, Equatable {
             case 8:
                 self.type = .Code
             case 9:
-                self.type = .Pre
+                self.type = .Pre(language: decoder.decodeOptionalStringForKey("language"))
             case 10:
                 self.type = .TextUrl(url: decoder.decodeStringForKey("url", orElse: ""))
             case 11:
@@ -111,7 +112,7 @@ public struct MessageTextEntity: PostboxCoding, Codable, Equatable {
             case 8:
                 self.type = .Code
             case 9:
-                self.type = .Pre
+                self.type = .Pre(language: try? container.decodeIfPresent(String.self, forKey: "language"))
             case 10:
                 let url = (try? container.decode(String.self, forKey: "url")) ?? ""
                 self.type = .TextUrl(url: url)
@@ -162,8 +163,13 @@ public struct MessageTextEntity: PostboxCoding, Codable, Equatable {
                 encoder.encodeInt32(7, forKey: "_rawValue")
             case .Code:
                 encoder.encodeInt32(8, forKey: "_rawValue")
-            case .Pre:
+            case let .Pre(language):
                 encoder.encodeInt32(9, forKey: "_rawValue")
+                if let language = language {
+                    encoder.encodeString(language, forKey: "language")
+                } else {
+                    encoder.encodeNil(forKey: "language")
+                }
             case let .TextUrl(url):
                 encoder.encodeInt32(10, forKey: "_rawValue")
                 encoder.encodeString(url, forKey: "url")
@@ -220,8 +226,9 @@ public struct MessageTextEntity: PostboxCoding, Codable, Equatable {
                 try container.encode(7 as Int32, forKey: "_rawValue")
             case .Code:
                 try container.encode(8 as Int32, forKey: "_rawValue")
-            case .Pre:
+            case let .Pre(language):
                 try container.encode(9 as Int32, forKey: "_rawValue")
+                try container.encodeIfPresent(language, forKey: "language")
             case let .TextUrl(url):
                 try container.encode(10 as Int32, forKey: "_rawValue")
                 try container.encode(url, forKey: "url")
@@ -314,4 +321,62 @@ public class TextEntitiesMessageAttribute: MessageAttribute, Equatable {
     public static func ==(lhs: TextEntitiesMessageAttribute, rhs: TextEntitiesMessageAttribute) -> Bool {
         return lhs.entities == rhs.entities
     }
+}
+
+public func messageTextEntitiesInRange(entities: [MessageTextEntity], range: NSRange, onlyQuoteable: Bool) -> [MessageTextEntity] {
+    let range: Range<Int> = range.lowerBound ..< range.upperBound
+    var result: [MessageTextEntity] = []
+    loop: for entity in entities {
+        if onlyQuoteable {
+            switch entity.type {
+            case .Bold, .Italic, .Strikethrough, .Underline, .Spoiler, .CustomEmoji:
+                break
+            default:
+                continue loop
+            }
+        }
+        if entity.range.overlaps(range) {
+            var mappedRange = entity.range.clamped(to: range)
+            mappedRange = (mappedRange.lowerBound - range.lowerBound) ..< (mappedRange.upperBound - range.lowerBound)
+            result.append(MessageTextEntity(range: mappedRange, type: entity.type))
+        }
+    }
+    return result
+}
+
+public func quoteMaxLength(appConfig: AppConfiguration) -> Int {
+    if let data = appConfig.data, let quoteLengthMax = data["quote_length_max"] as? Double {
+        return Int(quoteLengthMax)
+    }
+    return 1024
+}
+
+public func trimStringWithEntities(string: String, entities: [MessageTextEntity], maxLength: Int) -> (string: String, entities: [MessageTextEntity]) {
+    let nsString = string as NSString
+    var range = 0 ..< nsString.length
+    
+    while range.lowerBound < nsString.length {
+        let c = nsString.character(at: range.lowerBound)
+        if c == 0x0a || c == 0x20 {
+            range = (range.lowerBound + 1) ..< range.upperBound
+        } else {
+            break
+        }
+    }
+    
+    while range.upperBound > range.lowerBound {
+        let c = nsString.character(at: range.upperBound - 1)
+        if c == 0x0a || c == 0x20 {
+            range = range.lowerBound ..< (range.upperBound - 1)
+        } else {
+            break
+        }
+    }
+    
+    while range.upperBound - range.lowerBound > maxLength {
+        range = range.lowerBound ..< (range.upperBound - 1)
+    }
+    
+    let nsRange = NSRange(location: range.lowerBound, length: range.upperBound - range.lowerBound)
+    return (nsString.substring(with: nsRange), messageTextEntitiesInRange(entities: entities, range: nsRange, onlyQuoteable: false))
 }

@@ -5,6 +5,44 @@ import TelegramApi
 import NetworkLogging
 import ManagedFile
 
+private let queue = DispatchQueue(label: "org.telegram.Telegram.trace", qos: .utility)
+
+public func trace2(_ what: @autoclosure() -> String) {
+    let string = what()
+    var rawTime = time_t()
+    time(&rawTime)
+    var timeinfo = tm()
+    localtime_r(&rawTime, &timeinfo)
+    
+    var curTime = timeval()
+    gettimeofday(&curTime, nil)
+    let milliseconds = curTime.tv_usec / 1000
+    
+    //queue.async {
+        let result = String(format: "%d-%d-%d %02d:%02d:%03d %@", arguments: [Int(timeinfo.tm_year) + 1900, Int(timeinfo.tm_mon + 1), Int(timeinfo.tm_mday), Int(timeinfo.tm_hour), Int(timeinfo.tm_min), Int(milliseconds), string])
+        print(result)
+    //}
+}
+
+public func trace1(_ domain: String, what: @autoclosure() -> String) {
+    let string = what()
+    var rawTime = time_t()
+    time(&rawTime)
+    var timeinfo = tm()
+    localtime_r(&rawTime, &timeinfo)
+    
+    var curTime = timeval()
+    gettimeofday(&curTime, nil)
+    let seconds = curTime.tv_sec
+    let milliseconds = curTime.tv_usec / 1000
+    
+    queue.async {
+        let result = String(format: "[%@] %d-%d-%d %02d:%02d:%02d.%03d %@", arguments: [domain, Int(timeinfo.tm_year) + 1900, Int(timeinfo.tm_mon + 1), Int(timeinfo.tm_mday), Int(timeinfo.tm_hour), Int(timeinfo.tm_min), Int(seconds), Int(milliseconds), string])
+        
+        print(result)
+    }
+}
+
 public func registerLoggingFunctions() {
     setBridgingTraceFunction({ domain, what in
         if let what = what {
@@ -45,7 +83,7 @@ public final class Logger {
     private var file: (ManagedFile, Int)?
     private var shortFile: (ManagedFile, Int)?
     
-    public var logToFile: Bool = false {
+    public var logToFile: Bool = true {
         didSet {
             let oldEnabled = self.logToConsole || oldValue
             let newEnabled = self.logToConsole || self.logToFile
@@ -54,7 +92,7 @@ public final class Logger {
             }
         }
     }
-    public var logToConsole: Bool = false {
+    public var logToConsole: Bool = true {
         didSet {
             let oldEnabled = self.logToFile || oldValue
             let newEnabled = self.logToFile || self.logToConsole
@@ -70,6 +108,8 @@ public final class Logger {
         setPostboxLogger({ s in
             Logger.shared.log("Postbox", s)
             Logger.shared.shortLog("Postbox", s)
+        }, sync: {
+            Logger.shared.sync()
         })
     }
     
@@ -90,7 +130,14 @@ public final class Logger {
         self.basePath = basePath
     }
     
-    #if TEST_BUILD
+    public func sync() {
+        self.queue.sync {
+            if let (currentFile, _) = self.file {
+                let _ = currentFile.sync()
+            }
+        }
+    }
+    
     public func collectLogs(prefix: String? = nil) -> Signal<[(String, String)], NoError> {
         return Signal { subscriber in
             self.queue.async {
@@ -165,7 +212,6 @@ public final class Logger {
             return EmptyDisposable
         }
     }
-    #endif
     
     public func collectShortLog() -> Signal<[(Double, String)], NoError> {
         return Signal { subscriber in
@@ -450,34 +496,6 @@ public final class Logger {
                     self.shortFile = (shortFile.0, shortFile.1 + contentDataCount)
                 } else {
                     assertionFailure()
-                }
-            }
-        }
-    }
-    
-    public func cleanLogFiles(rootPath: String) {
-        self.queue.async {
-            self.file = nil
-            
-            let logTypes: [String] = [
-                "app-logs",
-                "broadcast-logs",
-                "siri-logs",
-                "widget-logs",
-                "notificationcontent-logs",
-                "notification-logs",
-                "share-logs"
-            ]
-            
-            for type in logTypes {
-                let logsPath = rootPath + "/logs/\(type)"
-                
-                if let files = try? FileManager.default.contentsOfDirectory(at: URL(fileURLWithPath: logsPath), includingPropertiesForKeys: [], options: []) {
-                    for url in files {
-                        if url.lastPathComponent.hasPrefix("log-") {
-                            let _ = try? FileManager.default.removeItem(at: url)
-                        }
-                    }
                 }
             }
         }

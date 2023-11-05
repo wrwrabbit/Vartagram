@@ -66,17 +66,13 @@
 
 - (void)_markTerminatedWithoutDisposal
 {
-    id<MTDisposable> disposable = nil;
-    
     os_unfair_lock_lock(&_lock);
     MTSubscriberBlocks *blocks = nil;
+    id<MTDisposable> disposable = _disposable;
     if (!_terminated)
     {
         blocks = _blocks;
         _blocks = nil;
-        
-        disposable = _disposable;
-        _disposable = nil;
         
         _terminated = true;
     }
@@ -85,9 +81,7 @@
     if (blocks) {
         blocks = nil;
     }
-    
     if (disposable) {
-        disposable = nil;
     }
 }
 
@@ -108,6 +102,7 @@
 
 - (void)putError:(id)error
 {
+    bool shouldDispose = false;
     id<MTDisposable> disposable = nil;
     MTSubscriberBlocks *blocks = nil;
     
@@ -117,22 +112,25 @@
         blocks = _blocks;
         _blocks = nil;
         
-        disposable = _disposable;
-        _disposable = nil;
-        
+        shouldDispose = true;
         _terminated = true;
     }
+    disposable = _disposable;
+    _disposable = nil;
     os_unfair_lock_unlock(&_lock);
     
     if (blocks && blocks->_error) {
         blocks->_error(error);
     }
     
-    [disposable dispose];
+    if (shouldDispose) {
+        [disposable dispose];
+    }
 }
 
 - (void)putCompletion
 {
+    bool shouldDispose = false;
     id<MTDisposable> disposable = nil;
     MTSubscriberBlocks *blocks = nil;
     
@@ -142,17 +140,33 @@
         blocks = _blocks;
         _blocks = nil;
         
-        disposable = _disposable;
-        _disposable = nil;
-        
+        shouldDispose = true;
         _terminated = true;
     }
+    disposable = _disposable;
+    _disposable = nil;
     os_unfair_lock_unlock(&_lock);
     
     if (blocks && blocks->_completed)
         blocks->_completed();
     
-    [disposable dispose];
+    if (shouldDispose) {
+        [disposable dispose];
+    }
+}
+
+- (void)dispose
+{
+    id<MTDisposable> disposable = nil;
+    
+    os_unfair_lock_lock(&_lock);
+    disposable = _disposable;
+    _disposable = nil;
+    os_unfair_lock_unlock(&_lock);
+    
+    if (disposable) {
+        [disposable dispose];
+    }
 }
 
 @end

@@ -244,30 +244,8 @@ public final class AccountContextImpl: AccountContext {
     private var userLimitsConfigurationDisposable: Disposable?
     public private(set) var userLimits: EngineConfiguration.UserLimits
     
-    public let inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError>
-    public let currentInactiveSecretChatPeerIds: Atomic<Set<PeerId>>
-    private var inactiveSecretChatPeerIdsDisposable: Disposable?
-    
-    public var isHidable: Signal<Bool, NoError> {
-        let accountId = self.account.id
-        return self.sharedContext.allHidableAccountIds
-        |> map { allHidableAccountIds in
-            return allHidableAccountIds.contains(accountId)
-        }
-        |> distinctUntilChanged
-    }
-    
-    public var immediateIsHidable: Bool {
-        let accountId = self.account.id
-        return self.sharedContext.currentPtgSecretPasscodes.with { $0.allHidableAccountIds().contains(accountId) }
-    }
-    
-    private let _ptgAccountSettings: Promise<PtgAccountSettings>
-    public var ptgAccountSettings: Signal<PtgAccountSettings, NoError> {
-        return self._ptgAccountSettings.get()
-    }
-    public let currentPtgAccountSettings = Atomic<PtgAccountSettings?>(value: nil)
-    private var ptgAccountSettingsDisposable: Disposable?
+    private var peerNameColorsConfigurationDisposable: Disposable?
+    public private(set) var peerNameColors: PeerNameColors
     
     public private(set) var isPremium: Bool
     
@@ -282,32 +260,23 @@ public final class AccountContextImpl: AccountContext {
         self.imageCache = DirectMediaImageCache(account: account)
         
         self.userLimits = EngineConfiguration.UserLimits(UserLimitsConfiguration.defaultValue)
+        self.peerNameColors = PeerNameColors.defaultValue
         self.isPremium = false
         
-        self.downloadedMediaStoreManager = DownloadedMediaStoreManagerImpl(postbox: account.postbox, accountManager: sharedContext.accountManager, mediaStoreAllowed: sharedContext.allHidableAccountIds |> map { !$0.contains(account.id) })
-        
-        self.inactiveSecretChatPeerIds = sharedContext.ptgSecretPasscodes
-        |> map { secretPasscodes in
-            return secretPasscodes.inactiveSecretChatPeerIds(accountId: account.id)
-        }
-        |> distinctUntilChanged
+        self.downloadedMediaStoreManager = DownloadedMediaStoreManagerImpl(postbox: account.postbox, accountManager: sharedContext.accountManager)
         
         if let locationManager = self.sharedContextImpl.locationManager {
             self.liveLocationManager = LiveLocationManagerImpl(engine: self.engine, locationManager: locationManager, inForeground: sharedContext.applicationBindings.applicationInForeground)
         } else {
             self.liveLocationManager = nil
         }
-        self.fetchManager = FetchManagerImpl(postbox: account.postbox, storeManager: self.downloadedMediaStoreManager, inactiveSecretChatPeerIds: self.inactiveSecretChatPeerIds)
+        self.fetchManager = FetchManagerImpl(postbox: account.postbox, storeManager: self.downloadedMediaStoreManager)
         if sharedContext.applicationBindings.isMainApp && !temp {
-            // PrefetchManagerImpl is used only for preloading greeting stickers (in empty chats)
-            // New sticker was preloaded every time account was switched, which is rather cpu-intensive task
-            // This is undesirable since we may covertly switch accounts
-            // By disabling it, greeting stickers are loaded only on-demand when entering empty chat
-            self.prefetchManager = nil//PrefetchManagerImpl(sharedContext: sharedContext, account: account, engine: self.engine, fetchManager: self.fetchManager)
+            self.prefetchManager = PrefetchManagerImpl(sharedContext: sharedContext, account: account, engine: self.engine, fetchManager: self.fetchManager)
             self.wallpaperUploadManager = WallpaperUploadManagerImpl(sharedContext: sharedContext, account: account, presentationData: sharedContext.presentationData)
             self.themeUpdateManager = ThemeUpdateManagerImpl(sharedContext: sharedContext, account: account)
             
-            self.inAppPurchaseManager = nil//InAppPurchaseManager(engine: self.engine)
+            self.inAppPurchaseManager = InAppPurchaseManager(engine: self.engine)
         } else {
             self.prefetchManager = nil
             self.wallpaperUploadManager = nil
@@ -347,19 +316,7 @@ public final class AccountContextImpl: AccountContext {
             let _ = currentLimitsConfiguration.swap(value)
         })
         
-        let ptgAccountSettings = Promise<PtgAccountSettings>()
-        ptgAccountSettings.set(account.postbox.preferencesView(keys: [ApplicationSpecificPreferencesKeys.ptgAccountSettings])
-        |> map { view in
-            return PtgAccountSettings(view.values[ApplicationSpecificPreferencesKeys.ptgAccountSettings])
-        })
-        
-        let ignoreAllContentRestrictions = ptgAccountSettings.get()
-        |> map { ptgAccountSettings in
-            return ptgAccountSettings.ignoreAllContentRestrictions
-        }
-        |> distinctUntilChanged
-        
-        let updatedContentSettings = getContentSettings(postbox: account.postbox, ignoreAllContentRestrictions: ignoreAllContentRestrictions)
+        let updatedContentSettings = getContentSettings(postbox: account.postbox)
         self.currentContentSettings = Atomic(value: contentSettings)
         self._contentSettings.set(.single(contentSettings) |> then(updatedContentSettings))
         
@@ -383,7 +340,7 @@ public final class AccountContextImpl: AccountContext {
         if !temp {
             let currentCountriesConfiguration = self.currentCountriesConfiguration
             self.countriesConfigurationDisposable = (self.engine.localization.getCountriesList(accountManager: sharedContext.accountManager, langCode: nil)
-                                                     |> deliverOnMainQueue).start(next: { value in
+            |> deliverOnMainQueue).start(next: { value in
                 let _ = currentCountriesConfiguration.swap(CountriesConfiguration(countries: value))
             })
         }
@@ -395,12 +352,10 @@ public final class AccountContextImpl: AccountContext {
         
         if let contactDataManager = sharedContext.contactDataManager {
             let deviceSpecificContactImportContexts = self.deviceSpecificContactImportContexts
-            self.managedAppSpecificContactsDisposable = (combineLatest(contactDataManager.appSpecificReferences(), sharedContext.allHidableAccountIds |> map { $0.contains(account.id) } |> distinctUntilChanged)
-            |> deliverOn(queue)).start(next: { appSpecificReferences, isHidableAccount in
-                if !isHidableAccount {
-                    deviceSpecificContactImportContexts.with { context in
-                        context.update(account: account, deviceContactDataManager: contactDataManager, references: appSpecificReferences)
-                    }
+            self.managedAppSpecificContactsDisposable = (contactDataManager.appSpecificReferences()
+            |> deliverOn(queue)).start(next: { appSpecificReferences in
+                deviceSpecificContactImportContexts.with { context in
+                    context.update(account: account, deviceContactDataManager: contactDataManager, references: appSpecificReferences)
                 }
             })
         }
@@ -409,75 +364,55 @@ public final class AccountContextImpl: AccountContext {
             CallSessionManagerImplementationVersion(version: version, supportsVideo: supportsVideo)
         })
         
-        self.currentInactiveSecretChatPeerIds = Atomic(value: sharedContext.currentPtgSecretPasscodes.with { $0.inactiveSecretChatPeerIds(accountId: account.id) })
-        
-        self._ptgAccountSettings = ptgAccountSettings
-        
-        self.inactiveSecretChatPeerIdsDisposable = (self.inactiveSecretChatPeerIds
-        |> deliverOnMainQueue).start(next: { [weak self] next in
+        self.animatedEmojiStickersDisposable = (self.engine.stickers.loadedStickerPack(reference: .animatedEmoji, forceActualized: false)
+        |> map { animatedEmoji -> [String: [StickerPackItem]] in
+            var animatedEmojiStickers: [String: [StickerPackItem]] = [:]
+            switch animatedEmoji {
+                case let .result(_, items, _):
+                    for item in items {
+                        if let emoji = item.getStringRepresentationsOfIndexKeys().first {
+                            animatedEmojiStickers[emoji.basicEmoji.0] = [item]
+                            let strippedEmoji = emoji.basicEmoji.0.strippedEmoji
+                            if animatedEmojiStickers[strippedEmoji] == nil {
+                                animatedEmojiStickers[strippedEmoji] = [item]
+                            }
+                        }
+                    }
+                default:
+                    break
+            }
+            return animatedEmojiStickers
+        }
+        |> deliverOnMainQueue).start(next: { [weak self] stickers in
             guard let strongSelf = self else {
                 return
             }
-            
-            let _ = strongSelf.currentInactiveSecretChatPeerIds.swap(next)
-            
-            let _ = (strongSelf.account.postbox.transaction { transaction in
-                transaction.updatePeerIdsExcludedFromUnreadCounters(next)
-            }).start()
+            strongSelf.animatedEmojiStickers = stickers
+            strongSelf.animatedEmojiStickersValue.set(.single(stickers))
         })
-        
-        self.ptgAccountSettingsDisposable = self._ptgAccountSettings.get().start(next: { [weak self] next in
-            if let strongSelf = self {
-                let _ = strongSelf.currentPtgAccountSettings.swap(next)
-            }
-        })
-        
-        if !temp {
-            self.animatedEmojiStickersDisposable = (self.engine.stickers.loadedStickerPack(reference: .animatedEmoji, forceActualized: false)
-            |> map { animatedEmoji -> [String: [StickerPackItem]] in
-                var animatedEmojiStickers: [String: [StickerPackItem]] = [:]
-                switch animatedEmoji {
-                    case let .result(_, items, _):
-                        for item in items {
-                            if let emoji = item.getStringRepresentationsOfIndexKeys().first {
-                                animatedEmojiStickers[emoji.basicEmoji.0] = [item]
-                                let strippedEmoji = emoji.basicEmoji.0.strippedEmoji
-                                if animatedEmojiStickers[strippedEmoji] == nil {
-                                    animatedEmojiStickers[strippedEmoji] = [item]
-                                }
-                            }
-                        }
-                    default:
-                        break
-                }
-                return animatedEmojiStickers
-            }
-            |> deliverOnMainQueue).start(next: { [weak self] stickers in
-                guard let strongSelf = self else {
-                    return
-                }
-                strongSelf.animatedEmojiStickers = stickers
-                strongSelf.animatedEmojiStickersValue.set(.single(stickers))
-            })
-        }
         
         self.userLimitsConfigurationDisposable = (self.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: account.peerId))
-        |> mapToSignal { [weak self] peer -> Signal<(Bool, EngineConfiguration.UserLimits), NoError> in
-            guard let strongSelf = self else {
-                return .complete()
-            }
+        |> mapToSignal { peer -> Signal<(Bool, EngineConfiguration.UserLimits), NoError> in
             let isPremium = peer?.isPremium ?? false
-            return strongSelf.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.UserLimits(isPremium: isPremium))
+            return self.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.UserLimits(isPremium: isPremium))
             |> map { userLimits in
                 return (isPremium, userLimits)
             }
         }
-        |> deliverOnMainQueue).start(next: { [weak self] isPremium, userLimits in
-            guard let strongSelf = self else {
+        |> deliverOnMainQueue).startStrict(next: { [weak self] isPremium, userLimits in
+            guard let self = self else {
                 return
             }
-            strongSelf.isPremium = isPremium
-            strongSelf.userLimits = userLimits
+            self.isPremium = isPremium
+            self.userLimits = userLimits
+        })
+        
+        self.peerNameColorsConfigurationDisposable = (self._appConfiguration.get()
+        |> deliverOnMainQueue).startStrict(next: { [weak self] appConfiguration in
+            guard let self = self else {
+                return
+            }
+            self.peerNameColors = PeerNameColors.with(appConfiguration: appConfiguration)
         })
     }
     
@@ -490,8 +425,7 @@ public final class AccountContextImpl: AccountContext {
         self.experimentalUISettingsDisposable?.dispose()
         self.animatedEmojiStickersDisposable?.dispose()
         self.userLimitsConfigurationDisposable?.dispose()
-        self.inactiveSecretChatPeerIdsDisposable?.dispose()
-        self.ptgAccountSettingsDisposable?.dispose()
+        self.peerNameColorsConfigurationDisposable?.dispose()
     }
     
     public func storeSecureIdPassword(password: String) {
@@ -601,14 +535,6 @@ public final class AccountContextImpl: AccountContext {
         case .feed:
             break
         }
-    }
-    
-    public func shouldSuppressForeignAgentNotice(in message: Message) -> Bool {
-        return message.isPeerOrForwardSourceBroadcastChannel && self.sharedContext.currentPtgSettings.with { $0.suppressForeignAgentNotice }
-    }
-    
-    public func shouldHideChannelSignature(in message: Message) -> Bool {
-        return message.isPeerBroadcastChannel && self.sharedContext.currentPtgSettings.with { $0.hideSignatureInChannels }
     }
     
     public func scheduleGroupCall(peerId: PeerId) {

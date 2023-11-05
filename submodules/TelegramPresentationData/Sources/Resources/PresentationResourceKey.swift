@@ -41,6 +41,7 @@ public enum PresentationResourceKey: Int32 {
     case itemListCheckIcon
     case itemListSecondaryCheckIcon
     case itemListPlusIcon
+    case itemListRoundPlusIcon
     case itemListDeleteIcon
     case itemListDeleteIndicatorIcon
     case itemListReorderIndicatorIcon
@@ -69,6 +70,7 @@ public enum PresentationResourceKey: Int32 {
     case itemListImageIcon
     case itemListCloudIcon
     case itemListTopicArrowIcon
+    case itemListAddBoostsIcon
     
     case itemListVoiceCallIcon
     case itemListVideoCallIcon
@@ -296,8 +298,11 @@ public enum PresentationResourceKey: Int32 {
     case storyViewListLikeIcon
     case navigationPostStoryIcon
     
-    case enterSecretPasscodeIcon
-    case manageSecretPasscodesIcon
+    case chatReplyBackgroundTemplateIncomingImage
+    case chatReplyBackgroundTemplateOutgoingDashedImage
+    case chatReplyServiceBackgroundTemplateImage
+    
+    case chatBubbleCloseIcon
 }
 
 public enum ChatExpiredStoryIndicatorType: Hashable {

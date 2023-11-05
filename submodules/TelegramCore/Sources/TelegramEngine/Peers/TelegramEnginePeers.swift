@@ -114,14 +114,19 @@ public extension TelegramEngine {
             return _internal_inactiveChannelList(network: self.account.network)
         }
 
-        public func resolvePeerByName(name: String, ageLimit: Int32 = 2 * 60 * 60 * 24) -> Signal<EnginePeer?, NoError> {
+        public func resolvePeerByName(name: String, ageLimit: Int32 = 2 * 60 * 60 * 24) -> Signal<ResolvePeerResult, NoError> {
             return _internal_resolvePeerByName(account: self.account, name: name, ageLimit: ageLimit)
-            |> mapToSignal { peerId -> Signal<EnginePeer?, NoError> in
-                guard let peerId = peerId else {
-                    return .single(nil)
-                }
-                return self.account.postbox.transaction { transaction -> EnginePeer? in
-                    return transaction.getPeer(peerId).flatMap(EnginePeer.init)
+            |> mapToSignal { result -> Signal<ResolvePeerResult, NoError> in
+                switch result {
+                case .progress:
+                    return .single(.progress)
+                case let .result(peerId):
+                    guard let peerId = peerId else {
+                        return .single(.result(nil))
+                    }
+                    return self.account.postbox.transaction { transaction -> ResolvePeerResult in
+                        return .result(transaction.getPeer(peerId).flatMap(EnginePeer.init))
+                    }
                 }
             }
         }
@@ -485,15 +490,6 @@ public extension TelegramEngine {
             |> ignoreValues
         }
 
-        public func removePeerChats(items: [(peerId: PeerId, deleteGloballyIfPossible: Bool)]) -> Signal<Never, NoError> {
-            return self.account.postbox.transaction { transaction -> Void in
-                for (peerId, deleteGloballyIfPossible) in items {
-                    _internal_removePeerChat(account: self.account, transaction: transaction, mediaBox: self.account.postbox.mediaBox, peerId: peerId, reportChatSpam: false, deleteGloballyIfPossible: deleteGloballyIfPossible)
-                }
-            }
-            |> ignoreValues
-        }
-
         public func terminateSecretChat(peerId: PeerId, requestRemoteHistoryRemoval: Bool) -> Signal<Never, NoError> {
             return self.account.postbox.transaction { transaction -> Void in
                 _internal_terminateSecretChat(transaction: transaction, peerId: peerId, requestRemoteHistoryRemoval: requestRemoteHistoryRemoval)
@@ -719,17 +715,17 @@ public extension TelegramEngine {
             return _internal_updateBotAbout(account: self.account, peerId: peerId, about: about)
         }
         
-        public func getChatListPeers(filterPredicate: ChatListFilterPredicate, inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError>) -> Signal<[EnginePeer], NoError> {
-            return inactiveSecretChatPeerIds
-            |> take(1)
-            |> mapToSignal { inactiveSecretChatPeerIds in
-                return self.account.postbox.transaction { transaction -> [EnginePeer] in
-                    return transaction.getChatListPeers(groupId: .root, filterPredicate: filterPredicate, additionalFilter: nil, inactiveSecretChatPeerIds: inactiveSecretChatPeerIds).map(EnginePeer.init)
-                }
+        public func updatePeerNameColorAndEmoji(peerId: EnginePeer.Id, nameColor: PeerNameColor, backgroundEmojiId: Int64?) -> Signal<Void, UpdatePeerNameColorAndEmojiError> {
+            return _internal_updatePeerNameColorAndEmoji(account: self.account, peerId: peerId, nameColor: nameColor, backgroundEmojiId: backgroundEmojiId)
+        }
+        
+        public func getChatListPeers(filterPredicate: ChatListFilterPredicate) -> Signal<[EnginePeer], NoError> {
+            return self.account.postbox.transaction { transaction -> [EnginePeer] in
+                return transaction.getChatListPeers(groupId: .root, filterPredicate: filterPredicate, additionalFilter: nil).map(EnginePeer.init)
             }
         }
 
-        public func getNextUnreadChannel(peerId: PeerId, chatListFilterId: Int32?, getFilterPredicate: @escaping (ChatListFilterData) -> ChatListFilterPredicate, reverseOrder: Bool) -> Signal<(peer: EnginePeer, unreadCount: Int, location: NextUnreadChannelLocation)?, NoError> {
+        public func getNextUnreadChannel(peerId: PeerId, chatListFilterId: Int32?, getFilterPredicate: @escaping (ChatListFilterData) -> ChatListFilterPredicate) -> Signal<(peer: EnginePeer, unreadCount: Int, location: NextUnreadChannelLocation)?, NoError> {
             let startTime = CFAbsoluteTimeGetCurrent()
             return self.account.postbox.transaction { transaction -> (peer: EnginePeer, unreadCount: Int, location: NextUnreadChannelLocation)? in
                 func getForFilter(predicate: ChatListFilterPredicate?, isArchived: Bool) -> (peer: EnginePeer, unreadCount: Int)? {
@@ -743,13 +739,13 @@ public extension TelegramEngine {
                     
                     var peerIds: [PeerId] = []
                     if predicate != nil {
-                        peerIds.append(contentsOf: transaction.getUnreadChatListPeerIds(groupId: .root, filterPredicate: predicate, additionalFilter: additionalFilter, stopOnFirstMatch: true, reverseOrder: reverseOrder, inactiveSecretChatPeerIds: []))
-                        peerIds.append(contentsOf: transaction.getUnreadChatListPeerIds(groupId: Namespaces.PeerGroup.archive, filterPredicate: predicate, additionalFilter: additionalFilter, stopOnFirstMatch: true, reverseOrder: reverseOrder, inactiveSecretChatPeerIds: []))
+                        peerIds.append(contentsOf: transaction.getUnreadChatListPeerIds(groupId: .root, filterPredicate: predicate, additionalFilter: additionalFilter, stopOnFirstMatch: true))
+                        peerIds.append(contentsOf: transaction.getUnreadChatListPeerIds(groupId: Namespaces.PeerGroup.archive, filterPredicate: predicate, additionalFilter: additionalFilter, stopOnFirstMatch: true))
                     } else {
                         if isArchived {
-                            peerIds.append(contentsOf: transaction.getUnreadChatListPeerIds(groupId: Namespaces.PeerGroup.archive, filterPredicate: nil, additionalFilter: additionalFilter, stopOnFirstMatch: true, reverseOrder: reverseOrder, inactiveSecretChatPeerIds: []))
+                            peerIds.append(contentsOf: transaction.getUnreadChatListPeerIds(groupId: Namespaces.PeerGroup.archive, filterPredicate: nil, additionalFilter: additionalFilter, stopOnFirstMatch: true))
                         } else {
-                            peerIds.append(contentsOf: transaction.getUnreadChatListPeerIds(groupId: .root, filterPredicate: nil, additionalFilter: additionalFilter, stopOnFirstMatch: true, reverseOrder: reverseOrder, inactiveSecretChatPeerIds: []))
+                            peerIds.append(contentsOf: transaction.getUnreadChatListPeerIds(groupId: .root, filterPredicate: nil, additionalFilter: additionalFilter, stopOnFirstMatch: true))
                         }
                     }
 
@@ -775,11 +771,7 @@ public extension TelegramEngine {
                         results.append((EnginePeer(channel), groupId, index))
                     }
 
-                    if reverseOrder {
-                        results.sort(by: { $0.2 < $1.2 })
-                    } else {
-                        results.sort(by: { $0.2 > $1.2 })
-                    }
+                    results.sort(by: { $0.2 > $1.2 })
 
                     if let peer = results.first?.0 {
                         let unreadCount: Int32 = transaction.getCombinedPeerReadState(peer.id)?.count ?? 0
@@ -882,7 +874,7 @@ public extension TelegramEngine {
                 let storedState = StoredPeerChatInterfaceState(
                     overrideChatTimestamp: state.synchronizeableInputState?.timestamp,
                     historyScrollMessageIndex: state.historyScrollMessageIndex,
-                    associatedMessageIds: (state.synchronizeableInputState?.replyToMessageId).flatMap({ [$0] }) ?? [],
+                    associatedMessageIds: (state.synchronizeableInputState?.replySubject?.messageId).flatMap({ [$0] }) ?? [],
                     data: data
                 )
 
@@ -969,9 +961,9 @@ public extension TelegramEngine {
             return _internal_storedMessageFromSearchPeers(account: self.account, peers: peers.map { $0._asPeer() })
         }
         
-        public func mostRecentSecretChat(id: EnginePeer.Id, inactiveSecretChatPeerIds: Set<PeerId>) -> Signal<EnginePeer.Id?, NoError> {
+        public func mostRecentSecretChat(id: EnginePeer.Id) -> Signal<EnginePeer.Id?, NoError> {
             return self.account.postbox.transaction { transaction -> EnginePeer.Id? in
-                let filteredPeerIds = Array(transaction.getAssociatedPeerIds(id, inactiveSecretChatPeerIds: inactiveSecretChatPeerIds)).filter { $0.namespace == Namespaces.Peer.SecretChat }
+                let filteredPeerIds = Array(transaction.getAssociatedPeerIds(id)).filter { $0.namespace == Namespaces.Peer.SecretChat }
                 var activeIndices: [ChatListIndex] = []
                 for associatedId in filteredPeerIds {
                     if let state = (transaction.getPeer(associatedId) as? TelegramSecretChat)?.embeddedState {
@@ -1018,7 +1010,7 @@ public extension TelegramEngine {
             return _internal_createForumChannelTopic(account: self.account, peerId: id, title: title, iconColor: iconColor, iconFileId: iconFileId)
         }
         
-        public func fetchForumChannelTopic(id: EnginePeer.Id, threadId: Int64) -> Signal<EngineMessageHistoryThread.Info?, NoError> {
+        public func fetchForumChannelTopic(id: EnginePeer.Id, threadId: Int64) -> Signal<FetchForumChannelTopicResult, NoError> {
             return _internal_fetchForumChannelTopic(account: self.account, peerId: id, threadId: threadId)
         }
         
@@ -1209,13 +1201,13 @@ public extension TelegramEngine {
         public func getChannelBoostStatus(peerId: EnginePeer.Id) -> Signal<ChannelBoostStatus?, NoError> {
             return _internal_getChannelBoostStatus(account: self.account, peerId: peerId)
         }
-
-        public func canApplyChannelBoost(peerId: EnginePeer.Id) -> Signal<CanApplyBoostStatus, NoError> {
-            return _internal_canApplyChannelBoost(account: self.account, peerId: peerId)
-        }
         
-        public func applyChannelBoost(peerId: EnginePeer.Id) -> Signal<Bool, NoError> {
-            return _internal_applyChannelBoost(account: self.account, peerId: peerId)
+        public func getMyBoostStatus() -> Signal<MyBoostStatus?, NoError> {
+            return _internal_getMyBoostStatus(account: self.account)
+        }
+
+        public func applyChannelBoost(peerId: EnginePeer.Id, slots: [Int32]) -> Signal<MyBoostStatus?, NoError> {
+            return _internal_applyChannelBoost(account: self.account, peerId: peerId, slots: slots)
         }
     }
 }
