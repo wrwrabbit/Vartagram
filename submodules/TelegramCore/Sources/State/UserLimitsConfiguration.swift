@@ -22,6 +22,9 @@ public struct UserLimitsConfiguration: Equatable {
     public let maxStoriesWeeklyCount: Int32
     public let maxStoriesMonthlyCount: Int32
     public let maxStoriesSuggestedReactions: Int32
+    public let maxGiveawayChannelsCount: Int32
+    public let maxGiveawayCountriesCount: Int32
+    public let maxGiveawayPeriodSeconds: Int32
     
     public static var defaultValue: UserLimitsConfiguration {
         return UserLimitsConfiguration(
@@ -44,7 +47,10 @@ public struct UserLimitsConfiguration: Equatable {
             maxExpiringStoriesCount: 3,
             maxStoriesWeeklyCount: 7,
             maxStoriesMonthlyCount: 30,
-            maxStoriesSuggestedReactions: 1
+            maxStoriesSuggestedReactions: 1,
+            maxGiveawayChannelsCount: 10,
+            maxGiveawayCountriesCount: 10,
+            maxGiveawayPeriodSeconds: 86400 * 7
         )
     }
 
@@ -68,7 +74,10 @@ public struct UserLimitsConfiguration: Equatable {
         maxExpiringStoriesCount: Int32,
         maxStoriesWeeklyCount: Int32,
         maxStoriesMonthlyCount: Int32,
-        maxStoriesSuggestedReactions: Int32
+        maxStoriesSuggestedReactions: Int32,
+        maxGiveawayChannelsCount: Int32,
+        maxGiveawayCountriesCount: Int32,
+        maxGiveawayPeriodSeconds: Int32
     ) {
         self.maxPinnedChatCount = maxPinnedChatCount
         self.maxArchivedPinnedChatCount = maxArchivedPinnedChatCount
@@ -90,6 +99,9 @@ public struct UserLimitsConfiguration: Equatable {
         self.maxStoriesWeeklyCount = maxStoriesWeeklyCount
         self.maxStoriesMonthlyCount = maxStoriesMonthlyCount
         self.maxStoriesSuggestedReactions = maxStoriesSuggestedReactions
+        self.maxGiveawayChannelsCount = maxGiveawayChannelsCount
+        self.maxGiveawayCountriesCount = maxGiveawayCountriesCount
+        self.maxGiveawayPeriodSeconds = maxGiveawayPeriodSeconds
     }
 }
 
@@ -134,5 +146,8 @@ extension UserLimitsConfiguration {
         self.maxStoriesWeeklyCount = getValue("stories_sent_weekly_limit", orElse: defaultValue.maxStoriesWeeklyCount)
         self.maxStoriesMonthlyCount = getValue("stories_sent_monthly_limit", orElse: defaultValue.maxStoriesMonthlyCount)
         self.maxStoriesSuggestedReactions = getValue("stories_suggested_reactions_limit", orElse: defaultValue.maxStoriesMonthlyCount)
+        self.maxGiveawayChannelsCount = getGeneralValue("giveaway_add_peers_max", orElse: defaultValue.maxGiveawayChannelsCount)
+        self.maxGiveawayCountriesCount = getGeneralValue("giveaway_countries_max", orElse: defaultValue.maxGiveawayCountriesCount)
+        self.maxGiveawayPeriodSeconds = getGeneralValue("giveaway_period_max", orElse: defaultValue.maxGiveawayPeriodSeconds)
     }
 }

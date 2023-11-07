@@ -54,6 +54,11 @@ import PeerInfoStoryGridScreen
 import TelegramAccountAuxiliaryMethods
 import PeerSelectionController
 import LegacyMessageInputPanel
+import StatisticsUI
+import ChatHistoryEntry
+import ChatMessageItem
+import ChatMessageItemImpl
+import ChatRecentActionsController
 
 private final class AccountUserInterfaceInUseContext {
     let subscribers = Bag<(Bool) -> Void>()
@@ -1727,7 +1732,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         
         if !found {
             let controllerParams = LocationViewParams(sendLiveLocation: { location in
-                //let outMessage: EnqueueMessage = .message(text: "", attributes: [], mediaReference: .standalone(media: location), replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil)
+                //let outMessage: EnqueueMessage = .message(text: "", attributes: [], mediaReference: .standalone(media: location), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil)
 //                params.enqueueMessage(outMessage)
             }, stopLiveLocation: { messageId in
                 if let messageId = messageId {
@@ -1751,10 +1756,22 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     
     public func resolveUrl(context: AccountContext, peerId: PeerId?, url: String, skipUrlAuth: Bool) -> Signal<ResolvedUrl, NoError> {
         return resolveUrlImpl(context: context, peerId: peerId, url: url, skipUrlAuth: skipUrlAuth)
+        |> mapToSignal { result -> Signal<ResolvedUrl, NoError> in
+            switch result {
+            case .progress:
+                return .complete()
+            case let .result(value):
+                return .single(value)
+            }
+        }
     }
     
-    public func openResolvedUrl(_ resolvedUrl: ResolvedUrl, context: AccountContext, urlContext: OpenURLContext, navigationController: NavigationController?, forceExternal: Bool, openPeer: @escaping (EnginePeer, ChatControllerInteractionNavigateToPeer) -> Void, sendFile: ((FileMediaReference) -> Void)?, sendSticker: ((FileMediaReference, UIView, CGRect) -> Bool)?, requestMessageActionUrlAuth: ((MessageActionUrlSubject) -> Void)?, joinVoiceChat: ((PeerId, String?, CachedChannelData.ActiveCall) -> Void)?, present: @escaping (ViewController, Any?) -> Void, dismissInput: @escaping () -> Void, contentContext: Any?) {
-        openResolvedUrlImpl(resolvedUrl, context: context, urlContext: urlContext, navigationController: navigationController, forceExternal: forceExternal, openPeer: openPeer, sendFile: sendFile, sendSticker: sendSticker, requestMessageActionUrlAuth: requestMessageActionUrlAuth, joinVoiceChat: joinVoiceChat, present: present, dismissInput: dismissInput, contentContext: contentContext)
+    public func resolveUrlWithProgress(context: AccountContext, peerId: PeerId?, url: String, skipUrlAuth: Bool) -> Signal<ResolveUrlResult, NoError> {
+        return resolveUrlImpl(context: context, peerId: peerId, url: url, skipUrlAuth: skipUrlAuth)
+    }
+    
+    public func openResolvedUrl(_ resolvedUrl: ResolvedUrl, context: AccountContext, urlContext: OpenURLContext, navigationController: NavigationController?, forceExternal: Bool, openPeer: @escaping (EnginePeer, ChatControllerInteractionNavigateToPeer) -> Void, sendFile: ((FileMediaReference) -> Void)?, sendSticker: ((FileMediaReference, UIView, CGRect) -> Bool)?, requestMessageActionUrlAuth: ((MessageActionUrlSubject) -> Void)?, joinVoiceChat: ((PeerId, String?, CachedChannelData.ActiveCall) -> Void)?, present: @escaping (ViewController, Any?) -> Void, dismissInput: @escaping () -> Void, contentContext: Any?, progress: Promise<Bool>?) {
+        openResolvedUrlImpl(resolvedUrl, context: context, urlContext: urlContext, navigationController: navigationController, forceExternal: forceExternal, openPeer: openPeer, sendFile: sendFile, sendSticker: sendSticker, requestMessageActionUrlAuth: requestMessageActionUrlAuth, joinVoiceChat: joinVoiceChat, present: present, dismissInput: dismissInput, contentContext: contentContext, progress: progress)
     }
     
     public func makeDeviceContactInfoController(context: AccountContext, subject: DeviceContactInfoSubject, completed: (() -> Void)?, cancelled: (() -> Void)?) -> ViewController {
@@ -1829,9 +1846,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         let controllerInteraction: ChatControllerInteraction
 
         controllerInteraction = ChatControllerInteraction(openMessage: { _, _ in
-            return false }, openPeer: { _, _, _, _ in }, openPeerMention: { _ in }, openMessageContextMenu: { _, _, _, _, _, _ in }, openMessageReactionContextMenu: { _, _, _, _ in
+            return false }, openPeer: { _, _, _, _ in }, openPeerMention: { _, _ in }, openMessageContextMenu: { _, _, _, _, _, _ in }, openMessageReactionContextMenu: { _, _, _, _ in
             }, updateMessageReaction: { _, _ in }, activateMessagePinch: { _ in
-            }, openMessageContextActions: { _, _, _, _ in }, navigateToMessage: { _, _ in }, navigateToMessageStandalone: { _ in
+            }, openMessageContextActions: { _, _, _, _ in }, navigateToMessage: { _, _, _ in }, navigateToMessageStandalone: { _ in
             }, navigateToThreadMessage: { _, _, _ in
             }, tapMessage: { message in
                 tapMessage?(message)
@@ -1839,7 +1856,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             clickThroughMessage?()
         }, toggleMessagesSelection: { _, _ in }, sendCurrentMessage: { _ in }, sendMessage: { _ in }, sendSticker: { _, _, _, _, _, _, _, _, _ in return false }, sendEmoji: { _, _, _ in }, sendGif: { _, _, _, _, _ in return false }, sendBotContextResultAsGif: { _, _, _, _, _, _ in
             return false
-        }, requestMessageActionCallback: { _, _, _, _ in }, requestMessageActionUrlAuth: { _, _ in }, activateSwitchInline: { _, _, _ in }, openUrl: { _, _, _, _ in }, shareCurrentLocation: {}, shareAccountContact: {}, sendBotCommand: { _, _ in }, openInstantPage: { _, _ in  }, openWallpaper: { _ in  }, openTheme: { _ in  }, openHashtag: { _, _ in }, updateInputState: { _ in }, updateInputMode: { _ in }, openMessageShareMenu: { _ in
+        }, requestMessageActionCallback: { _, _, _, _ in }, requestMessageActionUrlAuth: { _, _ in }, activateSwitchInline: { _, _, _ in }, openUrl: { _ in }, shareCurrentLocation: {}, shareAccountContact: {}, sendBotCommand: { _, _ in }, openInstantPage: { _, _ in  }, openWallpaper: { _ in  }, openTheme: { _ in  }, openHashtag: { _, _ in }, updateInputState: { _ in }, updateInputMode: { _ in }, openMessageShareMenu: { _ in
         }, presentController: { _, _ in
         }, presentControllerInCurrent: { _, _ in
         }, navigationController: {
@@ -1849,6 +1866,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         }, presentGlobalOverlayController: { _, _ in }, callPeer: { _, _ in }, longTap: { _, _ in }, openCheckoutOrReceipt: { _ in }, openSearch: { }, setupReply: { _ in
         }, canSetupReply: { _ in
             return .none
+        }, canSendMessages: {
+            return false
         }, navigateToFirstDateMessage: { _, _ in
         }, requestRedeliveryOfFailedMessages: { _ in
         }, addContact: { _ in
@@ -1861,7 +1880,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         }, scheduleCurrentMessage: {
         }, sendScheduledMessagesNow: { _ in
         }, editScheduledMessagesTime: { _ in
-        }, performTextSelectionAction: { _, _, _ in
+        }, performTextSelectionAction: { _, _, _, _ in
         }, displayImportedMessageTooltip: { _ in
         }, displaySwipeToReplyHint: {
         }, dismissReplyMarkupMessage: { _ in
@@ -1892,11 +1911,15 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         }, activateAdAction: { _ in
         }, openRequestedPeerSelection: { _, _, _ in
         }, saveMediaToFiles: { _ in
+        }, openNoAdsDemo: {
+        }, displayGiveawayParticipationStatus: { _ in
+        }, openPremiumStatusInfo: { _, _, _, _ in
         }, requestMessageUpdate: { _, _ in
         }, cancelInteractiveKeyboardGestures: {
         }, dismissTextInput: {
         }, scrollToMessageId: { _ in
         }, navigateToStory: { _, _ in
+        }, attemptedNavigationToPrivateQuote: { _ in
         }, automaticMediaDownloadSettings: MediaAutoDownloadSettings.defaultSettings,
         pollActionState: ChatInterfacePollActionState(), stickerSettings: ChatInterfaceStickerSettings(), presentationContext: ChatPresentationContext(context: context, backgroundNode: backgroundNode as? WallpaperBackgroundNode))
         
@@ -1913,7 +1936,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             chatLocation = .peer(id: messages.first!.id.peerId)
         }
         
-        return ChatMessageItem(presentationData: ChatPresentationData(theme: ChatPresentationThemeData(theme: theme, wallpaper: wallpaper), fontSize: fontSize, strings: strings, dateTimeFormat: dateTimeFormat, nameDisplayOrder: nameOrder, disableAnimations: false, largeEmoji: false, chatBubbleCorners: chatBubbleCorners, animatedEmojiScale: 1.0, isPreview: true), context: context, chatLocation: chatLocation, associatedData: ChatMessageItemAssociatedData(automaticDownloadPeerType: .contact, automaticDownloadPeerId: nil, automaticDownloadNetworkType: .cellular, isRecentActions: false, subject: nil, contactsPeerIds: Set(), animatedEmojiStickers: [:], forcedResourceStatus: forcedResourceStatus, availableReactions: availableReactions, defaultReaction: nil, isPremium: false, accountPeer: nil, forceInlineReactions: true), controllerInteraction: controllerInteraction, content: content, disableDate: true, additionalContent: nil)
+        return ChatMessageItemImpl(presentationData: ChatPresentationData(theme: ChatPresentationThemeData(theme: theme, wallpaper: wallpaper), fontSize: fontSize, strings: strings, dateTimeFormat: dateTimeFormat, nameDisplayOrder: nameOrder, disableAnimations: false, largeEmoji: false, chatBubbleCorners: chatBubbleCorners, animatedEmojiScale: 1.0, isPreview: true), context: context, chatLocation: chatLocation, associatedData: ChatMessageItemAssociatedData(automaticDownloadPeerType: .contact, automaticDownloadPeerId: nil, automaticDownloadNetworkType: .cellular, isRecentActions: false, subject: nil, contactsPeerIds: Set(), animatedEmojiStickers: [:], forcedResourceStatus: forcedResourceStatus, availableReactions: availableReactions, defaultReaction: nil, isPremium: false, accountPeer: nil, forceInlineReactions: true), controllerInteraction: controllerInteraction, content: content, disableDate: true, additionalContent: nil)
     }
     
     public func makeChatMessageDateHeaderItem(context: AccountContext, timestamp: Int32, theme: PresentationTheme, strings: PresentationStrings, wallpaper: TelegramWallpaper, fontSize: PresentationFontSize, chatBubbleCorners: PresentationChatBubbleCorners, dateTimeFormat: PresentationDateTimeFormat, nameOrder: PresentationPersonNameOrder) -> ListViewItemHeader {
@@ -1950,6 +1973,14 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             }
             present(legacyController)
         })
+    }
+    
+    public func openChatInstantPage(context: AccountContext, message: Message, sourcePeerType: MediaAutoDownloadPeerType?, navigationController: NavigationController) {
+        openChatInstantPageImpl(context: context, message: message, sourcePeerType: sourcePeerType, navigationController: navigationController)
+    }
+    
+    public func openChatWallpaper(context: AccountContext, message: Message, present: @escaping (ViewController, Any?) -> Void) {
+        openChatWallpaperImpl(context: context, message: message, present: present)
     }
     
     public func makeRecentSessionsController(context: AccountContext, activeSessionsContext: ActiveSessionsContext) -> ViewController & RecentSessionsController {
@@ -2068,6 +2099,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             mappedSource = .storiesSuggestedReactions
         case let .channelBoost(peerId):
             mappedSource = .channelBoost(peerId)
+        case .nameColor:
+            mappedSource = .nameColor
         }
         let controller = PremiumIntroScreen(context: context, source: mappedSource, forceDark: forceDark)
         controller.wasDismissed = dismissed
@@ -2136,8 +2169,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             mappedSubject = .storiesWeekly
         case .storiesMonthly:
             mappedSubject = .storiesMonthly
-        case let .storiesChannelBoost(peer, isCurrent, level, currentLevelBoosts, nextLevelBoosts, link, boosted):
-            mappedSubject = .storiesChannelBoost(peer: peer, isCurrent: isCurrent, level: level, currentLevelBoosts: currentLevelBoosts, nextLevelBoosts: nextLevelBoosts, link: link, boosted: boosted)
+        case let .storiesChannelBoost(peer, isCurrent, level, currentLevelBoosts, nextLevelBoosts, link, myBoostCount, canBoostAgain):
+            mappedSubject = .storiesChannelBoost(peer: peer, boostSubject: .stories, isCurrent: isCurrent, level: level, currentLevelBoosts: currentLevelBoosts, nextLevelBoosts: nextLevelBoosts, link: link, myBoostCount: myBoostCount, canBoostAgain: canBoostAgain)
         }
         return PremiumLimitScreen(context: context, subject: mappedSubject, count: count, forceDark: forceDark, cancel: cancel, action: action)
     }
@@ -2162,361 +2195,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         return installedStickerPacksController(context: context, mode: mode, forceTheme: forceTheme)
     }
     
-    private func hideUIOfInactiveSecrets(accountIds: Set<AccountRecordId>, peerIds: Set<PeerId>) {
-        assert(Queue.mainQueue().isCurrent())
-        
-        UIView.performWithoutAnimation {
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            CATransaction.setAnimationDuration(0.0)
-            
-            let _ = (self.mediaManager.globalMediaPlayerState
-            |> take(1)
-            |> deliverOnMainQueue).start(next: { [weak self] playlistStateAndType in
-                if let (account, state, type) = playlistStateAndType {
-                    if accountIds.contains(account.id) {
-                        self?.mediaManager.setPlaylist(nil, type: type, control: .playback(.pause))
-                    } else {
-                        switch state {
-                        case let .state(state):
-                            if let item = state.item as? MessageMediaPlaylistItem {
-                                if peerIds.contains(item.message.id.peerId) {
-                                    self?.mediaManager.setPlaylist(nil, type: type, control: .playback(.pause))
-                                }
-                            }
-                        case .loading:
-                            break
-                        }
-                    }
-                }
-            })
-            
-            if #available(iOS 15.0, *) {
-                if let overlayMediaController = self.mediaManager.overlayMediaManager.controller as? OverlayMediaControllerImpl, let pictureInPictureContent = overlayMediaController.pictureInPictureContent as? PictureInPictureContentImpl {
-                    if let videoNode = pictureInPictureContent.videoNode as? UniversalVideoNode {
-                        if accountIds.contains(videoNode.sourceAccountId) {
-                            videoNode.pause()
-                            pictureInPictureContent.pictureInPictureController?.stopPictureInPicture()
-                            overlayMediaController.removePictureInPictureContent(content: pictureInPictureContent)
-                            videoNode.canAttachContent = false
-                        }
-                    }
-                }
-            }
-            
-            var excludeRootController = false
-            if let rootController = self.mainWindow?.viewController as? TelegramRootController, accountIds.contains(rootController.context.account.id) {
-                excludeRootController = true // root controller will be replaced anyway
-            }
-            
-            var insideInactiveSecretChat = false
-            var dismissesIfInsideInactiveSecretChat: [() -> Void] = []
-            
-            self.mainWindow?.forEachViewController({ controller in
-                if let controller = controller as? ActionSheetController {
-                    controller.dismiss(animated: false)
-                }
-                
-                if let controller = controller as? ContextController {
-                    controller.dismissWithoutAnimation()
-                }
-                
-                if let controller = controller as? AlertController {
-                    dismissesIfInsideInactiveSecretChat.append { [weak controller] in
-                        controller?.dismiss()
-                    }
-                }
-                
-                if let controller = controller as? ChatSendMessageActionSheetController {
-                    dismissesIfInsideInactiveSecretChat.append { [weak controller] in
-                        controller?.dismissWithoutAnimation()
-                    }
-                }
-                
-                if let controller = controller as? OverlayStatusControllerImpl {
-                    dismissesIfInsideInactiveSecretChat.append { [weak controller] in
-                        controller?.presentingViewController?.dismiss(animated: false, completion: nil)
-                    }
-                }
-                
-                if let controller = controller as? ChatControllerImpl {
-                    if let peerId = controller.chatLocation.peerId {
-                        if peerIds.contains(peerId) {
-                            insideInactiveSecretChat = true
-                            controller.hideChat()
-                        }
-                    }
-                }
-                
-                if let controller = controller as? PeerInfoScreenImpl {
-                    if let peerId = controller.chatLocation.peerId {
-                        if peerIds.contains(peerId) {
-                            insideInactiveSecretChat = true
-                            controller.hideChat()
-                        }
-                    }
-                }
-                
-                if let controller = controller as? OverlayAudioPlayerControllerImpl {
-                    if accountIds.contains(controller.context.account.id) {
-                        controller.dismiss(animated: false)
-                    } else if let peerId = controller.chatLocation.peerId {
-                        if peerIds.contains(peerId) {
-                            controller.dismiss(animated: false)
-                        }
-                    }
-                }
-                
-                if let controller = controller as? TabBarController {
-                    for controller in controller.controllers {
-                        if let controller = controller as? ChatListControllerImpl {
-                            controller.doneEditing()
-                            controller.deactivateSearch(animated: false)
-                            break
-                        }
-                    }
-                }
-                
-                if let controller = controller as? GalleryController {
-                    let peerId: PeerId
-                    switch controller.source {
-                    case let .peerMessagesAtId(messageId, chatLocation, _):
-                        if case let .peer(id) = chatLocation {
-                            peerId = id
-                        } else {
-                            peerId = messageId.peerId
-                        }
-                    case let .standaloneMessage(message):
-                        peerId = message.id.peerId
-                    case let .custom(_, messageId, _):
-                        peerId = messageId.peerId
-                    }
-                    if peerIds.contains(peerId) {
-                        (controller.displayNode as! GalleryControllerNode).dismiss?()
-                    }
-                }
-                
-                if let controller = controller as? SecretMediaPreviewController {
-                    if peerIds.contains(controller.messageId.peerId) {
-                        (controller.displayNode as! GalleryControllerNode).dismiss?()
-                    }
-                }
-                
-                if let controller = controller as? LegacyController {
-                    if let controller = controller.legacyController as? TGModernGalleryController {
-                        dismissesIfInsideInactiveSecretChat.append { [weak controller] in
-                            controller?.model.dismiss(false, true)
-                        }
-                    }
-                }
-                
-                if let controller = controller as? ShareController {
-                    if !insideInactiveSecretChat && !peerIds.isEmpty {
-                        controller.updatePeers()
-                    }
-                    dismissesIfInsideInactiveSecretChat.append { [weak controller] in
-                        controller?.presentingViewController?.dismiss(animated: false, completion: nil)
-                    }
-                }
-                
-                if let controller = controller as? OverlayMediaControllerImpl {
-                    for case let node as OverlayMediaItemNode in ASDisplayNodeFindAllSubnodesOfClass(controller.displayNode, OverlayMediaItemNode.self) {
-                        if let node = node as? OverlayUniversalVideoNode {
-                            if accountIds.contains(node.sourceAccountId) {
-                                node.closeVideo()
-                            } else if case let .peer(peerId) = node.content.userLocation {
-                                if peerIds.contains(peerId) {
-                                    node.closeVideo()
-                                }
-                            }
-                        } else if let node = node as? OverlayInstantVideoNode {
-                            if accountIds.contains(node.sourceAccountId) {
-                                node.dismiss()
-                            } else if case let .peer(peerId) = node.content.userLocation {
-                                if peerIds.contains(peerId) {
-                                    node.dismiss()
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                if let controller = controller as? NotificationContainerController {
-                    controller.removeItems { item in
-                        if let item = item as? ChatMessageNotificationItem {
-                            if accountIds.contains(item.context.account.id) {
-                                return true
-                            }
-                            for message in item.messages {
-                                if peerIds.contains(message.id.peerId) {
-                                    return true
-                                }
-                            }
-                        }
-                        return false
-                    }
-                }
-                
-                if let controller = controller as? StorageUsageScreen {
-                    // close all, because otherwise we need to call reloadStats(), which may take some time, but we can't wait here for too long
-                    (controller.navigationController as? NavigationController)?.popToRoot(animated: false)
-                }
-                
-                return true
-            }, includeAllOverlayControllers: true, excludeRootController: excludeRootController)
-            
-            if insideInactiveSecretChat {
-                for dismiss in dismissesIfInsideInactiveSecretChat {
-                    dismiss()
-                }
-            }
-            
-            // accounts may be seen in share extension opened inside app
-            if insideInactiveSecretChat || (!accountIds.isEmpty && (self.appLockContext as! AppLockContextImpl).isUIActivityViewControllerPresented) {
-                (self.appLockContext as! AppLockContextImpl).dismissPresentedViewController()
-            }
-            
-            CATransaction.commit()
-        }
-    }
-    
-    private func accountBecameNonPrimary(_ accountId: AccountRecordId) {
-        let _ = (self.ptgSecretPasscodes
-        |> take(1)
-        |> deliverOnMainQueue).start(next: { [weak self] ptgSecretPasscodes in
-            if ptgSecretPasscodes.inactiveAccountIds().contains(accountId) {
-                (self?.appLockContext as? AppLockContextImpl)?.dismissPresentedViewController()
-            }
-        })
-    }
-    
-    public func calculateCoveringAccount(excludingId: AccountRecordId?) -> Signal<(db: AccountRecordId, cache: AccountRecordId)?, NoError> {
-        return combineLatest(self.activeAccountContexts, self.allHidableAccountIds)
-        |> mapToSignal { activeAccountContexts, allHidableAccountIds in
-            let contexts = activeAccountContexts.accounts.filter({ !allHidableAccountIds.contains($0.0) && $0.0 != excludingId }).map({ $0.1 })
-            return combineLatest(contexts.map { context in
-                return combineLatest(
-                    context.account.postbox.dbFilesSize(),
-                    context.account.postbox.mediaBox.storageBox.totalSize(),
-                    context.account.postbox.mediaBox.cacheStorageBox.totalSize()
-                )
-                |> map { dbFilesSize, disk1, disk2 in
-                    return (context.account.id, dbFilesSize, disk1 + disk2)
-                }
-            })
-            |> map { values in
-                if values.isEmpty {
-                    return nil
-                }
-                let dbCoveringAccountId = values.max(by: { $0.1 < $1.1 })!.0
-                let cacheCoveringAccountId = values.max(by: { $0.2 < $1.2 })!.0
-                return (db: dbCoveringAccountId, cache: cacheCoveringAccountId)
-            }
-        }
-        |> take(1)
-    }
-    
-    public func maybeTriggerCoveringProtection(maybeCoveringAccountId: AccountRecordId, cleanCache: Bool) -> Signal<Never, NoError> {
-        return combineLatest(self.activeAccountContexts, self.ptgSecretPasscodes)
-        |> take(1)
-        |> mapToSignal { activeAccountContexts, ptgSecretPasscodes in
-            let accounts = activeAccountContexts.accounts.map({ $0.1.account }) + activeAccountContexts.inactiveAccounts.map({ $0.1.account })
-            
-            var tasks: [Signal<Never, NoError>] = []
-            var alreadyOptimizedCacheForAccountIds: Set<AccountRecordId> = []
-            
-            if cleanCache {
-                for (coveredAccountId, coveringAccountId) in ptgSecretPasscodes.cacheCoveringAccounts {
-                    if coveringAccountId == maybeCoveringAccountId {
-                        if let account = accounts.first(where: { $0.id == coveredAccountId }) {
-                            tasks.append(
-                                account.postbox.mediaBox.cleanAllCache()
-                                |> then (
-                                    combineLatest(
-                                        account.postbox.mediaBox.storageBox.optimizeStorage(minFreePagesFraction: 0.0),
-                                        account.postbox.mediaBox.cacheStorageBox.optimizeStorage(minFreePagesFraction: 0.0)
-                                    )
-                                    |> ignoreValues
-                                )
-                            )
-                            alreadyOptimizedCacheForAccountIds.insert(account.id)
-                        }
-                    }
-                }
-            }
-            
-            for (coveredAccountId, coveringAccountId) in ptgSecretPasscodes.dbCoveringAccounts {
-                if coveringAccountId == maybeCoveringAccountId {
-                    if let account = accounts.first(where: { $0.id == coveredAccountId }) {
-                        tasks.append(
-                            account.cleanAllCloudMessages()
-                            |> then (
-                                account.postbox.optimizeStorage(minFreePagesFraction: 0.0)
-                            )
-                        )
-                        if !alreadyOptimizedCacheForAccountIds.contains(account.id) {
-                            tasks.append(account.postbox.mediaBox.storageBox.optimizeStorage(minFreePagesFraction: 0.0))
-                            tasks.append(account.postbox.mediaBox.cacheStorageBox.optimizeStorage(minFreePagesFraction: 0.0))
-                        }
-                    }
-                }
-            }
-            
-            // simultaneous run should be faster
-            return combineLatest(tasks)
-            |> ignoreValues
-        }
-    }
-    
-    private func maintainFillerFile() -> Signal<Never, NoError> {
-        let minimumSizeInMb = 200
-        
-        let queue = Queue(qos: .utility)
-        let fillerPath = self.basePath + "/filler.data"
-        
-        if !FileManager.default.fileExists(atPath: fillerPath) {
-            FileManager.default.createFile(atPath: fillerPath, contents: nil)
-        }
-        
-        return self.activeAccountContexts
-        |> mapToSignal { activeAccountContexts -> Signal<[Int64], NoError> in
-            let contexts = activeAccountContexts.accounts.map({ $0.1 }) + activeAccountContexts.inactiveAccounts.map({ $0.1 })
-            return combineLatest(contexts.reduce(into: [], { result, context in
-                result.append(contentsOf: [
-                    context.account.postbox.dbFilesSize(),
-                    context.account.postbox.mediaBox.storageBox.dbFilesSize(),
-                    context.account.postbox.mediaBox.cacheStorageBox.dbFilesSize(),
-                ])
-            }))
-        }
-        |> deliverOn(queue)
-        |> map { sizes in
-            let totalDbSizeInMb = Int(sizes.reduce(0, +)) / (1024 * 1024)
-            let neededFillerSizeInMb = max(0, minimumSizeInMb - totalDbSizeInMb)
-            let currentFillerSizeInMb = Int(fileSize(fillerPath) ?? 0) / (1024 * 1024)
-            
-            if currentFillerSizeInMb != neededFillerSizeInMb {
-                if let fileHandle = FileHandle(forWritingAtPath: fillerPath) {
-                    if currentFillerSizeInMb > neededFillerSizeInMb {
-                        fileHandle.truncateFile(atOffset: UInt64(neededFillerSizeInMb) * 1024 * 1024)
-                    } else {
-                        fileHandle.seekToEndOfFile()
-                        for _ in currentFillerSizeInMb ..< neededFillerSizeInMb {
-                            var data = Data(count: 1024 * 1024)
-                            data.withUnsafeMutableBytes { buffer in
-                                guard let bytes = buffer.baseAddress?.assumingMemoryBound(to: UInt8.self) else {
-                                    return
-                                }
-                                arc4random_buf(bytes, 1024 * 1024)
-                            }
-                            fileHandle.write(data)
-                        }
-                    }
-                    fileHandle.closeFile()
-                }
-            }
-        }
-        |> ignoreValues
+    public func makeChannelStatsController(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?, peerId: EnginePeer.Id, boosts: Bool, boostStatus: ChannelBoostStatus?, statsDatacenterId: Int32) -> ViewController {
+        return channelStatsController(context: context, updatedPresentationData: updatedPresentationData, peerId: peerId, section: boosts ? .boosts : .stats, boostStatus: nil, statsDatacenterId: statsDatacenterId)
     }
 }
 

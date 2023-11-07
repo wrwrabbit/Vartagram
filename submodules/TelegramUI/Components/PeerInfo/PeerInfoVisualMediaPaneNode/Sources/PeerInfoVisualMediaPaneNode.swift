@@ -26,6 +26,7 @@ import AppBundle
 import ChatControllerInteraction
 import InvisibleInkDustNode
 import MediaPickerUI
+import ChatControllerInteraction
 
 public enum PeerInfoPaneKey: Int32 {
     case members
@@ -1397,7 +1398,7 @@ public final class PeerInfoVisualMediaPaneNode: ASDisplayNode, PeerInfoPaneNode,
 
         let listItemInteraction = ListMessageItemInteraction(
             openMessage: { message, mode in
-                return chatControllerInteraction.openMessage(message, mode)
+                return chatControllerInteraction.openMessage(message, OpenMessageParams(mode: mode))
             },
             openMessageContextMenu: { message, bool, node, rect, gesture in
                 chatControllerInteraction.openMessageContextMenu(message, bool, node, rect, gesture, nil)
@@ -1405,8 +1406,8 @@ public final class PeerInfoVisualMediaPaneNode: ASDisplayNode, PeerInfoPaneNode,
             toggleMessagesSelection: { messageId, selected in
                 chatControllerInteraction.toggleMessagesSelection(messageId, selected)
             },
-            openUrl: { url, param1, param2, message in
-                chatControllerInteraction.openUrl(url, param1, param2, message)
+            openUrl: { url, concealed, external, message in
+                chatControllerInteraction.openUrl(ChatControllerInteraction.OpenUrl(url: url, concealed: concealed, external: external, message: message))
             },
             openInstantPage: { message, data in
                 chatControllerInteraction.openInstantPage(message, data)
@@ -1482,7 +1483,7 @@ public final class PeerInfoVisualMediaPaneNode: ASDisplayNode, PeerInfoPaneNode,
                 }
                 strongSelf.chatControllerInteraction.toggleMessagesSelection([item.message.id], toggledValue)
             } else {
-                let _ = strongSelf.chatControllerInteraction.openMessage(item.message, .default)
+                let _ = strongSelf.chatControllerInteraction.openMessage(item.message, OpenMessageParams(mode: .default))
             }
         }
 
@@ -1574,7 +1575,7 @@ public final class PeerInfoVisualMediaPaneNode: ASDisplayNode, PeerInfoPaneNode,
         
         self._itemInteraction = VisualMediaItemInteraction(
             openMessage: { [weak self] message in
-                let _ = self?.chatControllerInteraction.openMessage(message, .default)
+                let _ = self?.chatControllerInteraction.openMessage(message, OpenMessageParams(mode: .default))
             },
             openMessageContextActions: { [weak self] message, sourceNode, sourceRect, gesture in
                 self?.chatControllerInteraction.openMessageContextActions(message, sourceNode, sourceRect, gesture)

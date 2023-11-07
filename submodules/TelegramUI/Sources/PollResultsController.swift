@@ -9,6 +9,7 @@ import ItemListUI
 import Display
 import ItemListPeerItem
 import ItemListPeerActionItem
+import TextFormat
 
 private let collapsedResultCount: Int = 10
 private let collapsedInitialLimit: Int = 10
@@ -252,7 +253,7 @@ private func pollResultsControllerEntries(presentationData: PresentationData, po
                     displayCount = Int(voterCount)
                 }
                 for peerIndex in 0 ..< displayCount {
-                    let fakeUser = TelegramUser(id: EnginePeer.Id(namespace: .max, id: EnginePeer.Id.Id._internalFromInt64Value(0)), accessHash: nil, firstName: "", lastName: "", username: nil, phone: nil, photo: [], botInfo: nil, restrictionInfo: nil, flags: [], emojiStatus: nil, usernames: [], storiesHidden: nil)
+                    let fakeUser = TelegramUser(id: EnginePeer.Id(namespace: .max, id: EnginePeer.Id.Id._internalFromInt64Value(0)), accessHash: nil, firstName: "", lastName: "", username: nil, phone: nil, photo: [], botInfo: nil, restrictionInfo: nil, flags: [], emojiStatus: nil, usernames: [], storiesHidden: nil, nameColor: nil, backgroundEmojiId: nil)
                     let peer = EngineRenderedPeer(peer: EnginePeer(fakeUser))
                     entries.append(.optionPeer(optionId: i, index: peerIndex, peer: peer, optionText: optionTextHeader, optionAdditionalText: optionAdditionalTextHeader, optionCount: voterCount, optionExpanded: false, opaqueIdentifier: option.opaqueIdentifier, shimmeringAlternation: peerIndex % 2, isFirstInOption: peerIndex == 0))
                 }
@@ -427,4 +428,3 @@ public func pollResultsController(context: AccountContext, messageId: EngineMess
     
     return controller
 }
-

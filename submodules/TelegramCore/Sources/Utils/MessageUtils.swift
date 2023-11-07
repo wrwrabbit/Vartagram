@@ -287,6 +287,8 @@ public extension Message {
             } else {
                 return false
             }
+        } else if self.author?.id == accountPeerId {
+            return false
         } else if self.flags.contains(.Incoming) {
             return true
         } else if let channel = self.peers[self.id.peerId] as? TelegramChannel, case .broadcast = channel.info {
@@ -430,6 +432,17 @@ public extension Message {
     var restrictedContentAttribute: RestrictedContentMessageAttribute? {
         for attribute in self.attributes {
             if let attribute = attribute as? RestrictedContentMessageAttribute {
+                return attribute
+            }
+        }
+        return nil
+    }
+}
+
+public extension Message {
+    var webpagePreviewAttribute: WebpagePreviewMessageAttribute? {
+        for attribute in self.attributes {
+            if let attribute = attribute as? WebpagePreviewMessageAttribute {
                 return attribute
             }
         }

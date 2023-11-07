@@ -244,30 +244,8 @@ public final class AccountContextImpl: AccountContext {
     private var userLimitsConfigurationDisposable: Disposable?
     public private(set) var userLimits: EngineConfiguration.UserLimits
     
-    public let inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError>
-    public let currentInactiveSecretChatPeerIds: Atomic<Set<PeerId>>
-    private var inactiveSecretChatPeerIdsDisposable: Disposable?
-    
-    public var isHidable: Signal<Bool, NoError> {
-        let accountId = self.account.id
-        return self.sharedContext.allHidableAccountIds
-        |> map { allHidableAccountIds in
-            return allHidableAccountIds.contains(accountId)
-        }
-        |> distinctUntilChanged
-    }
-    
-    public var immediateIsHidable: Bool {
-        let accountId = self.account.id
-        return self.sharedContext.currentPtgSecretPasscodes.with { $0.allHidableAccountIds().contains(accountId) }
-    }
-    
-    private let _ptgAccountSettings: Promise<PtgAccountSettings>
-    public var ptgAccountSettings: Signal<PtgAccountSettings, NoError> {
-        return self._ptgAccountSettings.get()
-    }
-    public let currentPtgAccountSettings = Atomic<PtgAccountSettings?>(value: nil)
-    private var ptgAccountSettingsDisposable: Disposable?
+    private var peerNameColorsConfigurationDisposable: Disposable?
+    public private(set) var peerNameColors: PeerNameColors
     
     public private(set) var isPremium: Bool
     
@@ -282,6 +260,7 @@ public final class AccountContextImpl: AccountContext {
         self.imageCache = DirectMediaImageCache(account: account)
         
         self.userLimits = EngineConfiguration.UserLimits(UserLimitsConfiguration.defaultValue)
+        self.peerNameColors = PeerNameColors.defaultValue
         self.isPremium = false
         
         self.downloadedMediaStoreManager = DownloadedMediaStoreManagerImpl(postbox: account.postbox, accountManager: sharedContext.accountManager, mediaStoreAllowed: sharedContext.allHidableAccountIds |> map { !$0.contains(account.id) })
@@ -383,7 +362,7 @@ public final class AccountContextImpl: AccountContext {
         if !temp {
             let currentCountriesConfiguration = self.currentCountriesConfiguration
             self.countriesConfigurationDisposable = (self.engine.localization.getCountriesList(accountManager: sharedContext.accountManager, langCode: nil)
-                                                     |> deliverOnMainQueue).start(next: { value in
+            |> deliverOnMainQueue).start(next: { value in
                 let _ = currentCountriesConfiguration.swap(CountriesConfiguration(countries: value))
             })
         }
@@ -472,12 +451,20 @@ public final class AccountContextImpl: AccountContext {
                 return (isPremium, userLimits)
             }
         }
-        |> deliverOnMainQueue).start(next: { [weak self] isPremium, userLimits in
-            guard let strongSelf = self else {
+        |> deliverOnMainQueue).startStrict(next: { [weak self] isPremium, userLimits in
+            guard let self = self else {
                 return
             }
-            strongSelf.isPremium = isPremium
-            strongSelf.userLimits = userLimits
+            self.isPremium = isPremium
+            self.userLimits = userLimits
+        })
+        
+        self.peerNameColorsConfigurationDisposable = (self._appConfiguration.get()
+        |> deliverOnMainQueue).startStrict(next: { [weak self] appConfiguration in
+            guard let self = self else {
+                return
+            }
+            self.peerNameColors = PeerNameColors.with(appConfiguration: appConfiguration)
         })
     }
     
@@ -490,8 +477,7 @@ public final class AccountContextImpl: AccountContext {
         self.experimentalUISettingsDisposable?.dispose()
         self.animatedEmojiStickersDisposable?.dispose()
         self.userLimitsConfigurationDisposable?.dispose()
-        self.inactiveSecretChatPeerIdsDisposable?.dispose()
-        self.ptgAccountSettingsDisposable?.dispose()
+        self.peerNameColorsConfigurationDisposable?.dispose()
     }
     
     public func storeSecureIdPassword(password: String) {

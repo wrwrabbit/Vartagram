@@ -42,6 +42,9 @@ public final class AppLockContextImpl: AppLockContext {
     private let rootPath: String
     private let syncQueue = Queue()
     
+    private var disposable: Disposable?
+    private var autolockTimeoutDisposable: Disposable?
+    
     private let applicationBindings: TelegramApplicationBindings
     private let accountManager: AccountManager<TelegramAccountManagerTypes>
     private let presentationDataSignal: Signal<PresentationData, NoError>
@@ -106,10 +109,7 @@ public final class AppLockContextImpl: AppLockContext {
         }
         self.autolockTimeout.set(self.currentStateValue.autolockTimeout)
         
-        var lastIsActive = false
-        var lastInForeground = false
-        
-        let _ = (combineLatest(queue: .mainQueue(),
+        self.disposable = (combineLatest(queue: .mainQueue(),
             accountManager.accessChallengeData(),
             accountManager.sharedData(keys: Set([ApplicationSpecificSharedDataKeys.presentationPasscodeSettings])),
             presentationDataSignal,
@@ -118,10 +118,7 @@ public final class AppLockContextImpl: AppLockContext {
             self.currentState.get(),
             self.syncingWait.get()
         )
-        |> filter { _, _, _, _, _, _, syncingWait in
-            return !syncingWait
-        }
-        |> deliverOnMainQueue).start(next: { [weak self] accessChallengeData, sharedData, presentationData, appInForeground, appInForegroundReal, state, _ in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] accessChallengeData, sharedData, presentationData, appInForeground, state in
             guard let strongSelf = self else {
                 return
             }
@@ -466,80 +463,19 @@ public final class AppLockContextImpl: AppLockContext {
         
         self.currentState.set(.single(self.currentStateValue))
         
-        if applicationBindings.isMainApp {
-            let _ = (self.autolockTimeout.get()
-            |> deliverOnMainQueue).start(next: { [weak self] autolockTimeout in
-                self?.updateLockState { state in
-                    var state = state
-                    state.autolockTimeout = autolockTimeout
-                    return state
-                }
-            })
-            
-            self.ptgSecretPasscodesDisposable = (accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.ptgSecretPasscodes])
-            |> map { sharedData in
-                return PtgSecretPasscodes(sharedData.entries[ApplicationSpecificSharedDataKeys.ptgSecretPasscodes])
+        self.autolockTimeoutDisposable = (self.autolockTimeout.get()
+        |> deliverOnMainQueue).startStrict(next: { [weak self] autolockTimeout in
+            self?.updateLockState { state in
+                var state = state
+                state.autolockTimeout = autolockTimeout
+                return state
             }
-            |> deliverOnMainQueue).start(next: { [weak self] next in
-                self?.currentPtgSecretPasscodes = next
-            })
-            
-            self.temporarilyDisableAnimations()
-        }
+        })
     }
     
     deinit {
-        self.ptgSecretPasscodesDisposable?.dispose()
-    }
-    
-    public var isUIActivityViewControllerPresented: Bool {
-        assert(Queue.mainQueue().isCurrent())
-        return self.rootController?.presentedViewController is UIActivityViewController || self.savedNativeViewController is UIActivityViewController
-    }
-    
-    public func dismissPresentedViewController() {
-        let _ = (self.syncingWait.get()
-        |> filter { !$0 }
-        |> take(1)
-        |> deliverOnMainQueue).start(next: { _ in
-            var presentedVC: UIViewController?
-            
-            if let _ = self.savedNativeViewController {
-            } else if let controller = self.rootController?.presentedViewController, !controller.isBeingDismissed {
-                presentedVC = controller
-            }
-            
-            let oldCoveringView = self.coveringView
-            
-            if self.savedNativeViewController != nil || presentedVC != nil {
-                if let window = self.window, self.coveringView != nil {
-                    assert(window.coveringView == nil)
-                    let coveringView = self.coveringView!.duplicate()
-                    window.coveringView = coveringView
-                    self.coveringView = coveringView
-                }
-            }
-            
-            if let _ = self.savedNativeViewController {
-                self.savedNativeViewController = nil
-                oldCoveringView?.removeFromSuperview()
-            } else if let _ = presentedVC {
-                // hide child view controllers, e.g. Share inside pdf viewer, otherwise its dismissal is visible
-                var vc = self.rootController!.presentedViewController
-                while let pvc = vc?.presentedViewController {
-                    pvc.view.isHidden = true
-                    vc = pvc
-                }
-                
-                self.syncingWait.set(true)
-                self.rootController!.dismiss(animated: false, completion: {
-                    oldCoveringView?.removeFromSuperview()
-                    Queue.mainQueue().justDispatch {
-                        self.syncingWait.set(false)
-                    }
-                })
-            }
-        })
+        self.disposable?.dispose()
+        self.autolockTimeoutDisposable?.dispose()
     }
     
     private func updateTimestampRenewTimer(shouldRun: Bool) {
