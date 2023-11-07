@@ -569,6 +569,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
         }, saveMediaToFiles: { _ in
         }, openNoAdsDemo: {  
         }, displayGiveawayParticipationStatus: { _ in
+        }, openPremiumStatusInfo: { _, _, _, _ in
         }, requestMessageUpdate: { _, _ in
         }, cancelInteractiveKeyboardGestures: {
         }, dismissTextInput: {
@@ -1068,7 +1069,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
                             self?.presentController(c, .window(.root), a)
                         }, dismissInput: {
                             self?.view.endEditing(true)
-                        }, contentContext: nil)
+                        }, contentContext: nil, progress: nil)
                     case .wallpaper:
                         break
                     case .theme:

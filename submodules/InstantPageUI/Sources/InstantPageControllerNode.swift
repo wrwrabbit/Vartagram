@@ -1370,7 +1370,7 @@ final class InstantPageControllerNode: ASDisplayNode, UIScrollViewDelegate {
                             self?.present(c, a)
                         }, dismissInput: {
                             self?.view.endEditing(true)
-                        }, contentContext: nil)
+                        }, contentContext: nil, progress: nil)
                 }
             }
         }))

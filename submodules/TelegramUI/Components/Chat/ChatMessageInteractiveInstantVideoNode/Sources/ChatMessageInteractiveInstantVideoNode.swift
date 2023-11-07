@@ -198,6 +198,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
         self.playbackStatusDisposable.dispose()
         self.playerStatusDisposable.dispose()
         self.fetchedThumbnailDisposable.dispose()
+        self.transcribeDisposable?.dispose()
     }
     
     override public func didLoad() {
@@ -432,7 +433,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                         forwardAuthorSignature = forwardInfo.authorSignature
                     }
                 }
-                let availableWidth: CGFloat = max(60.0, availableContentWidth - 210.0 + 6.0)
+                let availableWidth: CGFloat = max(60.0, availableContentWidth - 220.0 + 6.0)
                 forwardInfoSizeApply = makeForwardInfoLayout(item.context, item.presentationData, item.presentationData.strings, .standalone, forwardSource, forwardAuthorSignature, forwardPsaType, nil, CGSize(width: availableWidth, height: CGFloat.greatestFiniteMagnitude))
             }
             
@@ -1420,7 +1421,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                 item.context.sharedContext.mediaManager.playlistControl(.playback(.togglePlayPause), type: .voice)
             }
         } else {
-            let _ = item.controllerInteraction.openMessage(item.message, .default)
+            let _ = item.controllerInteraction.openMessage(item.message, OpenMessageParams(mode: .default))
         }
         
     }
@@ -1574,7 +1575,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                             }
                         }
                         if canPlay {
-                            let _ = item.controllerInteraction.openMessage(item.message, .default)
+                            let _ = item.controllerInteraction.openMessage(item.message, OpenMessageParams(mode: .default))
                         }
                     })
                 }
@@ -1672,6 +1673,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                     guard let strongSelf = self else {
                         return
                     }
+                    strongSelf.transcribeDisposable?.dispose()
                     strongSelf.transcribeDisposable = nil
                 })
             }

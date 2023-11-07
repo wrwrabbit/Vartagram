@@ -2465,7 +2465,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             }
         )
         
-        self._chatInterfaceInteraction = ChatControllerInteraction(openMessage: { [weak self] message, mode in
+        self._chatInterfaceInteraction = ChatControllerInteraction(openMessage: { [weak self] message, _ in
             guard let strongSelf = self else {
                 return false
             }
@@ -2983,6 +2983,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         }, saveMediaToFiles: { _ in
         }, openNoAdsDemo: {
         }, displayGiveawayParticipationStatus: { _ in
+        }, openPremiumStatusInfo: { _, _, _, _ in
         }, requestMessageUpdate: { _, _ in
         }, cancelInteractiveKeyboardGestures: {
         }, dismissTextInput: {
@@ -3868,37 +3869,31 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                     return
                 }
                 
-                let _ = (strongSelf.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: strongSelf.context.account.peerId))
-                |> deliverOnMainQueue).startStandalone(next: { [weak self] _ in
+                let source: Signal<PremiumSource, NoError>
+                if let peerStatus = peerStatus {
+                    source = emojiStatusFileAndPack
+                    |> take(1)
+                    |> mapToSignal { emojiStatusFileAndPack -> Signal<PremiumSource, NoError> in
+                        if let (file, pack) = emojiStatusFileAndPack {
+                            return .single(.emojiStatus(strongSelf.peerId, peerStatus.fileId, file, pack))
+                        } else {
+                            return .complete()
+                        }
+                    }
+                } else {
+                    source = .single(.profile(strongSelf.peerId))
+                }
+                
+                let _ = (source
+                |> deliverOnMainQueue).startStandalone(next: { [weak self] source in
                     guard let strongSelf = self else {
                         return
                     }
-                    let source: Signal<PremiumSource, NoError>
-                    if let peerStatus = peerStatus {
-                        source = emojiStatusFileAndPack
-                        |> take(1)
-                        |> mapToSignal { emojiStatusFileAndPack -> Signal<PremiumSource, NoError> in
-                            if let (file, pack) = emojiStatusFileAndPack {
-                                return .single(.emojiStatus(strongSelf.peerId, peerStatus.fileId, file, pack))
-                            } else {
-                                return .complete()
-                            }
-                        }
-                    } else {
-                        source = .single(.profile(strongSelf.peerId))
-                    }
-                    
-                    let _ = (source
-                    |> deliverOnMainQueue).startStandalone(next: { [weak self] source in
-                        guard let strongSelf = self else {
-                            return
-                        }
-                        let controller = PremiumIntroScreen(context: strongSelf.context, source: source)
-                        controller.sourceView = sourceView
-                        controller.containerView = strongSelf.controller?.navigationController?.view
-                        controller.animationColor = white ? .white : strongSelf.presentationData.theme.list.itemAccentColor
-                        strongSelf.controller?.push(controller)
-                    })
+                    let controller = PremiumIntroScreen(context: strongSelf.context, source: source)
+                    controller.sourceView = sourceView
+                    controller.containerView = strongSelf.controller?.navigationController?.view
+                    controller.animationColor = white ? .white : strongSelf.presentationData.theme.list.itemAccentColor
+                    strongSelf.controller?.push(controller)
                 })
             }
             
@@ -4596,7 +4591,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             self?.controller?.present(c, in: .window(.root), with: a)
         }, dismissInput: { [weak self] in
             self?.view.endEditing(true)
-        }, contentContext: nil)
+        }, contentContext: nil, progress: nil)
     }
     
     private func openUrl(url: String, concealed: Bool, external: Bool, forceExternal: Bool = false, commit: @escaping () -> Void = {}) {
@@ -4622,7 +4617,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                 self?.controller?.present(c, in: .window(.root), with: a)
             }, dismissInput: {
                 self?.view.endEditing(true)
-            }, contentContext: nil)
+            }, contentContext: nil, progress: nil)
         })
     }
     
@@ -5546,7 +5541,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                         return
                                     }
                                     self.controller?.view.endEditing(true)
-                                }, contentContext: nil)
+                                }, contentContext: nil, progress: nil)
                             }, action: nil as ((ContextControllerProtocol, @escaping (ContextMenuActionResult) -> Void) -> Void)?)))
                             
                             c.pushItems(items: .single(ContextController.Items(content: .list(subItems))))
@@ -5757,7 +5752,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                         return
                                     }
                                     self.controller?.view.endEditing(true)
-                                }, contentContext: nil)
+                                }, contentContext: nil, progress: nil)
                             }, action: nil as ((ContextControllerProtocol, @escaping (ContextMenuActionResult) -> Void) -> Void)?)))
                             
                             c.pushItems(items: .single(ContextController.Items(content: .list(subItems))))
@@ -5885,7 +5880,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                         return
                                     }
                                     self.controller?.view.endEditing(true)
-                                }, contentContext: nil)
+                                }, contentContext: nil, progress: nil)
                             }, action: nil as ((ContextControllerProtocol, @escaping (ContextMenuActionResult) -> Void) -> Void)?)))
                             
                             c.pushItems(items: .single(ContextController.Items(content: .list(subItems))))
@@ -7195,7 +7190,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             controller?.present(c, in: .window(.root), with: a)
         }, dismissInput: { [weak controller] in
             controller?.view.endEditing(true)
-        }, contentContext: nil)
+        }, contentContext: nil, progress: nil)
     }
     
     private func performBotCommand(command: PeerInfoBotCommand) {
@@ -9087,7 +9082,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                 strongSelf.context.sharedContext.openResolvedUrl(resolvedUrl, context: strongSelf.context, urlContext: .generic, navigationController: strongSelf.controller?.navigationController as? NavigationController, forceExternal: false, openPeer: { peer, navigation in
                 }, sendFile: nil, sendSticker: nil, requestMessageActionUrlAuth: nil, joinVoiceChat: nil, present: { [weak self] controller, arguments in
                     self?.controller?.push(controller)
-                }, dismissInput: {}, contentContext: nil)
+                }, dismissInput: {}, contentContext: nil, progress: nil)
             }
         })
     }

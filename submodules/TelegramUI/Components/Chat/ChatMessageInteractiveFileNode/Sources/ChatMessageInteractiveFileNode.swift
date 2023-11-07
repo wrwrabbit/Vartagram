@@ -554,6 +554,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                         guard let strongSelf = self else {
                             return
                         }
+                        strongSelf.transcribeDisposable?.dispose()
                         strongSelf.transcribeDisposable = nil
                     })
                 } else {
@@ -562,6 +563,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                         guard let strongSelf = self else {
                             return
                         }
+                        strongSelf.transcribeDisposable?.dispose()
                         strongSelf.transcribeDisposable = nil
                     })
                 }
