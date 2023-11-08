@@ -89,8 +89,7 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
     case enableLiveText(String, Bool)
     case enableLiveTextInfo(String)
     
-    case voiceToTextHeader(String)
-    case voiceToTextPremiumAccountsImplementation(String, String, Bool)
+    case voiceToTextPremiumAccountsImplementation(String, String)
     case voiceToTextInfo(String)
 
     case defaultCameraForVideos(String, String)
@@ -123,7 +122,7 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             return PtgSettingsSection.showProfileData.rawValue
         case .enableQuickReaction, .enableQuickReactionInfo, .enableLiveText, .enableLiveTextInfo, .enableSwipeActionsForChats, .enableSwipeActionsForChatsInfo, .enableSwipeToStoryCamera, .enableSwipeToStoryCameraInfo:
             return PtgSettingsSection.experimental.rawValue
-        case .voiceToTextHeader, .voiceToTextPremiumAccountsImplementation, .voiceToTextInfo:
+        case .voiceToTextPremiumAccountsImplementation, .voiceToTextInfo:
             return PtgSettingsSection.voiceToText.rawValue
         case .defaultCameraForVideos:
             return PtgSettingsSection.defaultCameraForVideos.rawValue
@@ -182,12 +181,10 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             return 21
         case .defaultCameraForVideos:
             return 22
-        case .voiceToTextHeader:
-            return 23
         case .voiceToTextPremiumAccountsImplementation:
-            return 24
+            return 23
         case .voiceToTextInfo:
-            return 25
+            return 24
         }
     }
     
@@ -216,8 +213,8 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             })
         case let .enableQuickReactionInfo(text), let .enableLiveTextInfo(text), let .voiceToTextInfo(text), let .enableSwipeActionsForChatsInfo(text), let .enableSwipeToStoryCameraInfo(text):
             return ItemListTextItem(presentationData: presentationData, text: .markdown(text), sectionId: self.section)
-        case let .voiceToTextPremiumAccountsImplementation(title, value, enabled):
-            return ItemListDisclosureItem(presentationData: presentationData, title: title, enabled: enabled, label: value, sectionId: self.section, style: .blocks, action: {
+        case let .voiceToTextPremiumAccountsImplementation(title, value):
+            return ItemListDisclosureItem(presentationData: presentationData, title: title, label: value, sectionId: self.section, style: .blocks, action: {
                 arguments.changeVoiceToTextPremiumAccountsImplementation()
             })
         case let .defaultCameraForVideos(title, value):
@@ -244,7 +241,7 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             return ItemListSwitchItem(presentationData: presentationData, title: title, value: value, sectionId: self.section, style: .blocks, updated: { updatedValue in
                 arguments.switchUseFullWidthInChannels(updatedValue)
             })
-        case let .channelAppearanceHeader(text), let .addContextMenuHeader(text), let .voiceToTextHeader(text):
+        case let .channelAppearanceHeader(text), let .addContextMenuHeader(text):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
         case let .addContextMenuSaveMessage(title, value):
             return ItemListSwitchItem(presentationData: presentationData, title: title, value: value, sectionId: self.section, style: .blocks, updated: { updatedValue in
@@ -317,9 +314,8 @@ private func ptgSettingsControllerEntries(presentationData: PresentationData, se
 
     entries.append(.defaultCameraForVideos(presentationData.strings.PtgSettings_DefaultCameraForVideos, settings.useRearCameraByDefault ? presentationData.strings.PtgSettings_DefaultCameraForVideos_Rear : presentationData.strings.PtgSettings_DefaultCameraForVideos_Front))
     
-    if experimentalSettings.localTranscription {
-        entries.append(.voiceToTextHeader(presentationData.strings.PtgSettings_VoiceToTextHeader.uppercased()))
-        entries.append(.voiceToTextPremiumAccountsImplementation(presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation, ptgAccountSettings.preferAppleVoiceToText ? presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Apple : presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Telegram, isPremiumAccount))
+    if experimentalSettings.localTranscription, isPremiumAccount {
+        entries.append(.voiceToTextPremiumAccountsImplementation(presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation, ptgAccountSettings.preferAppleVoiceToText ? presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Apple : presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Telegram))
         entries.append(.voiceToTextInfo(presentationData.strings.PtgSettings_VoiceToTextHelp))
     }
     

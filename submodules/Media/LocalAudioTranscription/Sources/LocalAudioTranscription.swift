@@ -86,7 +86,7 @@ public func transcribeAudio(path: String, locale: String, audioDuration: Int32) 
                                 if result.isFinal {
                                     if supportsOnDeviceRecognition {
                                     } else if lastEndingTimestamp <= 60.0 && audioDuration > 60 {
-                                        maybeCutMark = " ✂"
+                                        maybeCutMark = "…"
                                     }
                                 }
                                 
@@ -101,7 +101,7 @@ public func transcribeAudio(path: String, locale: String, audioDuration: Int32) 
                                 print("transcribeAudio: locale: \(locale), error: \(String(describing: error))")
                                 
                                 if weakTask?.isCancelled == false && weakTask?.state == .completed && (!accumulatedString.isEmpty || !lastResultString.isEmpty) {
-                                    subscriber.putNext(LocallyTranscribedAudio(text: accumulatedString + lastResultString, isFinal: true))
+                                    subscriber.putNext(LocallyTranscribedAudio(text: accumulatedString + lastResultString + " ⚠", isFinal: true))
                                     subscriber.putCompletion()
                                 } else {
                                     subscriber.putError(error!)
