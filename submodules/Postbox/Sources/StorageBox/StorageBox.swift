@@ -444,6 +444,8 @@ public final class StorageBox {
                 self.internalAdd(reference: reference, to: id, contentType: contentType, size: size)
                 
                 self.valueBox.commit()
+                
+                self.incrementalUpdateTotalSize()
             }
         }
         
@@ -493,14 +495,12 @@ public final class StorageBox {
                         info.size = size
                         
                         self.valueBox.set(self.hashIdToInfoTable, key: mainKey, value: info.serialize())
-                    }
-                    
-                    if sizeDelta != 0 {
+                        
                         self.internalAddSize(contentType: info.contentType, delta: sizeDelta)
-                    }
-                    
-                    for peerId in self.peerIdsReferencing(hashId: hashId) {
-                        self.internalAddSize(peerId: peerId, contentType: info.contentType, delta: sizeDelta)
+                        
+                        for peerId in self.peerIdsReferencing(hashId: hashId) {
+                            self.internalAddSize(peerId: peerId, contentType: info.contentType, delta: sizeDelta)
+                        }
                     }
                 } else {
                     self.internalAdd(reference: StorageBox.Reference(peerId: 0, messageNamespace: 0, messageId: 0), to: id, contentType: 0, size: size)
@@ -522,7 +522,23 @@ public final class StorageBox {
                 for (id, size) in ids {
                     let hashId = md5Hash(id)
                     mainKey.setData(0, value: hashId.data)
-                    if self.valueBox.exists(self.hashIdToInfoTable, key: mainKey) {
+                    if let currentInfoValue = self.valueBox.get(self.hashIdToInfoTable, key: mainKey) {
+                        var info = ItemInfo(buffer: currentInfoValue)
+                        
+                        var sizeDelta: Int64 = 0
+                        if info.size != size {
+                            sizeDelta = size - info.size
+                            info.size = size
+                            
+                            self.valueBox.set(self.hashIdToInfoTable, key: mainKey, value: info.serialize())
+                            
+                            self.internalAddSize(contentType: info.contentType, delta: sizeDelta)
+                            
+                            for peerId in self.peerIdsReferencing(hashId: hashId) {
+                                self.internalAddSize(peerId: peerId, contentType: info.contentType, delta: sizeDelta)
+                            }
+                        }
+                        
                         continue
                     }
                     
@@ -531,6 +547,8 @@ public final class StorageBox {
                 }
                 
                 self.valueBox.commit()
+                
+                self.incrementalUpdateTotalSize()
                 
                 completion(addedCount)
             }

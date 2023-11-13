@@ -1754,6 +1754,17 @@ private func messageWithThumbnailData(auxiliaryMethods: AccountAuxiliaryMethods,
     }
 }
 
+private func immediateThumbnailData(_ immediateThumbnailData: Data?, _ representations: [TelegramMediaImageRepresentation], _ thumbnailData: Data?) -> Data? {
+    if let immediateThumbnailData {
+        return immediateThumbnailData
+    } else if let immediateThumbnailData = representations.first(where: { $0.immediateThumbnailData != nil })?.immediateThumbnailData {
+        return immediateThumbnailData
+    } else if let thumbnailData, let image = UIImage(data: thumbnailData) {
+        return compressImageMiniThumbnail(image)
+    }
+    return nil
+}
+
 private func sendMessage(auxiliaryMethods: AccountAuxiliaryMethods, postbox: Postbox, network: Network, messageId: MessageId, file: SecretChatOutgoingFile?, tagLocalIndex: Int32, wasDelivered: Bool, layer: SecretChatLayer) -> Signal<Void, NoError> {
     return postbox.transaction { transaction -> Signal<[MediaId: (PixelDimensions, Data)], NoError> in
         if let message = transaction.getMessage(messageId) {
@@ -1814,57 +1825,26 @@ private func sendMessage(auxiliaryMethods: AccountAuxiliaryMethods, postbox: Pos
                                     var toMedia: Media?
                                     var storageResource: TelegramMediaResource?
                                     var contentType: MediaResourceUserContentType?
-                                    var fromMediaResoures: [MediaResourceId] = []
+                                    var fromResource: MediaResource?
                                     
                                     if let fromMedia = fromMedia as? TelegramMediaFile {
-                                        var updatedImmediateThumbnailData: Data?
-                                        if let immediateThumbnailData = fromMedia.immediateThumbnailData {
-                                            updatedImmediateThumbnailData = immediateThumbnailData
-                                        } else if let immediateThumbnailData = fromMedia.previewRepresentations.first(where: { $0.immediateThumbnailData != nil })?.immediateThumbnailData {
-                                            updatedImmediateThumbnailData = immediateThumbnailData
-                                        } else {
-                                            for representation in fromMedia.previewRepresentations.sorted(by: { $0.dimensions.width < $1.dimensions.width }) {
-                                                let path = postbox.mediaBox.resourcePath(representation.resource)
-                                                if let image = UIImage(contentsOfFile: path) {
-                                                    updatedImmediateThumbnailData = compressImageMiniThumbnail(image)
-                                                    break
-                                                }
-                                            }
-                                        }
+                                        let updatedImmediateThumbnailData = immediateThumbnailData(fromMedia.immediateThumbnailData, fromMedia.previewRepresentations, thumbnailData[fromMedia.fileId]?.1)
                                         let updatedFile = TelegramMediaFile(fileId: MediaId(namespace: Namespaces.Media.CloudSecretFile, id: encryptedFile.id), partialReference: nil, resource: SecretFileMediaResource(fileId: encryptedFile.id, accessHash: encryptedFile.accessHash, containerSize: encryptedFile.size, decryptedSize: file.size, datacenterId: Int(encryptedFile.datacenterId), key: file.key), previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: updatedImmediateThumbnailData, mimeType: fromMedia.mimeType, size: fromMedia.size, attributes: fromMedia.attributes)
                                         toMedia = updatedFile
                                         updatedMedia = [updatedFile]
                                         
                                         storageResource = updatedFile.resource
                                         contentType = MediaResourceUserContentType(file: updatedFile)
-                                        
-                                        fromMediaResoures.append(fromMedia.resource.id)
-                                        fromMediaResoures.append(contentsOf: fromMedia.previewRepresentations.map { $0.resource.id })
-                                        fromMediaResoures.append(contentsOf: fromMedia.videoThumbnails.map { $0.resource.id })
+                                        fromResource = fromMedia.resource
                                     } else if let fromMedia = fromMedia as? TelegramMediaImage, let largestRepresentation = largestImageRepresentation(fromMedia.representations) {
-                                        var updatedImmediateThumbnailData: Data?
-                                        if let immediateThumbnailData = fromMedia.immediateThumbnailData {
-                                            updatedImmediateThumbnailData = immediateThumbnailData
-                                        } else if let immediateThumbnailData = fromMedia.representations.first(where: { $0.immediateThumbnailData != nil })?.immediateThumbnailData {
-                                            updatedImmediateThumbnailData = immediateThumbnailData
-                                        } else {
-                                            for representation in fromMedia.representations.sorted(by: { $0.dimensions.width < $1.dimensions.width }) {
-                                                let path = postbox.mediaBox.resourcePath(representation.resource)
-                                                if let image = UIImage(contentsOfFile: path) {
-                                                    updatedImmediateThumbnailData = compressImageMiniThumbnail(image)
-                                                    break
-                                                }
-                                            }
-                                        }
+                                        let updatedImmediateThumbnailData = immediateThumbnailData(fromMedia.immediateThumbnailData, fromMedia.representations, thumbnailData[fromMedia.imageId]?.1)
                                         let updatedImage = TelegramMediaImage(imageId: MediaId(namespace: Namespaces.Media.CloudSecretImage, id: encryptedFile.id), representations: [TelegramMediaImageRepresentation(dimensions: largestRepresentation.dimensions, resource: SecretFileMediaResource(fileId: encryptedFile.id, accessHash: encryptedFile.accessHash, containerSize: encryptedFile.size, decryptedSize: file.size, datacenterId: Int(encryptedFile.datacenterId), key: file.key), progressiveSizes: [], immediateThumbnailData: nil, hasVideo: false, isPersonal: false)], immediateThumbnailData: updatedImmediateThumbnailData, reference: nil, partialReference: nil, flags: [])
                                         toMedia = updatedImage
                                         updatedMedia = [updatedImage]
                                         
                                         storageResource = updatedImage.representations.first!.resource
                                         contentType = .image
-                                        
-                                        fromMediaResoures.append(contentsOf: fromMedia.representations.map { $0.resource.id })
-                                        fromMediaResoures.append(contentsOf: fromMedia.videoRepresentations.map { $0.resource.id })
+                                        fromResource = largestRepresentation.resource
                                     }
                                     
                                     if let toMedia = toMedia {
@@ -1875,11 +1855,11 @@ private func sendMessage(auxiliaryMethods: AccountAuxiliaryMethods, postbox: Pos
                                     if let storageResource = storageResource, let contentType = contentType {
                                         postbox.mediaBox.storageBox.add(reference: StorageBox.Reference(peerId: messageId.peerId.toInt64(), messageNamespace: UInt8(clamping: 0), messageId: 0), to: storageResource.id.stringRepresentation.data(using: .utf8)!, contentType: contentType.rawValue, size: storageResource.size)
                                     }
-                                    
-                                    if !fromMediaResoures.isEmpty {
-                                        postbox.mediaBox.storageBox.remove(ids: fromMediaResoures.map { $0.stringRepresentation.data(using: .utf8)! })
-                                        
-                                        let _ = postbox.mediaBox.removeCachedResources(fromMediaResoures).start()
+                                    if let fromResource {
+                                        if fromResource is CloudFileMediaResource || fromResource is CloudDocumentMediaResource || fromResource is SecretFileMediaResource {
+                                        } else {
+                                            postbox.mediaBox.storageBox.remove(ids: [fromResource.id.stringRepresentation.data(using: .utf8)!])
+                                        }
                                     }
                                 }
                                 
@@ -1965,7 +1945,7 @@ private func sendStandaloneMessage(auxiliaryMethods: AccountAuxiliaryMethods, po
                 associatedStories: [:]
             )
             
-            let decryptedMessage = boxedDecryptedMessage(transaction: transaction, message: message, globallyUniqueId: globallyUniqueId, uploadedFile: contents.file, thumbnailData: [:], layer: layer)
+            let decryptedMessage = boxedDecryptedMessage(transaction: transaction, message: message, globallyUniqueId: globallyUniqueId, uploadedFile: contents.file, thumbnailData: thumbnailData, layer: layer)
             return sendBoxedDecryptedMessage(postbox: postbox, network: network, peer: peer, state: state, operationIndex: tagLocalIndex, decryptedMessage: decryptedMessage, globallyUniqueId: globallyUniqueId, file: contents.file, silent: message.muted, asService: wasDelivered, wasDelivered: wasDelivered)
             |> mapToSignal { result -> Signal<Void, NoError> in
                 return postbox.transaction { transaction -> Void in
@@ -1993,19 +1973,24 @@ private func sendStandaloneMessage(auxiliaryMethods: AccountAuxiliaryMethods, po
                     if let timestamp = timestamp {
                         var updatedMedia: [Media] = []
                         for item in media {
+                            var storageResource: TelegramMediaResource?
+                            var contentType: MediaResourceUserContentType?
+                            
                             if let file = item as? TelegramMediaFile, let encryptedFile = encryptedFile, let sourceFile = contents.file {
                                 let updatedFile = TelegramMediaFile(
                                     fileId: MediaId(namespace: Namespaces.Media.CloudSecretFile, id: encryptedFile.id),
                                     partialReference: nil,
                                     resource: SecretFileMediaResource(fileId: encryptedFile.id, accessHash: encryptedFile.accessHash, containerSize: encryptedFile.size, decryptedSize: sourceFile.size, datacenterId: Int(encryptedFile.datacenterId), key: sourceFile.key),
-                                    previewRepresentations: file.previewRepresentations,
-                                    videoThumbnails: file.videoThumbnails,
-                                    immediateThumbnailData: file.immediateThumbnailData,
+                                    previewRepresentations: [],
+                                    videoThumbnails: [],
+                                    immediateThumbnailData: immediateThumbnailData(file.immediateThumbnailData, file.previewRepresentations, thumbnailData[file.fileId]?.1),
                                     mimeType: file.mimeType,
                                     size: file.size,
                                     attributes: file.attributes
                                 )
                                 updatedMedia.append(updatedFile)
+                                storageResource = updatedFile.resource
+                                contentType = MediaResourceUserContentType(file: updatedFile)
                             } else if let image = item as? TelegramMediaImage, let encryptedFile = encryptedFile, let sourceFile = contents.file, let representation = image.representations.last {
                                 let updatedImage = TelegramMediaImage(
                                     imageId: MediaId(namespace: Namespaces.Media.CloudSecretImage, id: encryptedFile.id),
@@ -2014,18 +1999,25 @@ private func sendStandaloneMessage(auxiliaryMethods: AccountAuxiliaryMethods, po
                                             dimensions: representation.dimensions,
                                             resource: SecretFileMediaResource(fileId: encryptedFile.id, accessHash: encryptedFile.accessHash, containerSize: encryptedFile.size, decryptedSize: sourceFile.size, datacenterId: Int(encryptedFile.datacenterId), key: sourceFile.key),
                                             progressiveSizes: [],
-                                            immediateThumbnailData: image.immediateThumbnailData,
+                                            immediateThumbnailData: nil,
                                             hasVideo: false,
                                             isPersonal: false
                                         )],
-                                    immediateThumbnailData: nil,
+                                    immediateThumbnailData: immediateThumbnailData(image.immediateThumbnailData, image.representations, thumbnailData[image.imageId]?.1),
                                     reference: nil,
                                     partialReference: nil,
                                     flags: []
                                 )
                                 updatedMedia.append(updatedImage)
+                                storageResource = updatedImage.representations.first!.resource
+                                contentType = .image
                             } else {
                                 updatedMedia.append(item)
+                            }
+                            
+                            // 0 in messageNamespace and messageId are intended for secret chats
+                            if let storageResource = storageResource, let contentType = contentType {
+                                postbox.mediaBox.storageBox.add(reference: StorageBox.Reference(peerId: peerId.toInt64(), messageNamespace: UInt8(clamping: 0), messageId: 0), to: storageResource.id.stringRepresentation.data(using: .utf8)!, contentType: contentType.rawValue, size: storageResource.size)
                             }
                         }
                         

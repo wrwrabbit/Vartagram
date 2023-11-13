@@ -1461,13 +1461,7 @@ public final class MediaBox {
                     
                     storageBox.addEmptyReferencesIfNotReferenced(ids: results.compactMap { name -> (id: Data, size: Int64)? in
                         let resourceId = MediaBox.idForFileName(name: name)
-                        let paths = self.storePathsForId(MediaResourceId(resourceId))
-                        var size: Int64 = 0
-                        if let value = fileSize(paths.complete) {
-                            size = value
-                        } else if let value = fileSize(paths.partial) {
-                            size = value
-                        }
+                        let size = self.fileSizeForId(MediaResourceId(resourceId))
                         if size != 0 {
                             return (resourceId.data(using: .utf8)!, size)
                         } else {

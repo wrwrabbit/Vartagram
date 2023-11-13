@@ -52,12 +52,27 @@ public enum PreparedShareItemError {
     case fileTooBig(Int64)
 }
 
+private func secretThumbnailData(_ image: UIImage) -> Data? {
+    if image.size.width < 100 && image.size.height < 100 {
+        return image.jpegData(compressionQuality: 0.4)
+    }
+    let scaledSize = image.size.fitted(CGSize(width: 90.0, height: 90.0))
+    if let scaledImage = generateScaledImage(image: image, size: scaledSize, scale: 1.0) {
+        return scaledImage.jpegData(compressionQuality: 0.4)
+    }
+    return nil
+}
+
 private func preparedShareItem(postbox: Postbox, network: Network, to peerId: PeerId, value: [String: Any]) -> Signal<PreparedShareItem, PreparedShareItemError> {
     if let imageData = value["scaledImageData"] as? Data, let dimensions = value["scaledImageDimensions"] as? NSValue {
         let diminsionsSize = dimensions.cgSizeValue
+        var thumbnailData: Data?
+        if peerId.namespace == Namespaces.Peer.SecretChat, let image = UIImage(data: imageData) {
+            thumbnailData = secretThumbnailData(image)
+        }
         return .single(.preparing(false))
         |> then(
-            standaloneUploadedImage(postbox: postbox, network: network, peerId: peerId, text: "", data: imageData, dimensions: PixelDimensions(width: Int32(diminsionsSize.width), height: Int32(diminsionsSize.height)))
+            standaloneUploadedImage(postbox: postbox, network: network, peerId: peerId, text: "", data: imageData, thumbnailData: thumbnailData, dimensions: PixelDimensions(width: Int32(diminsionsSize.width), height: Int32(diminsionsSize.height)))
             |> mapError { _ -> PreparedShareItemError in
                 return .generic
             }
@@ -74,9 +89,13 @@ private func preparedShareItem(postbox: Postbox, network: Network, to peerId: Pe
         let nativeImageSize = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
         let dimensions = nativeImageSize.fitted(CGSize(width: 1280.0, height: 1280.0))
         if let scaledImage = scalePhotoImage(image, dimensions: dimensions), let imageData = scaledImage.jpegData(compressionQuality: 0.52) {
+            var thumbnailData: Data?
+            if peerId.namespace == Namespaces.Peer.SecretChat {
+                thumbnailData = secretThumbnailData(scaledImage)
+            }
             return .single(.preparing(false))
             |> then(
-                standaloneUploadedImage(postbox: postbox, network: network, peerId: peerId, text: "", data: imageData, dimensions: PixelDimensions(width: Int32(dimensions.width), height: Int32(dimensions.height)))
+                standaloneUploadedImage(postbox: postbox, network: network, peerId: peerId, text: "", data: imageData, thumbnailData: thumbnailData, dimensions: PixelDimensions(width: Int32(dimensions.width), height: Int32(dimensions.height)))
                 |> mapError { _ -> PreparedShareItemError in
                     return .generic
                 }
@@ -148,7 +167,16 @@ private func preparedShareItem(postbox: Postbox, network: Network, to peerId: Pe
                 let estimatedSize = TGMediaVideoConverter.estimatedSize(for: preset, duration: finalDuration, hasAudio: true)
                 
                 let resource = LocalFileVideoMediaResource(randomId: Int64.random(in: Int64.min ... Int64.max), path: asset.url.path, adjustments: resourceAdjustments)
-                return standaloneUploadedFile(postbox: postbox, network: network, peerId: peerId, text: "", source: .resource(.standalone(resource: resource)), mimeType: "video/mp4", attributes: [.Video(duration: finalDuration, size: PixelDimensions(width: Int32(finalDimensions.width), height: Int32(finalDimensions.height)), flags: flags, preloadSize: nil)], hintFileIsLarge: estimatedSize > 10 * 1024 * 1024)
+                var thumbnailData: Data?
+                if peerId.namespace == Namespaces.Peer.SecretChat {
+                    let imageGenerator = AVAssetImageGenerator(asset: asset)
+                    imageGenerator.maximumSize = asset.originalSize.fitted(CGSize(width: 90.0, height: 90.0))
+                    imageGenerator.appliesPreferredTrackTransform = true
+                    if let cgImage = try? imageGenerator.copyCGImage(at: .zero, actualTime: nil) {
+                        thumbnailData = UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.4)
+                    }
+                }
+                return standaloneUploadedFile(postbox: postbox, network: network, peerId: peerId, text: "", source: .resource(.standalone(resource: resource)), thumbnailData: thumbnailData, mimeType: "video/mp4", attributes: [.Video(duration: finalDuration, size: PixelDimensions(width: Int32(finalDimensions.width), height: Int32(finalDimensions.height)), flags: flags, preloadSize: nil)], hintFileIsLarge: estimatedSize > 10 * 1024 * 1024)
                 |> mapError { _ -> PreparedShareItemError in
                     return .generic
                 }
@@ -219,7 +247,11 @@ private func preparedShareItem(postbox: Postbox, network: Network, to peerId: Pe
                             mimeType = "animation/gif"
                             attributes = [.ImageSize(size: PixelDimensions(width: Int32(dimensions.width), height: Int32(dimensions.height))), .Animated, .FileName(fileName: fileName ?? "animation.gif")]
                         }
-                        return standaloneUploadedFile(postbox: postbox, network: network, peerId: peerId, text: "", source: .data(data), mimeType: mimeType, attributes: attributes, hintFileIsLarge: data.count > 10 * 1024 * 1024)
+                        var thumbnailData: Data?
+                        if peerId.namespace == Namespaces.Peer.SecretChat {
+                            thumbnailData = secretThumbnailData(image)
+                        }
+                        return standaloneUploadedFile(postbox: postbox, network: network, peerId: peerId, text: "", source: .data(data), thumbnailData: thumbnailData, mimeType: mimeType, attributes: attributes, hintFileIsLarge: data.count > 10 * 1024 * 1024)
                         |> mapError { _ -> PreparedShareItemError in
                             return .generic
                         }
@@ -236,9 +268,13 @@ private func preparedShareItem(postbox: Postbox, network: Network, to peerId: Pe
             } else {
                 let scaledImage = TGScaleImageToPixelSize(image, CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale).fitted(CGSize(width: 1280.0, height: 1280.0)))!
                 let imageData = scaledImage.jpegData(compressionQuality: 0.54)!
+                var thumbnailData: Data?
+                if peerId.namespace == Namespaces.Peer.SecretChat {
+                    thumbnailData = secretThumbnailData(scaledImage)
+                }
                 return .single(.preparing(false))
                 |> then(
-                    standaloneUploadedImage(postbox: postbox, network: network, peerId: peerId, text: "", data: imageData, dimensions: PixelDimensions(width: Int32(scaledImage.size.width), height: Int32(scaledImage.size.height)))
+                    standaloneUploadedImage(postbox: postbox, network: network, peerId: peerId, text: "", data: imageData, thumbnailData: thumbnailData, dimensions: PixelDimensions(width: Int32(scaledImage.size.width), height: Int32(scaledImage.size.height)))
                     |> mapError { _ -> PreparedShareItemError in
                         return .generic
                     }

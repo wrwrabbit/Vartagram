@@ -1,3 +1,5 @@
+import UIKit
+
 import Foundation
 import TelegramApi
 import Postbox
@@ -101,7 +103,15 @@ public func standaloneUploadedImage(postbox: Postbox, network: Network, peerId: 
                     |> mapToSignal { result -> Signal<StandaloneUploadMediaEvent, StandaloneUploadMediaError> in
                         switch result {
                             case let .encryptedFile(id, accessHash, size, dcId, _):
-                                return .single(.result(.media(.standalone(media: TelegramMediaImage(imageId: MediaId(namespace: Namespaces.Media.LocalImage, id: Int64.random(in: Int64.min ... Int64.max)), representations: [TelegramMediaImageRepresentation(dimensions: dimensions, resource: SecretFileMediaResource(fileId: id, accessHash: accessHash, containerSize: size, decryptedSize: Int64(data.count), datacenterId: Int(dcId), key: key), progressiveSizes: [], immediateThumbnailData: nil, hasVideo: false, isPersonal: false)], immediateThumbnailData: nil, reference: nil, partialReference: nil, flags: [])))))
+                                var representations: [TelegramMediaImageRepresentation] = []
+                                if let thumbnailData, let thumbnailSize = UIImage(data: thumbnailData)?.size {
+                                    let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
+                                    representations.append(TelegramMediaImageRepresentation(dimensions: PixelDimensions(thumbnailSize), resource: resource, progressiveSizes: [], immediateThumbnailData: nil, hasVideo: false, isPersonal: false))
+                                    postbox.mediaBox.storeResourceData(resource.id, data: thumbnailData)
+                                }
+                                representations.append(TelegramMediaImageRepresentation(dimensions: dimensions, resource: SecretFileMediaResource(fileId: id, accessHash: accessHash, containerSize: size, decryptedSize: Int64(data.count), datacenterId: Int(dcId), key: key), progressiveSizes: [], immediateThumbnailData: nil, hasVideo: false, isPersonal: false))
+                                postbox.mediaBox.storeResourceData(representations.last!.resource.id, data: data)
+                                return .single(.result(.media(.standalone(media: TelegramMediaImage(imageId: MediaId(namespace: Namespaces.Media.LocalImage, id: Int64.random(in: Int64.min ... Int64.max)), representations: representations, immediateThumbnailData: nil, reference: nil, partialReference: nil, flags: [])))))
                             case .encryptedFileEmpty:
                                 return .fail(.generic)
                         }
@@ -118,7 +128,7 @@ public func standaloneUploadedFile(postbox: Postbox, network: Network, peerId: P
     |> mapError { _ -> StandaloneUploadMediaError in return .generic }
     
     let uploadThumbnail: Signal<StandaloneUploadMediaThumbnailResult, StandaloneUploadMediaError>
-    if let thumbnailData = thumbnailData {
+    if let thumbnailData = thumbnailData, peerId.namespace != Namespaces.Peer.SecretChat {
         uploadThumbnail = .single(.pending)
         |> then(
             uploadedThumbnail(network: network, postbox: postbox, data: thumbnailData)
@@ -194,7 +204,22 @@ public func standaloneUploadedFile(postbox: Postbox, network: Network, peerId: P
                                     |> mapToSignal { result -> Signal<StandaloneUploadMediaEvent, StandaloneUploadMediaError> in
                                         switch result {
                                             case let .encryptedFile(id, accessHash, size, dcId, _):
-                                                let media = TelegramMediaFile(fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: Int64.random(in: Int64.min ... Int64.max)), partialReference: nil, resource: SecretFileMediaResource(fileId: id, accessHash: accessHash, containerSize: size, decryptedSize: size, datacenterId: Int(dcId), key: key), previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: mimeType, size: size, attributes: attributes)
+                                                var previewRepresentations: [TelegramMediaImageRepresentation] = []
+                                                if let thumbnailData, let thumbnailSize = UIImage(data: thumbnailData)?.size {
+                                                    let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
+                                                    previewRepresentations.append(TelegramMediaImageRepresentation(dimensions: PixelDimensions(thumbnailSize), resource: resource, progressiveSizes: [], immediateThumbnailData: nil, hasVideo: false, isPersonal: false))
+                                                    postbox.mediaBox.storeResourceData(resource.id, data: thumbnailData)
+                                                }
+                                                let media = TelegramMediaFile(fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: Int64.random(in: Int64.min ... Int64.max)), partialReference: nil, resource: SecretFileMediaResource(fileId: id, accessHash: accessHash, containerSize: size, decryptedSize: size, datacenterId: Int(dcId), key: key), previewRepresentations: previewRepresentations, videoThumbnails: [], immediateThumbnailData: nil, mimeType: mimeType, size: size, attributes: attributes)
+                                                switch source {
+                                                case let .resource(resourceReference):
+                                                    postbox.mediaBox.moveResourceData(from: resourceReference.resource.id, to: media.resource.id)
+                                                    postbox.mediaBox.storageBox.remove(ids: [resourceReference.resource.id.stringRepresentation.data(using: .utf8)!])
+                                                case let .data(data):
+                                                    postbox.mediaBox.storeResourceData(media.resource.id, data: data)
+                                                default:
+                                                    preconditionFailure()
+                                                }
 
                                                 return .single(.result(.media(.standalone(media: media))))
                                             case .encryptedFileEmpty:
