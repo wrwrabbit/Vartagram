@@ -130,8 +130,6 @@ static const NSUInteger MTMaxUnacknowledgedMessageCount = 64;
     
     bool _isConnectionThrottled;
     MTTimer *_unthrottleConnectionTimer;
-    
-    MTContextBlockChangeListener *_changeListener;
 }
 
 @end
@@ -167,36 +165,7 @@ static const NSUInteger MTMaxUnacknowledgedMessageCount = 64;
         _requiredAuthToken = requiredAuthToken;
         _authTokenMasterDatacenterId = authTokenMasterDatacenterId;
         
-        __weak MTProto *weakSelf = self;
-        _changeListener = [[MTContextBlockChangeListener alloc] init];
-        
-        _changeListener.contextDatacenterAuthInfoUpdated = ^(MTContext * _Nonnull context, NSInteger datacenterId, MTDatacenterAuthInfo * _Nonnull authInfo, MTDatacenterAuthInfoSelector selector)
-        {
-            __strong MTProto *strongSelf = weakSelf;
-            [strongSelf contextDatacenterAuthInfoUpdated:context datacenterId:datacenterId authInfo:authInfo selector:selector];
-        };
-        _changeListener.contextDatacenterAuthTokenUpdated = ^(MTContext * _Nonnull context, NSInteger datacenterId, id _Nullable authToken)
-        {
-            __strong MTProto *strongSelf = weakSelf;
-            [strongSelf contextDatacenterAuthTokenUpdated:context datacenterId:datacenterId authToken:authToken];
-        };
-        _changeListener.contextDatacenterTransportSchemesUpdated = ^(MTContext * _Nonnull context, NSInteger datacenterId, bool shouldReset)
-        {
-            __strong MTProto *strongSelf = weakSelf;
-            [strongSelf contextDatacenterTransportSchemesUpdated:context datacenterId:datacenterId shouldReset:shouldReset];
-        };
-        _changeListener.contextDatacenterPublicKeysUpdated = ^(MTContext * _Nonnull context, NSInteger datacenterId, NSArray<NSDictionary *> * _Nonnull publicKeys)
-        {
-            __strong MTProto *strongSelf = weakSelf;
-            [strongSelf contextDatacenterPublicKeysUpdated:context datacenterId:datacenterId publicKeys:publicKeys];
-        };
-        _changeListener.contextApiEnvironmentUpdated = ^(MTContext * _Nonnull context, MTApiEnvironment * _Nonnull apiEnvironment)
-        {
-            __strong MTProto *strongSelf = weakSelf;
-            [strongSelf contextApiEnvironmentUpdated:context apiEnvironment:apiEnvironment];
-        };
-        
-        [_context addChangeListener:_changeListener];
+        [_context addChangeListener:self];
         
         _messageServices = [[NSMutableArray alloc] init];
         
@@ -277,7 +246,7 @@ static const NSUInteger MTMaxUnacknowledgedMessageCount = 64;
         if ((_mtState & MTProtoStateStopped) == 0)
         {
             [self setMtState:_mtState | MTProtoStateStopped];
-            [_context removeChangeListener:_changeListener];
+            [_context removeChangeListener:self];
             if (_transport != nil)
             {
                 _transport.delegate = nil;
@@ -869,7 +838,10 @@ static const NSUInteger MTMaxUnacknowledgedMessageCount = 64;
                 __weak MTProto *weakSelf = self;
                 MTSignal *checkSignal = [[MTConnectionProbing probeProxyWithContext:_context datacenterId:_datacenterId settings:transport.proxySettings] delay:5.0 onQueue:[MTQueue concurrentDefaultQueue]];
                 checkSignal = [[checkSignal then:[[MTSignal complete] delay:20.0 onQueue:[MTQueue concurrentDefaultQueue]]] restart];
-                [_probingDisposable setDisposable:[checkSignal startWithNext:^(NSNumber *next) {
+                if (_probingDisposable == nil) {
+                    _probingDisposable = [[MTMetaDisposable alloc] init];
+                }
+                [_probingDisposable setDisposable:[checkSignal startWithNextStrict:^(NSNumber *next) {
                     [[MTProto managerQueue] dispatchOnQueue:^{
                         __strong MTProto *strongSelf = weakSelf;
                         if (strongSelf == nil) {
@@ -880,7 +852,7 @@ static const NSUInteger MTMaxUnacknowledgedMessageCount = 64;
                             [strongSelf _updateConnectionIssuesStatus:[strongSelf->_probingStatus boolValue]];
                         }
                     }];
-                }]];
+                } file:__FILE_NAME__ line:__LINE__]];
             }
         }
     }];

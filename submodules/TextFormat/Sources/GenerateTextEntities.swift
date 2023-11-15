@@ -144,7 +144,7 @@ private func commitEntity(_ utf16: String.UTF16View, _ type: CurrentEntityType, 
     }
 }
 
-public func generateChatInputTextEntities(_ text: NSAttributedString, maxAnimatedEmojisInText: Int? = nil) -> [MessageTextEntity] {
+public func generateChatInputTextEntities(_ text: NSAttributedString, maxAnimatedEmojisInText: Int? = nil, generateLinks: Bool = false) -> [MessageTextEntity] {
     var entities: [MessageTextEntity] = []
 
     text.enumerateAttributes(in: NSRange(location: 0, length: text.length), options: [], using: { attributes, range, _ in
@@ -167,9 +167,81 @@ public func generateChatInputTextEntities(_ text: NSAttributedString, maxAnimate
                 entities.append(MessageTextEntity(range: range.lowerBound ..< range.upperBound, type: .Spoiler))
             } else if key == ChatTextInputAttributes.customEmoji, let value = value as? ChatTextInputTextCustomEmojiAttribute {
                 entities.append(MessageTextEntity(range: range.lowerBound ..< range.upperBound, type: .CustomEmoji(stickerPack: nil, fileId: value.fileId)))
+            } else if key == ChatTextInputAttributes.block, let value = value as? ChatTextInputTextQuoteAttribute {
+                switch value.kind {
+                case .quote:
+                    entities.append(MessageTextEntity(range: range.lowerBound ..< range.upperBound, type: .BlockQuote))
+                case let .code(language):
+                    entities.append(MessageTextEntity(range: range.lowerBound ..< range.upperBound, type: .Pre(language: language)))
+                }
             }
         }
     })
+    
+    for entity in generateTextEntities(text.string, enabledTypes: .allUrl) {
+        if case .Url = entity.type {
+            entities.append(entity)
+        }
+    }
+    
+    while true {
+        var hadReductions = false
+        
+        scan: for i in 0 ..< entities.count {
+            if case .BlockQuote = entities[i].type {
+                inner: for j in 0 ..< entities.count {
+                    if j == i {
+                        continue inner
+                    }
+                    if case .BlockQuote = entities[j].type {
+                        if entities[i].range.upperBound == entities[j].range.lowerBound || entities[i].range.lowerBound == entities[j].range.upperBound {
+                            entities[i].range = min(entities[i].range.lowerBound, entities[j].range.lowerBound) ..< max(entities[i].range.upperBound, entities[j].range.upperBound)
+                            entities.remove(at: j)
+                            
+                            hadReductions = true
+                            break scan
+                        }
+                    }
+                }
+                
+                break scan
+            }
+        }
+        
+        if !hadReductions {
+            break
+        }
+    }
+    
+    while true {
+        var hadReductions = false
+        
+        scan: for i in 0 ..< entities.count {
+            if case let .Pre(language) = entities[i].type {
+                inner: for j in 0 ..< entities.count {
+                    if j == i {
+                        continue inner
+                    }
+                    if case .Pre(language) = entities[j].type {
+                        if entities[i].range.upperBound == entities[j].range.lowerBound || entities[i].range.lowerBound == entities[j].range.upperBound {
+                            entities[i].range = min(entities[i].range.lowerBound, entities[j].range.lowerBound) ..< max(entities[i].range.upperBound, entities[j].range.upperBound)
+                            entities.remove(at: j)
+                            
+                            hadReductions = true
+                            break scan
+                        }
+                    }
+                }
+                
+                break scan
+            }
+        }
+        
+        if !hadReductions {
+            break
+        }
+    }
+    
     return entities
 }
 

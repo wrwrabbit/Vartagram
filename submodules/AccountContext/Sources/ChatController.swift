@@ -321,6 +321,8 @@ public enum ChatTextInputStateTextAttributeType: Codable, Equatable {
     case strikethrough
     case underline
     case spoiler
+    case quote
+    case codeBlock(language: String?)
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
@@ -348,6 +350,10 @@ public enum ChatTextInputStateTextAttributeType: Codable, Equatable {
             self = .underline
         case 8:
             self = .spoiler
+        case 9:
+            self = .quote
+        case 10:
+            self = .codeBlock(language: try container.decodeIfPresent(String.self, forKey: "l"))
         default:
             assertionFailure()
             self = .bold
@@ -379,6 +385,11 @@ public enum ChatTextInputStateTextAttributeType: Codable, Equatable {
             try container.encode(7 as Int32, forKey: "t")
         case .spoiler:
             try container.encode(8 as Int32, forKey: "t")
+        case .quote:
+            try container.encode(9 as Int32, forKey: "t")
+        case let .codeBlock(language):
+            try container.encode(10 as Int32, forKey: "t")
+            try container.encodeIfPresent(language, forKey: "l")
         }
     }
 }
@@ -452,6 +463,13 @@ public struct ChatTextInputStateText: Codable, Equatable {
                     parsedAttributes.append(ChatTextInputStateTextAttribute(type: .underline, range: range.location ..< (range.location + range.length)))
                 } else if key == ChatTextInputAttributes.spoiler {
                     parsedAttributes.append(ChatTextInputStateTextAttribute(type: .spoiler, range: range.location ..< (range.location + range.length)))
+                } else if key == ChatTextInputAttributes.block, let value = value as? ChatTextInputTextQuoteAttribute {
+                    switch value.kind {
+                    case .quote:
+                        parsedAttributes.append(ChatTextInputStateTextAttribute(type: .quote, range: range.location ..< (range.location + range.length)))
+                    case let .code(language):
+                        parsedAttributes.append(ChatTextInputStateTextAttribute(type: .codeBlock(language: language), range: range.location ..< (range.location + range.length)))
+                    }
                 }
             }
         })
@@ -496,6 +514,10 @@ public struct ChatTextInputStateText: Codable, Equatable {
                 result.addAttribute(ChatTextInputAttributes.underline, value: true as NSNumber, range: NSRange(location: attribute.range.lowerBound, length: attribute.range.count))
             case .spoiler:
                 result.addAttribute(ChatTextInputAttributes.spoiler, value: true as NSNumber, range: NSRange(location: attribute.range.lowerBound, length: attribute.range.count))
+            case .quote:
+                result.addAttribute(ChatTextInputAttributes.block, value: ChatTextInputTextQuoteAttribute(kind: .quote), range: NSRange(location: attribute.range.lowerBound, length: attribute.range.count))
+            case let .codeBlock(language):
+                result.addAttribute(ChatTextInputAttributes.block, value: ChatTextInputTextQuoteAttribute(kind: .code(language: language)), range: NSRange(location: attribute.range.lowerBound, length: attribute.range.count))
             }
         }
         return result
@@ -509,8 +531,8 @@ public enum ChatControllerSubject: Equatable {
     }
 
     public struct ForwardOptions: Equatable {
-        public let hideNames: Bool
-        public let hideCaptions: Bool
+        public var hideNames: Bool
+        public var hideCaptions: Bool
         
         public init(hideNames: Bool, hideCaptions: Bool) {
             self.hideNames = hideNames
@@ -518,10 +540,122 @@ public enum ChatControllerSubject: Equatable {
         }
     }
     
-    case message(id: MessageSubject, highlight: Bool, timecode: Double?)
+    public struct LinkOptions: Equatable {
+        public var messageText: String
+        public var messageEntities: [MessageTextEntity]
+        public var hasAlternativeLinks: Bool
+        public var replyMessageId: EngineMessage.Id?
+        public var replyQuote: String?
+        public var url: String
+        public var webpage: TelegramMediaWebpage
+        public var linkBelowText: Bool
+        public var largeMedia: Bool
+        
+        public init(
+            messageText: String,
+            messageEntities: [MessageTextEntity],
+            hasAlternativeLinks: Bool,
+            replyMessageId: EngineMessage.Id?,
+            replyQuote: String?,
+            url: String,
+            webpage: TelegramMediaWebpage,
+            linkBelowText: Bool,
+            largeMedia: Bool
+        ) {
+            self.messageText = messageText
+            self.messageEntities = messageEntities
+            self.hasAlternativeLinks = hasAlternativeLinks
+            self.replyMessageId = replyMessageId
+            self.replyQuote = replyQuote
+            self.url = url
+            self.webpage = webpage
+            self.linkBelowText = linkBelowText
+            self.largeMedia = largeMedia
+        }
+    }
+    
+    public enum MessageOptionsInfo: Equatable {
+        public struct Quote: Equatable {
+            public let messageId: EngineMessage.Id
+            public let text: String
+            
+            public init(messageId: EngineMessage.Id, text: String) {
+                self.messageId = messageId
+                self.text = text
+            }
+        }
+        
+        public struct SelectionState: Equatable {
+            public var canQuote: Bool
+            public var quote: Quote?
+            
+            public init(canQuote: Bool, quote: Quote?) {
+                self.canQuote = canQuote
+                self.quote = quote
+            }
+        }
+        
+        public struct Reply: Equatable {
+            public var quote: Quote?
+            public var selectionState: Promise<SelectionState>
+            
+            public init(quote: Quote?, selectionState: Promise<SelectionState>) {
+                self.quote = quote
+                self.selectionState = selectionState
+            }
+            
+            public static func ==(lhs: Reply, rhs: Reply) -> Bool {
+                if lhs.quote != rhs.quote {
+                    return false
+                }
+                if lhs.selectionState !== rhs.selectionState {
+                    return false
+                }
+                return true
+            }
+        }
+        
+        public struct Forward: Equatable {
+            public var options: Signal<ForwardOptions, NoError>
+            
+            public init(options: Signal<ForwardOptions, NoError>) {
+                self.options = options
+            }
+            
+            public static func ==(lhs: Forward, rhs: Forward) -> Bool {
+                return true
+            }
+        }
+        
+        public struct Link: Equatable {
+            public var options: Signal<LinkOptions, NoError>
+            
+            public init(options: Signal<LinkOptions, NoError>) {
+                self.options = options
+            }
+            
+            public static func ==(lhs: Link, rhs: Link) -> Bool {
+                return true
+            }
+        }
+        
+        case reply(Reply)
+        case forward(Forward)
+        case link(Link)
+    }
+    
+    public struct MessageHighlight: Equatable {
+        public var quote: String?
+        
+        public init(quote: String? = nil) {
+            self.quote = quote
+        }
+    }
+    
+    case message(id: MessageSubject, highlight: MessageHighlight?, timecode: Double?)
     case scheduledMessages
     case pinnedMessages(id: EngineMessage.Id?)
-    case forwardedMessages(peerIds: [EnginePeer.Id], ids: [EngineMessage.Id], options: Signal<ForwardOptions, NoError>)
+    case messageOptions(peerIds: [EnginePeer.Id], ids: [EngineMessage.Id], info: MessageOptionsInfo)
     
     public static func ==(lhs: ChatControllerSubject, rhs: ChatControllerSubject) -> Bool {
         switch lhs {
@@ -543,8 +677,8 @@ public enum ChatControllerSubject: Equatable {
             } else {
                 return false
             }
-        case let .forwardedMessages(lhsPeerIds, lhsIds, _):
-            if case let .forwardedMessages(rhsPeerIds, rhsIds, _) = rhs, lhsPeerIds == rhsPeerIds, lhsIds == rhsIds {
+        case let .messageOptions(lhsPeerIds, lhsIds, lhsInfo):
+            if case let .messageOptions(rhsPeerIds, rhsIds, rhsInfo) = rhs, lhsPeerIds == rhsPeerIds, lhsIds == rhsIds, lhsInfo == rhsInfo {
                 return true
             } else {
                 return false
@@ -652,6 +786,32 @@ public final class PeerInfoNavigationSourceTag {
 
 public protocol PeerInfoScreen: ViewController {
     var peerId: PeerId { get }
+}
+
+public extension Peer {
+    func canSetupAutoremoveTimeout(accountPeerId: EnginePeer.Id) -> Bool {
+        if let _ = self as? TelegramSecretChat {
+            return false
+        } else if let group = self as? TelegramGroup {
+            if case .creator = group.role {
+                return true
+            } else if case let .admin(rights, _) = group.role {
+                if rights.rights.contains(.canDeleteMessages) {
+                    return true
+                }
+            }
+        } else if let user = self as? TelegramUser {
+            if user.id != accountPeerId && user.botInfo == nil {
+                return true
+            }
+        } else if let channel = self as? TelegramChannel {
+            if channel.hasPermission(.deleteAllMessages) {
+                return true
+            }
+        }
+        
+        return false
+    }
 }
 
 public protocol ChatController: ViewController {

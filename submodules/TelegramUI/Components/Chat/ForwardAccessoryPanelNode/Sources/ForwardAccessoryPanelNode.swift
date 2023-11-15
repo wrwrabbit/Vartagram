@@ -21,6 +21,7 @@ import TextNodeWithEntities
 import AnimationCache
 import MultiAnimationRenderer
 import AccessoryPanelNode
+import AppBundle
 
 func textStringForForwardedMessage(_ message: Message, strings: PresentationStrings) -> (text: String, entities: [MessageTextEntity], isMedia: Bool) {
     for media in message.media {
@@ -93,7 +94,7 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
     
     let closeButton: HighlightableButtonNode
     let lineNode: ASImageNode
-    let iconNode: ASImageNode
+    let iconView: UIImageView
     let titleNode: ImmediateTextNode
     let textNode: ImmediateTextNodeWithEntities
     private var originalText: NSAttributedString?
@@ -129,10 +130,9 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
         self.lineNode.displaysAsynchronously = false
         self.lineNode.image = PresentationResourcesChat.chatInputPanelVerticalSeparatorLineImage(theme)
         
-        self.iconNode = ASImageNode()
-        self.iconNode.displayWithoutProcessing = false
-        self.iconNode.displaysAsynchronously = false
-        self.iconNode.image = PresentationResourcesChat.chatInputPanelForwardIconImage(theme)
+        self.iconView = UIImageView()
+        self.iconView.image = UIImage(bundleImageName: "Chat/Input/Accessory Panels/ForwardSettingsIcon")?.withRenderingMode(.alwaysTemplate)
+        self.iconView.tintColor = theme.chat.inputPanel.panelControlAccentColor
         
         self.titleNode = ImmediateTextNode()
         self.titleNode.maximumNumberOfLines = 1
@@ -150,7 +150,7 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
         self.addSubnode(self.closeButton)
         
         self.addSubnode(self.lineNode)
-        self.addSubnode(self.iconNode)
+        self.view.addSubview(self.iconView)
         self.addSubnode(self.titleNode)
         self.addSubnode(self.textNode)
         self.addSubnode(self.actionArea)
@@ -286,11 +286,11 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
     }
     
     override public func animateIn() {
-        self.iconNode.layer.animateScale(from: 0.001, to: 1.0, duration: 0.2)
+        self.iconView.layer.animateScale(from: 0.001, to: 1.0, duration: 0.2)
     }
     
     override public func animateOut() {
-        self.iconNode.layer.animateScale(from: 1.0, to: 0.001, duration: 0.2, removeOnCompletion: false)
+        self.iconView.layer.animateScale(from: 1.0, to: 0.001, duration: 0.2, removeOnCompletion: false)
     }
     
     override public func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
@@ -305,7 +305,7 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
             
             self.closeButton.setImage(PresentationResourcesChat.chatInputPanelCloseIconImage(theme), for: [])
             self.lineNode.image = PresentationResourcesChat.chatInputPanelVerticalSeparatorLineImage(theme)
-            self.iconNode.image = PresentationResourcesChat.chatInputPanelForwardIconImage(theme)
+            self.iconView.tintColor = theme.chat.inputPanel.panelControlAccentColor
             
             let filteredMessages = self.messages
             
@@ -353,8 +353,8 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
 
         self.lineNode.frame = CGRect(origin: CGPoint(x: leftInset, y: 8.0), size: CGSize(width: 2.0, height: bounds.size.height - 10.0))
 
-        if let icon = self.iconNode.image {
-            self.iconNode.frame = CGRect(origin: CGPoint(x: 7.0 + inset, y: 10.0), size: icon.size)
+        if let icon = self.iconView.image {
+            self.iconView.frame = CGRect(origin: CGPoint(x: 7.0 + inset, y: 10.0), size: icon.size)
         }
         
         let titleSize = self.titleNode.updateLayout(CGSize(width: bounds.size.width - leftInset - textLineInset - rightInset - textRightInset, height: bounds.size.height))

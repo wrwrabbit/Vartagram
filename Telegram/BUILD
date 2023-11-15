@@ -77,6 +77,12 @@ bool_flag(
     visibility = ["//visibility:public"],
 )
 
+bool_flag(
+    name = "projectIncludeRelease",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
 config_setting(
     name = "disableExtensionsSetting",
     flag_values = {
@@ -88,6 +94,13 @@ config_setting(
     name = "disableProvisioningProfilesSetting",
     flag_values = {
         ":disableProvisioningProfiles": "True",
+    },
+)
+
+config_setting(
+    name = "projectIncludeReleaseSetting",
+    flag_values = {
+        ":projectIncludeRelease": "True",
     },
 )
 
@@ -1213,7 +1226,7 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
-        "//submodules/TelegramUI:TelegramUI",
+        "//submodules/TelegramUI",
         "//submodules/TelegramUI/Components/ShareExtensionContext"
     ],
 )
@@ -2137,9 +2150,9 @@ xcodeproj(
         "Debug": {
             "//command_line_option:compilation_mode": "dbg",
         },
-        "Release": {
-            "//command_line_option:compilation_mode": "opt",
-        },
+        #"Release": {
+        #    "//command_line_option:compilation_mode": "opt",
+        #},
     },
     default_xcode_configuration = "Debug"
 
