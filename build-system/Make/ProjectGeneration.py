@@ -9,7 +9,7 @@ def remove_directory(path):
     if os.path.isdir(path):
         shutil.rmtree(path)
 
-def generate_xcodeproj(build_environment: BuildEnvironment, disable_extensions, disable_provisioning_profiles, include_release, generate_dsym, configuration_path, bazel_app_arguments, target_name):
+def generate_xcodeproj(build_environment: BuildEnvironment, disable_extensions, disable_provisioning_profiles, include_release, generate_dsym, configuration_path, bazel_startup_arguments, bazel_app_arguments, target_name):
     if '/' in target_name:
         app_target_spec = target_name.split('/')[0] + '/' + target_name.split('/')[1] + ':' + target_name.split('/')[1]
         app_target = target_name
@@ -52,5 +52,5 @@ def generate_xcodeproj(build_environment: BuildEnvironment, disable_extensions, 
     call_executable(['open', xcodeproj_path])
 
 
-def generate(build_environment: BuildEnvironment, disable_extensions, disable_provisioning_profiles, include_release, generate_dsym, configuration_path, bazel_app_arguments, target_name):
-    generate_xcodeproj(build_environment, disable_extensions, disable_provisioning_profiles, include_release, generate_dsym, configuration_path, bazel_app_arguments, target_name)
+def generate(build_environment: BuildEnvironment, disable_extensions, disable_provisioning_profiles, include_release, generate_dsym, configuration_path, bazel_startup_arguments, bazel_app_arguments, target_name):
+    generate_xcodeproj(build_environment, disable_extensions, disable_provisioning_profiles, include_release, generate_dsym, configuration_path, bazel_startup_arguments, bazel_app_arguments, target_name)

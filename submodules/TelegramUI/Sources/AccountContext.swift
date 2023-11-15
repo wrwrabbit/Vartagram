@@ -244,6 +244,31 @@ public final class AccountContextImpl: AccountContext {
     private var userLimitsConfigurationDisposable: Disposable?
     public private(set) var userLimits: EngineConfiguration.UserLimits
     
+    public let inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError>
+    public let currentInactiveSecretChatPeerIds: Atomic<Set<PeerId>>
+    private var inactiveSecretChatPeerIdsDisposable: Disposable?
+    
+    public var isHidable: Signal<Bool, NoError> {
+        let accountId = self.account.id
+        return self.sharedContext.allHidableAccountIds
+        |> map { allHidableAccountIds in
+            return allHidableAccountIds.contains(accountId)
+        }
+        |> distinctUntilChanged
+    }
+    
+    public var immediateIsHidable: Bool {
+        let accountId = self.account.id
+        return self.sharedContext.currentPtgSecretPasscodes.with { $0.allHidableAccountIds().contains(accountId) }
+    }
+    
+    private let _ptgAccountSettings: Promise<PtgAccountSettings>
+    public var ptgAccountSettings: Signal<PtgAccountSettings, NoError> {
+        return self._ptgAccountSettings.get()
+    }
+    public let currentPtgAccountSettings = Atomic<PtgAccountSettings?>(value: nil)
+    private var ptgAccountSettingsDisposable: Disposable?
+    
     private var peerNameColorsConfigurationDisposable: Disposable?
     public private(set) var peerNameColors: PeerNameColors
     
@@ -477,6 +502,8 @@ public final class AccountContextImpl: AccountContext {
         self.experimentalUISettingsDisposable?.dispose()
         self.animatedEmojiStickersDisposable?.dispose()
         self.userLimitsConfigurationDisposable?.dispose()
+        self.inactiveSecretChatPeerIdsDisposable?.dispose()
+        self.ptgAccountSettingsDisposable?.dispose()
         self.peerNameColorsConfigurationDisposable?.dispose()
     }
     

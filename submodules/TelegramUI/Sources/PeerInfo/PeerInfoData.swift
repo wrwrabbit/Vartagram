@@ -900,6 +900,12 @@ func peerInfoScreenData(context: AccountContext, peerId: PeerId, strings: Presen
                 Signal<Message?, NoError>.single(nil)
                 |> then (
                     context.engine.messages.getMessagesLoadIfNecessary([MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: 1)])
+                    |> mapToSignal { result -> Signal<[Message], NoError> in
+                        guard case let .result(result) = result else {
+                            return .complete()
+                        }
+                        return .single(result)
+                    }
                     |> map { $0.first }
                 )
             )

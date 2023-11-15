@@ -2516,7 +2516,8 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                 }
                                 
                                 let currentPeerId = strongSelf.peerId
-                                strongSelf.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: strongSelf.context, chatLocation: targetLocation, subject: .message(id: .id(message.id), highlight: ChatControllerSubject.MessageHighlight(quote: nil), timecode: nil), keepStack: .always, useExisting: false, purposefulAction: {
+                                strongSelf.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: strongSelf.context, chatLocation: targetLocation, subject: .message(id: .id(message.id), highlight: ChatControllerSubject.MessageHighlight(quote: nil), timecode: nil), keepStack: .always, useExisting: false, purposefulAction: { [weak navigationController] in
+                                    guard let navigationController else { return }
                                     var viewControllers = navigationController.viewControllers
                                     var indexesToRemove = Set<Int>()
                                     var keptCurrentChatController = false
@@ -2678,7 +2679,8 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                         }
                                         
                                         let currentPeerId = strongSelf.peerId
-                                        strongSelf.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: strongSelf.context, chatLocation: targetLocation, subject: .message(id: .id(message.id), highlight: ChatControllerSubject.MessageHighlight(quote: nil), timecode: nil), keepStack: .always, useExisting: false, purposefulAction: {
+                                        strongSelf.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: strongSelf.context, chatLocation: targetLocation, subject: .message(id: .id(message.id), highlight: ChatControllerSubject.MessageHighlight(quote: nil), timecode: nil), keepStack: .always, useExisting: false, purposefulAction: { [weak navigationController] in
+                                            guard let navigationController else { return }
                                             var viewControllers = navigationController.viewControllers
                                             var indexesToRemove = Set<Int>()
                                             var keptCurrentChatController = false
@@ -3771,6 +3773,18 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                     }))
                 }
                 
+                if copyId {
+                    let id = String(user.id.id._internalGetInt64Value())
+                    actions.append(ContextMenuAction(content: .text(title: strongSelf.presentationData.strings.Settings_CopyId, accessibilityLabel: strongSelf.presentationData.strings.Settings_CopyId), action: { [weak self] in
+                        UIPasteboard.general.string = id
+
+                        if let strongSelf = self {
+                            let presentationData = strongSelf.context.sharedContext.currentPresentationData.with { $0 }
+                            strongSelf.controller?.present(UndoOverlayController(presentationData: presentationData, content: .copy(text: presentationData.strings.Conversation_IdCopied), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
+                        }
+                    }))
+                }
+
                 let contextMenuController = makeContextMenuController(actions: actions)
                 strongSelf.controller?.present(contextMenuController, in: .window(.root), with: ContextMenuControllerPresentationArguments(sourceNodeAndRect: { [weak self] in
                     if let strongSelf = self {
@@ -4009,7 +4023,11 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             }
         })
 
-        self.refreshMessageTagStatsDisposable = context.engine.messages.refreshMessageTagStats(peerId: peerId, threadId: chatLocation.threadId, tags: [.video, .photo, .gif, .music, .voiceOrInstantVideo, .webPage, .file]).startStrict()
+        if !self.isSettings {
+            self.refreshMessageTagStatsDisposable = context.engine.messages.refreshMessageTagStats(peerId: peerId, threadId: chatLocation.threadId, tags: [.video, .photo, .gif, .music, .voiceOrInstantVideo, .webPage, .file]).startStrict()
+        }
+
+        self.scrollNode.addSubnode(self.versionLabelNode)
         
         if peerId.namespace == Namespaces.Peer.CloudChannel {
             self.translationStateDisposable = (chatTranslationState(context: context, peerId: peerId)
@@ -4108,7 +4126,6 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         self.shareStatusDisposable?.dispose()
         self.customStatusDisposable?.dispose()
         self.refreshMessageTagStatsDisposable?.dispose()
-        self.updateAvatarDisposable.dispose()
         self.forumTopicNotificationExceptionsDisposable?.dispose()
         self.translationStateDisposable?.dispose()
         self.copyProtectionTooltipController?.dismiss()
@@ -5649,9 +5666,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                             generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Report"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] c, f in
                             self?.openReport(type: .default, contextController: c, backAction: { c in
-                                if let mainItemsImpl = mainItemsImpl {
-                                    c.setItems(mainItemsImpl() |> map { ContextController.Items(content: .list($0)) }, minHeight: nil, animated: true)
-                                }
+                                c.popItems()
                             })
                         })))
                     }
@@ -7671,7 +7686,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                 }
             }))
         case let .id(id):
-            let contextMenuController = ContextMenuController(actions: [ContextMenuAction(content: .text(title: self.presentationData.strings.Conversation_ContextMenuCopy, accessibilityLabel: self.presentationData.strings.Conversation_ContextMenuCopy), action: { [weak self] in
+            let contextMenuController = makeContextMenuController(actions: [ContextMenuAction(content: .text(title: self.presentationData.strings.Conversation_ContextMenuCopy, accessibilityLabel: self.presentationData.strings.Conversation_ContextMenuCopy), action: { [weak self] in
                 UIPasteboard.general.string = id
 
                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
@@ -8879,7 +8894,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                             
                             controller?.dismiss()
                             
-                            strongSelf.controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .succeed(text: strongSelf.presentationData.strings.SecretPasscodeStatus_SomeRevealed, timeout: nil), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
+                            strongSelf.controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .succeed(text: strongSelf.presentationData.strings.SecretPasscodeStatus_SomeRevealed, timeout: nil, customUndoText: nil), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
                             
                             return true
                         }
@@ -9013,7 +9028,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                         
                         let _ = hideAllSecrets(accountManager: strongSelf.context.sharedContext.accountManager).start()
                         
-                        strongSelf.controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .succeed(text: strongSelf.presentationData.strings.SecretPasscodeStatus_AllHidden, timeout: nil), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
+                        strongSelf.controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .succeed(text: strongSelf.presentationData.strings.SecretPasscodeStatus_AllHidden, timeout: nil, customUndoText: nil), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
                     })
                 ]), ActionSheetItemGroup(items: [
                     ActionSheetButtonItem(title: self.presentationData.strings.Common_Cancel, action: { [weak actionSheet] in
@@ -9127,7 +9142,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             
             if !unreadChatListPeerIds.isEmpty {
                 items.append(.action(ContextMenuActionItem(text: strings.ChatList_Context_MarkAllAsRead, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/MarkAsRead"), color: theme.contextMenu.primaryColor) }, action: { _, f in
-                    let _ = (context.engine.messages.markAllChatsAsReadInteractively(items: [(groupId: .root, filterPredicate: nil)])
+                    let _ = (context.engine.messages.markAllChatsAsReadInteractively(items: [(groupId: .root, filterPredicate: nil)], inactiveSecretChatPeerIds: context.inactiveSecretChatPeerIds)
                     |> deliverOnMainQueue).startStandalone(completed: {
                         f(.default)
                     })

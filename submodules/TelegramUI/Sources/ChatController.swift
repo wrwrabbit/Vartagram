@@ -540,6 +540,8 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     var inviteRequestsContext: PeerInvitationImportersContext?
     var inviteRequestsDisposable = MetaDisposable()
     
+    private var loadMoreCounter: Int = 0
+
     var overlayTitle: String? {
         var title: String?
         if let threadInfo = self.threadInfo {
@@ -8372,7 +8374,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     signal = enqueueMessages(account: strongSelf.context.account, peerId: peerId, messages: transformedMessages)
                 }
                 
-                if peerId == strongSelf.context.account.peerId, messages.count == 1, case let .message(text, _, _, _, _, _, _, _, _) = messages.first, text.count > 0 && text.count < 50 {
+                if peerId == strongSelf.context.account.peerId, messages.count == 1, case let .message(text, _, _, _, _, _, _, _, _, _) = messages.first, text.count > 0 && text.count < 50 {
                     let text = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
                     var deleteMessage = false
                     
@@ -8384,7 +8386,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                         |> deliverOnMainQueue).start(next: { settings in
                             if let strongSelf = self, settings.canAdjustSensitiveContent {
                                 let _ = updateRemoteContentSettingsConfiguration(postbox: strongSelf.context.account.postbox, network: strongSelf.context.account.network, sensitiveContentEnabled: sensitiveContentEnabled).start()
-                                strongSelf.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .succeed(text: sensitiveContentEnabled ? "Sensitive content is enabled for current account." : "Sensitive content is disabled for current account.", timeout: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
+                                strongSelf.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .succeed(text: sensitiveContentEnabled ? "Sensitive content is enabled for current account." : "Sensitive content is disabled for current account.", timeout: nil, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
                             }
                         })
                         deleteMessage = true
@@ -8394,7 +8396,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                         let _ = updatePtgAccountSettings(engine: strongSelf.context.engine, { settings in
                             return settings.withUpdated(ignoreAllContentRestrictions: ignoreAllContentRestrictions)
                         }).start()
-                        strongSelf.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .succeed(text: ignoreAllContentRestrictions ? "Content restrictions are now ignored." : "Content restrictions are now enforced.", timeout: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
+                        strongSelf.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .succeed(text: ignoreAllContentRestrictions ? "Content restrictions are now ignored." : "Content restrictions are now enforced.", timeout: nil, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
                         deleteMessage = true
                         
                     default:
@@ -13894,7 +13896,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 slowModeEnabled = true
             }
             
-            let controller = legacyAttachmentMenu(context: strongSelf.context, peer: peer, threadTitle: strongSelf.threadInfo?.title, chatLocation: strongSelf.chatLocation, editMediaOptions: menuEditMediaOptions, saveEditedPhotos: settings.storeEditedPhotos, allowGrouping: true, hasSchedule: strongSelf.presentationInterfaceState.subject != .scheduledMessages && peer.id.namespace != Namespaces.Peer.SecretChat, canSendPolls: canSendPolls, updatedPresentationData: strongSelf.updatedPresentationData, parentController: legacyController, recentlyUsedInlineBots: strongSelf.recentlyUsedInlineBotsValue, initialCaption: inputText, openGallery: {
+            let controller = legacyAttachmentMenu(context: strongSelf.context, peer: peer, threadTitle: strongSelf.threadInfo?.title, chatLocation: strongSelf.chatLocation, editMediaOptions: menuEditMediaOptions, saveEditedPhotos: settings.storeEditedPhotos && !strongSelf.context.immediateIsHidable, allowGrouping: true, hasSchedule: strongSelf.presentationInterfaceState.subject != .scheduledMessages && peer.id.namespace != Namespaces.Peer.SecretChat, canSendPolls: canSendPolls, updatedPresentationData: strongSelf.updatedPresentationData, parentController: legacyController, recentlyUsedInlineBots: strongSelf.recentlyUsedInlineBotsValue, initialCaption: inputText, openGallery: {
                 self?.presentOldMediaPicker(fileMode: false, editingMedia: editMediaOptions != nil, completion: { signals, silentPosting, scheduleTime in
                     if !inputText.string.isEmpty {
                         strongSelf.clearInputText()
@@ -17173,6 +17175,62 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             }
             self.chatDisplayNode.dismissInput()
             self.effectiveNavigationController?.pushViewController(controller)
+        })
+    }
+    
+    private func saveMessages(messages: [Message]) {
+        let _ = self.presentVoiceMessageDiscardAlert(action: { [weak self] in
+            guard let strongSelf = self else {
+                return
+            }
+            let peerId = strongSelf.context.account.peerId
+            
+            Queue.mainQueue().after(0.88) {
+                strongSelf.chatDisplayNode.hapticFeedback.success()
+            }
+            
+            let presentationData = strongSelf.context.sharedContext.currentPresentationData.with { $0 }
+            strongSelf.present(UndoOverlayController(presentationData: presentationData, content: .forward(savedMessages: true, text: messages.count == 1 ? presentationData.strings.Conversation_ForwardTooltip_SavedMessages_One : presentationData.strings.Conversation_ForwardTooltip_SavedMessages_Many), elevatedLayout: false, animateInAsReplacement: true, action: { [weak self] value in
+                if case .info = value, let strongSelf = self {
+                    let _ = (strongSelf.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: strongSelf.context.account.peerId))
+                    |> deliverOnMainQueue).start(next: { peer in
+                        guard let strongSelf = self, let peer = peer, let navigationController = strongSelf.effectiveNavigationController else {
+                            return
+                        }
+                        
+                        strongSelf.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: strongSelf.context, chatLocation: .peer(peer), keepStack: .always, purposefulAction: {}, peekData: nil))
+                    })
+                    return true
+                }
+                return false
+            }), in: .current)
+            
+            let _ = (enqueueMessages(account: strongSelf.context.account, peerId: peerId, messages: messages.map { message -> EnqueueMessage in
+                return .forward(source: message.id, threadId: nil, grouping: .auto, attributes: [], correlationId: nil)
+            })
+            |> deliverOnMainQueue).start(next: { messageIds in
+                if let strongSelf = self {
+                    let signals: [Signal<Bool, NoError>] = messageIds.compactMap({ id -> Signal<Bool, NoError>? in
+                        guard let id = id else {
+                            return nil
+                        }
+                        return strongSelf.context.account.pendingMessageManager.pendingMessageStatus(id)
+                        |> mapToSignal { status, _ -> Signal<Bool, NoError> in
+                            if status != nil {
+                                return .never()
+                            } else {
+                                return .single(true)
+                            }
+                        }
+                        |> take(1)
+                    })
+                    if strongSelf.shareStatusDisposable == nil {
+                        strongSelf.shareStatusDisposable = MetaDisposable()
+                    }
+                    strongSelf.shareStatusDisposable?.set((combineLatest(signals)
+                    |> deliverOnMainQueue).start())
+                }
+            })
         })
     }
     

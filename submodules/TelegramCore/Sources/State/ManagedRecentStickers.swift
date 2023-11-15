@@ -414,11 +414,12 @@ func managedBackgroundIconEmoji(postbox: Postbox, network: Network) -> Signal<Vo
     let poll = managedRecentMedia(postbox: postbox, network: network, collectionId: Namespaces.OrderedItemList.CloudFeaturedBackgroundIconEmoji, extractItemId: { RecentMediaItemId($0).mediaId.id }, reverseHashOrder: false, forceFetch: false, fetch: { hash in
         return network.request(Api.functions.account.getDefaultBackgroundEmojis(hash: hash))
         |> retryRequest
-        |> mapToSignal { result -> Signal<[OrderedItemListEntry]?, NoError> in
+        |> mapToSignal { result -> Signal<([OrderedItemListEntry]?, Int64), NoError> in
             switch result {
             case .emojiListNotModified:
                 return .single(nil)
-            case let .emojiList(_, documentIds):
+                |> map { ($0, 0) }
+            case let .emojiList(hash, documentIds):
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: documentIds)
                 |> map { files -> [OrderedItemListEntry] in
                     var items: [OrderedItemListEntry] = []
@@ -432,6 +433,7 @@ func managedBackgroundIconEmoji(postbox: Postbox, network: Network) -> Signal<Vo
                     }
                     return items
                 }
+                |> map { ($0, hash) }
             }
         }
     })

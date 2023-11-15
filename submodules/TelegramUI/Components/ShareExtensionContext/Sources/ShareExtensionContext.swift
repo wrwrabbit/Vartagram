@@ -243,7 +243,6 @@ public class ShareRootControllerImpl {
             
             setupSharedLogger(rootPath: rootPath, path: logsPath)
             
-            /*
             let applicationBindings = TelegramApplicationBindings(isMainApp: false, appBundleId: self.initializationData.appBundleId, appBuildType: self.initializationData.appBuildType, containerPath: self.initializationData.appGroupPath, appSpecificScheme: "tg", openUrl: { _ in
             }, openUniversalUrl: { _, completion in
                 completion.completion(false)
@@ -274,7 +273,6 @@ public class ShareRootControllerImpl {
                 f(false)
             }, forceOrientation: { _ in
             })
-            */
             
             let accountManager = AccountManager<TelegramAccountManagerTypes>(basePath: rootPath + "/accounts-metadata", isTemporary: true, isReadOnly: false, useCaches: false, removeDatabaseOnError: false)
             initializeAccountManagement()
@@ -312,24 +310,21 @@ public class ShareRootControllerImpl {
             } else {
                 systemUserInterfaceStyle = .light
             }
-            var loggingSettings: LoggingSettings!
-            let loggingSettingsSignal = accountManager.transaction { transaction in
-                return transaction.getSharedData(SharedDataKeys.loggingSettings)?.get(LoggingSettings.self) ?? LoggingSettings.defaultSettings
-            }
-            let _ = combineLatest(currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: systemUserInterfaceStyle), loggingSettingsSignal).start(next: { value, ls in
+            let _ = currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: systemUserInterfaceStyle).start(next: { value in
                 initialPresentationDataAndSettings = value
-                loggingSettings = ls
                 semaphore.signal()
             })
             semaphore.wait()
             
-            Logger.shared.logToFile = loggingSettings.logToFile
-            Logger.shared.logToConsole = loggingSettings.logToConsole
-            Logger.shared.redactSensitiveData = loggingSettings.redactSensitiveData
-            
             initialPresentationDataAndSettings = initialPresentationDataAndSettings!.withUpdatedPtgSecretPasscodes(initialPresentationDataAndSettings!.ptgSecretPasscodes.withCheckedTimeoutUsingLockStateFile(rootPath: rootPath))
             
+            let presentationDataPromise = Promise<PresentationData>()
+            
+            let appLockContext = AppLockContextImpl(rootPath: rootPath, window: nil, rootController: nil, applicationBindings: applicationBindings, accountManager: accountManager, presentationDataSignal: presentationDataPromise.get(), lockIconInitialFrame: {
+                return nil
+            })
             let presentationData = initialPresentationDataAndSettings!.presentationData
+            presentationDataPromise.set(.single(presentationData))
             
             var immediatePeerId: PeerId?
             if #available(iOS 13.2, *), let sendMessageIntent = self.getExtensionContext()?.intent as? INSendMessageIntent {
@@ -407,7 +402,7 @@ public class ShareRootControllerImpl {
                 isICloudEnabled: false
             )
             
-            let accountData: Signal<(ShareControllerEnvironment, ShareControllerAccountContext, [ShareControllerSwitchableAccount]), NoError> = accountManager.accountRecords()
+            let accountData: Signal<(ShareControllerEnvironment, ShareControllerAccountContext, [ShareControllerSwitchableAccount]), NoError> = accountManager.accountRecords(excludeAccountIds: .single(initialPresentationDataAndSettings!.ptgSecretPasscodes.inactiveAccountIds()))
             |> take(1)
             |> mapToSignal { view -> Signal<(ShareControllerEnvironment, ShareControllerAccountContext, [ShareControllerSwitchableAccount]), NoError> in
                 var signals: [Signal<(AccountRecordId, AccountStateManager, Peer)?, NoError>] = []

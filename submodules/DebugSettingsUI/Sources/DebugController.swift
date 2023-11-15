@@ -77,7 +77,9 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     #endif
     case keepChatNavigationStack(PresentationTheme, Bool)
     case skipReadHistory(PresentationTheme, Bool)
+    case skipSetTyping(Bool)
     case unidirectionalSwipeToReply(Bool)
+    #if TEST_BUILD
     case crashOnSlowQueries(PresentationTheme, Bool)
     case crashOnMemoryPressure(PresentationTheme, Bool)
     #endif
@@ -141,7 +143,8 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return DebugControllerSection.logs.rawValue
         case .logToFile, .logToConsole, .redactSensitiveData:
             return DebugControllerSection.logging.rawValue
-        case .keepChatNavigationStack, .skipReadHistory, .unidirectionalSwipeToReply, .crashOnSlowQueries, .crashOnMemoryPressure:
+        #endif
+        case .keepChatNavigationStack, .skipReadHistory, .skipSetTyping, .unidirectionalSwipeToReply:
             return DebugControllerSection.experiments.rawValue
         case .clearTips, .resetNotifications, .resetHoles, .reindexUnread, .reindexCache, .resetBiometricsData, .resetWebViewCache, .photoPreview, .knockoutWallpaper, .storiesExperiment, .storiesJpegExperiment, .playlistPlayback, .enableQuickReactionSwitch, .voiceConference, .experimentalCompatibility, .enableDebugDataDisplay, .acceleratedStickers, .inlineForums, .localTranscription, .enableReactionOverrides, .restorePurchases:
             return DebugControllerSection.experiments.rawValue
@@ -204,16 +207,21 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 14
         case .skipReadHistory:
             return 15
+        case .skipSetTyping:
+            return 15.5
         case .unidirectionalSwipeToReply:
             return 16
+        #if TEST_BUILD
         case .crashOnSlowQueries:
             return 17
         case .crashOnMemoryPressure:
             return 18
+        #endif
         case .clearTips:
             return 19
         case .resetNotifications:
             return 20
+        #if TEST_BUILD
         case .crash:
             return 21
         case .resetData:
@@ -222,20 +230,25 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 23
         case .resetDatabaseAndCache:
             return 24
+        #endif
         case .resetHoles:
             return 25
         case .reindexUnread:
             return 26
+        #if TEST_BUILD
         case .resetCacheIndex:
             return 27
+        #endif
         case .reindexCache:
             return 28
         case .resetBiometricsData:
             return 29
         case .resetWebViewCache:
             return 30
+        #if TEST_BUILD
         case .optimizeDatabase:
             return 31
+        #endif
         case .photoPreview:
             return 32
         case .knockoutWallpaper:
@@ -985,7 +998,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                             context.account.postbox.mediaBox.storeResourceData(fileResource.id, data: allStatsData)
                             
                             let file = TelegramMediaFile(fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/zip", size: Int64(allStatsData.count), attributes: [.FileName(fileName: "DatabaseReport.txt")])
-                            let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
+                            let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
                             
                             let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
                         }))
@@ -1028,7 +1041,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                             context.account.postbox.mediaBox.storeResourceData(fileResource.id, data: allStatsData)
                             
                             let file = TelegramMediaFile(fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/zip", size: Int64(allStatsData.count), attributes: [.FileName(fileName: "ChatMessagesReport.txt")])
-                            let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
+                            let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
                             
                             let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
                         }))
@@ -1084,6 +1097,14 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     return settings
                 }).start()
             })
+        case let .skipSetTyping(value):
+            return ItemListSwitchItem(presentationData: presentationData, title: "Skip set typing (per account)", value: value, sectionId: self.section, style: .blocks, updated: { value in
+                if let context = arguments.context {
+                    let _ = updatePtgAccountSettings(engine: context.engine, { settings in
+                        return settings.withUpdated(skipSetTyping: value)
+                    }).start()
+                }
+            })
         case let .unidirectionalSwipeToReply(value):
             return ItemListSwitchItem(presentationData: presentationData, title: "Legacy swipe to reply", value: value, sectionId: self.section, style: .blocks, updated: { value in
                 let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
@@ -1092,6 +1113,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     return settings
                 }).start()
             })
+        #if TEST_BUILD
         case let .crashOnSlowQueries(_, value):
             return ItemListSwitchItem(presentationData: presentationData, title: "Crash when slow", value: value, sectionId: self.section, style: .blocks, updated: { value in
                 let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in

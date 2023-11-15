@@ -1,5 +1,6 @@
 #import <MtProtoKit/MTSignal.h>
 
+#import <os/lock.h>
 #import <pthread/pthread.h>
 #import <MtProtoKit/MTTimer.h>
 #import <MtProtoKit/MTQueue.h>
@@ -10,7 +11,7 @@
 {
     __weak MTSubscriber *_subscriber;
     id<MTDisposable> _disposable;
-    pthread_mutex_t _lock;
+    os_unfair_lock _lock;
 }
 
 @end
@@ -22,37 +23,32 @@
     if (self != nil) {
         _subscriber = subscriber;
         _disposable = disposable;
-        pthread_mutex_init(&_lock, nil);
     }
     return self;
 }
 
 - (void)dealloc {
-    pthread_mutex_destroy(&_lock);
 }
 
 - (void)dispose {
-    MTSubscriber *subscriber = nil;
     id<MTDisposable> disposeItem = nil;
-    pthread_mutex_lock(&_lock);
+    os_unfair_lock_lock(&_lock);
     disposeItem = _disposable;
     _disposable = nil;
-    subscriber = _subscriber;
-    _subscriber = nil;
-    pthread_mutex_unlock(&_lock);
+    os_unfair_lock_unlock(&_lock);
     
+    [_subscriber _markTerminatedWithoutDisposal];
     [disposeItem dispose];
-    [subscriber _markTerminatedWithoutDisposal];
 }
 
 @end
 
 @interface MTStrictDisposable : NSObject<MTDisposable> {
     id<MTDisposable> _disposable;
+#if DEBUG
     const char *_file;
     int _line;
     
-#if DEBUG
     pthread_mutex_t _lock;
     bool _isDisposed;
 #endif
@@ -69,10 +65,10 @@
     self = [super init];
     if (self != nil) {
         _disposable = disposable;
+#if DEBUG
         _file = file;
         _line = line;
         
-#if DEBUG
         pthread_mutex_init(&_lock, nil);
 #endif
     }
@@ -124,7 +120,7 @@
 
 @interface MTSignalQueueState : NSObject
 {
-    pthread_mutex_t _lock;
+    os_unfair_lock _lock;
     bool _executingSignal;
     bool _terminated;
     
@@ -144,8 +140,6 @@
     self = [super init];
     if (self != nil)
     {
-        pthread_mutex_init(&_lock, nil);
-        
         _subscriber = subscriber;
         _currentDisposable = currentDisposable;
         _queuedSignals = queueMode ? [[NSMutableArray alloc] init] : nil;
@@ -155,18 +149,12 @@
 }
 
 - (void)dealloc {
-    pthread_mutex_destroy(&_lock);
-}
-
-- (void)beginWithDisposable:(id<MTDisposable>)disposable
-{
-    _disposable = disposable;
 }
 
 - (void)enqueueSignal:(MTSignal *)signal
 {
     bool startSignal = false;
-    pthread_mutex_lock(&_lock);
+    os_unfair_lock_lock(&_lock);
     if (_queueMode && _executingSignal)
     {
         [_queuedSignals addObject:signal];
@@ -176,7 +164,7 @@
         _executingSignal = true;
         startSignal = true;
     }
-    pthread_mutex_unlock(&_lock);
+    os_unfair_lock_unlock(&_lock);
     
     if (startSignal)
     {
@@ -204,7 +192,7 @@
     MTSignal *nextSignal = nil;
     
     bool terminated = false;
-    pthread_mutex_lock(&_lock);
+    os_unfair_lock_lock(&_lock);
     _executingSignal = false;
     
     if (_queueMode)
@@ -220,7 +208,7 @@
     }
     else
         terminated = _terminated;
-    pthread_mutex_unlock(&_lock);
+    os_unfair_lock_unlock(&_lock);
     
     if (terminated)
         [_subscriber putCompletion];
@@ -248,10 +236,10 @@
 - (void)beginCompletion
 {
     bool executingSignal = false;
-    pthread_mutex_lock(&_lock);
+    os_unfair_lock_lock(&_lock);
     executingSignal = _executingSignal;
     _terminated = true;
-    pthread_mutex_unlock(&_lock);
+    os_unfair_lock_unlock(&_lock);
     
     if (!executingSignal)
         [_subscriber putCompletion];

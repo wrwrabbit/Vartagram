@@ -419,7 +419,7 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
             }
             
             let messageText: NSAttributedString
-            if isText, let message = arguments.message {
+            if isText, let message = arguments.message, let message_ {
                 var text: String
                 var messageEntities: [MessageTextEntity]
                 
@@ -427,8 +427,8 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
                     text = quote.text
                     messageEntities = quote.entities
                 } else {
-                    text = foldLineBreaks(message.text)
-                    messageEntities = message.textEntitiesAttribute?.entities ?? []
+                    text = foldLineBreaks(message_.text)
+                    messageEntities = message_.textEntitiesAttribute?.entities ?? []
                 }
                 
                 if let translateToLanguage = arguments.associatedData.translateToLanguage, !text.isEmpty {

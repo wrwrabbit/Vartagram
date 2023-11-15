@@ -2269,7 +2269,7 @@ public final class EntityInputView: UIInputView, AttachmentTextInputPanelInputVi
         
         let semaphore = DispatchSemaphore(value: 0)
         var emojiComponent: EmojiPagerContentComponent?
-        let _ = EmojiPagerContentComponent.emojiInputData(
+        let _ = (EmojiPagerContentComponent.emojiInputData(
             context: context,
             animationCache: self.animationCache,
             animationRenderer: self.animationRenderer,
@@ -2281,7 +2281,8 @@ public final class EntityInputView: UIInputView, AttachmentTextInputPanelInputVi
             areCustomEmojiEnabled: areCustomEmojiEnabled,
             chatPeerId: nil,
             forceHasPremium: forceHasPremium
-        ).start(next: { value in
+        )
+        |> take(1)).start(next: { value in
             emojiComponent = value
             semaphore.signal()
         })

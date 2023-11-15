@@ -728,9 +728,13 @@ public extension TelegramEngine {
             return _internal_updatePeerNameColorAndEmoji(account: self.account, peerId: peerId, nameColor: nameColor, backgroundEmojiId: backgroundEmojiId)
         }
         
-        public func getChatListPeers(filterPredicate: ChatListFilterPredicate) -> Signal<[EnginePeer], NoError> {
-            return self.account.postbox.transaction { transaction -> [EnginePeer] in
-                return transaction.getChatListPeers(groupId: .root, filterPredicate: filterPredicate, additionalFilter: nil).map(EnginePeer.init)
+        public func getChatListPeers(filterPredicate: ChatListFilterPredicate, inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError>) -> Signal<[EnginePeer], NoError> {
+            return inactiveSecretChatPeerIds
+            |> take(1)
+            |> mapToSignal { inactiveSecretChatPeerIds in
+                return self.account.postbox.transaction { transaction -> [EnginePeer] in
+                    return transaction.getChatListPeers(groupId: .root, filterPredicate: filterPredicate, additionalFilter: nil, inactiveSecretChatPeerIds: inactiveSecretChatPeerIds).map(EnginePeer.init)
+                }
             }
         }
 

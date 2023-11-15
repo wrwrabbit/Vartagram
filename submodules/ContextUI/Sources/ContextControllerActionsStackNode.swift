@@ -678,8 +678,7 @@ final class ContextControllerActionsListStackItem: ContextControllerActionsStack
             self.requestDismiss = requestDismiss
             self.items = items
             
-            weak var weakSelf: Node?
-            
+            var requestUpdateAction: ((AnyHashable, ContextMenuActionItem) -> Void)?
             self.itemNodes = items.map { item -> Item in
                 switch item {
                 case let .action(actionItem):
@@ -688,7 +687,7 @@ final class ContextControllerActionsListStackItem: ContextControllerActionsStack
                             getController: getController,
                             requestDismiss: requestDismiss,
                             requestUpdateAction: { id, action in
-                                requestUpdateAction(id, action)
+                                requestUpdateAction?(id, action)
                             },
                             item: actionItem
                         ),

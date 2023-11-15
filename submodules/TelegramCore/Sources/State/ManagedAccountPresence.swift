@@ -18,7 +18,10 @@ private final class AccountPresenceManagerImpl {
     
     private var wasOnline: Bool = false
     
-    init(queue: Queue, shouldKeepOnlinePresence: Signal<Bool, NoError>, network: Network) {
+    private var onlineUpdatePeriod: Double?
+    private var onlineUpdatePeriodMsDisposable: Disposable?
+    
+    init(queue: Queue, shouldKeepOnlinePresence: Signal<Bool, NoError>, onlineUpdatePeriodMs: Signal<Int32?, NoError>, network: Network) {
         self.queue = queue
         self.network = network
         

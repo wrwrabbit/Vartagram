@@ -1312,7 +1312,7 @@ final class ContextControllerNode: ViewControllerTracingNode, UIScrollViewDelega
     }
     
     func restoreExtractedNodes() {
-        if let presentationNode = self.presentationNode as? ContextControllerExtractedPresentationNode {
+        if let presentationNode = self.sourceContainer?.activeSource?.presentationNode as? ContextControllerExtractedPresentationNode {
             presentationNode.restoreExtractedNodes()
         }
     }

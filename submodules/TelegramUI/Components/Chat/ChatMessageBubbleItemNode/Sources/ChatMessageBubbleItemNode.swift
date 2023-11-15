@@ -1538,9 +1538,14 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 
         let (contentNodeMessagesAndClasses, needSeparateContainers, needReactions) = contentNodeMessagesAndClassesForItem(item)
         
+        var hasGiveaway = false
         var hasInstantVideo = false
         for contentNodeItemValue in contentNodeMessagesAndClasses {
             let contentNodeItem = contentNodeItemValue as (message: Message, type: AnyClass, attributes: ChatMessageEntryAttributes, bubbleAttributes: BubbleItemAttributes)
+            if contentNodeItem.type == ChatMessageGiveawayBubbleContentNode.self {
+                hasGiveaway = true
+                break
+            }
             if contentNodeItem.type == ChatMessageInstantVideoBubbleContentNode.self, !contentNodeItem.bubbleAttributes.isAttachment {
                 hasInstantVideo = true
                 break
@@ -1580,18 +1585,11 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
             maximumContentWidth -= 10.0
         }
         
-        var hasInstantVideo = false
-        for contentNodeItemValue in contentNodeMessagesAndClasses {
-            let contentNodeItem = contentNodeItemValue as (message: Message, type: AnyClass, attributes: ChatMessageEntryAttributes, bubbleAttributes: BubbleItemAttributes)
-            if contentNodeItem.type == ChatMessageGiveawayBubbleContentNode.self {
-                maximumContentWidth = 260.0
-                break
-            }
-            if contentNodeItem.type == ChatMessageInstantVideoBubbleContentNode.self, !contentNodeItem.bubbleAttributes.isAttachment {
-                maximumContentWidth = baseWidth - 20.0
-                hasInstantVideo = true
-                break
-            }
+        if hasGiveaway {
+            maximumContentWidth = 260.0
+        }
+        if hasInstantVideo {
+            maximumContentWidth = baseWidth - 20.0
         }
         
         var contentPropertiesAndPrepareLayouts: [(Message, Bool, ChatMessageEntryAttributes, BubbleItemAttributes, (_ item: ChatMessageBubbleContentItem, _ layoutConstants: ChatMessageItemLayoutConstants, _ preparePosition: ChatMessageBubblePreparePosition, _ messageSelection: Bool?, _ constrainedSize: CGSize, _ avatarInset: CGFloat) -> (ChatMessageBubbleContentProperties, CGSize?, CGFloat, (CGSize, ChatMessageBubbleContentPosition) -> (CGFloat, (CGFloat) -> (CGSize, (ListViewItemUpdateAnimation, Bool, ListViewItemApply?) -> Void))))] = []

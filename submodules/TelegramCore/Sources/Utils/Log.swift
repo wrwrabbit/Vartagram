@@ -100,6 +100,7 @@ public final class Logger {
         }
     }
     
+    #if TEST_BUILD
     public func collectLogs(prefix: String? = nil) -> Signal<[(String, String)], NoError> {
         return Signal { subscriber in
             self.queue.async {

@@ -294,6 +294,9 @@ public enum PresentationResourceKey: Int32 {
     case chatReplyServiceBackgroundTemplateImage
     
     case chatBubbleCloseIcon
+    
+    case enterSecretPasscodeIcon
+    case manageSecretPasscodesIcon
 }
 
 public enum ChatExpiredStoryIndicatorType: Hashable {

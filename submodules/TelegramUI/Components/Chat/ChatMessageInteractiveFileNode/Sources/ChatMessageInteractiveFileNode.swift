@@ -41,6 +41,14 @@ private struct FetchControls {
     let cancel: () -> Void
 }
 
+private func messageHasCompleteTransription(_ message: Message) -> Bool {
+    if let result = transcribedText(message: message), case let .success(_, isPending) = result, !isPending {
+        return true
+    } else {
+        return false
+    }
+}
+
 public final class ChatMessageInteractiveFileNode: ASDisplayNode {
     public final class Arguments {
         public let context: AccountContext

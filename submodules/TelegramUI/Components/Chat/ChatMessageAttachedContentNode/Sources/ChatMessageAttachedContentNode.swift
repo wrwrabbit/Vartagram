@@ -1,3 +1,5 @@
+import PtgForeignAgentNoticeRemoval
+
 import Foundation
 import UIKit
 import Postbox
@@ -480,16 +482,19 @@ public final class ChatMessageAttachedContentNode: ASDisplayNode {
                         }
                     case .text:
                         if let text = text, !text.isEmpty {
-                            var cutout: TextNodeCutout?
-                            if remainingCutoutHeight > 0.0 {
-                                cutout = TextNodeCutout(topRight: CGSize(width: cutoutWidth, height: remainingCutoutHeight))
+                            let (text_, entities_) = context.shouldSuppressForeignAgentNotice(in: message) ? removeForeignAgentNotice(text: text, entities: entities ?? [], mayRemoveWholeText: true) : (text, entities ?? [])
+                            if !text_.isEmpty {
+                                var cutout: TextNodeCutout?
+                                if remainingCutoutHeight > 0.0 {
+                                    cutout = TextNodeCutout(topRight: CGSize(width: cutoutWidth, height: remainingCutoutHeight))
+                                }
+                                
+                                let textString = stringWithAppliedEntities(text_, entities: entities_, baseColor: messageTheme.primaryTextColor, linkColor: incoming ? mainColor : messageTheme.linkTextColor, baseFont: textFont, linkFont: textFont, boldFont: textBoldFont, italicFont: textItalicFont, boldItalicFont: textBoldItalicFont, fixedFont: textFixedFont, blockQuoteFont: textBlockQuoteFont, message: nil, adjustQuoteFontSize: true)
+                                let textLayoutAndApplyValue = makeTextLayout(TextNodeLayoutArguments(attributedString: textString, backgroundColor: nil, maximumNumberOfLines: 12, truncationType: .end, constrainedSize: CGSize(width: maxContentsWidth, height: 10000.0), alignment: .natural, lineSpacing: textLineSpacing, cutout: cutout, insets: UIEdgeInsets()))
+                                textLayoutAndApply = textLayoutAndApplyValue
+                                
+                                remainingCutoutHeight -= textLayoutAndApplyValue.0.size.height
                             }
-                            
-                            let textString = stringWithAppliedEntities(text, entities: entities ?? [], baseColor: messageTheme.primaryTextColor, linkColor: incoming ? mainColor : messageTheme.linkTextColor, baseFont: textFont, linkFont: textFont, boldFont: textBoldFont, italicFont: textItalicFont, boldItalicFont: textBoldItalicFont, fixedFont: textFixedFont, blockQuoteFont: textBlockQuoteFont, message: nil, adjustQuoteFontSize: true)
-                            let textLayoutAndApplyValue = makeTextLayout(TextNodeLayoutArguments(attributedString: textString, backgroundColor: nil, maximumNumberOfLines: 12, truncationType: .end, constrainedSize: CGSize(width: maxContentsWidth, height: 10000.0), alignment: .natural, lineSpacing: textLineSpacing, cutout: cutout, insets: UIEdgeInsets()))
-                            textLayoutAndApply = textLayoutAndApplyValue
-                            
-                            remainingCutoutHeight -= textLayoutAndApplyValue.0.size.height
                         }
                     case .media, .file, .actionButton:
                         break
@@ -566,13 +571,15 @@ public final class ChatMessageAttachedContentNode: ASDisplayNode {
                     contentFileFinalizeLayout = nil
                 }
                 
+                let hideReactions = message.isPeerBroadcastChannel && context.sharedContext.currentPtgSettings.with { $0.hideReactionsInChannels }
+                
                 var edited = false
                 if attributes.updatingMedia != nil {
                     edited = true
                 }
                 var viewCount: Int?
                 var dateReplies = 0
-                var dateReactionsAndPeers = mergedMessageReactionsAndPeers(accountPeer: associatedData.accountPeer, message: message)
+                var dateReactionsAndPeers = !hideReactions ? mergedMessageReactionsAndPeers(accountPeer: associatedData.accountPeer, message: message) : (reactions: [], peers: [])
                 if message.isRestricted(platform: "ios", contentSettings: context.currentContentSettings.with { $0 }) {
                     dateReactionsAndPeers = ([], [])
                 }

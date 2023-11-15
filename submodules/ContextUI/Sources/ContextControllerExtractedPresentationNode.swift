@@ -1499,7 +1499,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
     }
     
     func restoreExtractedNodes() {
-        if let contentNode = self.contentNode {
+        if let contentNode = self.itemContentNode {
             contentNode.containingItem.willUpdateIsExtractedToContextPreview?(false, .immediate)
             contentNode.containingItem.isExtractedToContextPreview = false
             contentNode.containingItem.isExtractedToContextPreviewUpdated?(false)

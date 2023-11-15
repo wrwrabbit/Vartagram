@@ -1337,7 +1337,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                 }
             }*/
             
-            func finishLayout(_ animation: ListViewItemUpdateAnimation, _ apply: ListViewItemApply, _ synchronousLoads: Bool) {
+            func finishLayout(_ animation: ListViewItemUpdateAnimation, _ apply: ListViewItemApply, _ synchronousLoads: Bool, _ disablesComments: Bool) {
                 if let strongSelf = weakSelf.value {
                     strongSelf.appliedForwardInfo = (forwardSource, forwardAuthorSignature)
                     strongSelf.updateAccessibilityData(accessibilityData)

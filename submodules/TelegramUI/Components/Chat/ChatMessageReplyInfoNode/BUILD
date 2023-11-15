@@ -10,6 +10,8 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
+        "//submodules/PtgForeignAgentNoticeRemoval",
+        
         "//submodules/AsyncDisplayKit",
         "//submodules/Postbox",
         "//submodules/Display",

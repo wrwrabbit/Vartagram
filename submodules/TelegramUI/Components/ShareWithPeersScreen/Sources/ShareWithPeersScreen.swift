@@ -2789,7 +2789,7 @@ final class ShareWithPeersScreenComponent: Component {
     }
 }
 
-public class ShareWithPeersScreen: ViewControllerComponentContainer {    
+public class ShareWithPeersScreen: ViewControllerComponentContainer {
     private let context: AccountContext
     
     private var isCustomModal = true

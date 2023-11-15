@@ -707,8 +707,8 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                 }
                 messageText = NSAttributedString(string: text, font: textFont, textColor: theme.chat.inputPanel.primaryTextColor)
             } else if isText {
-                var text = message.text
-                var messageEntities = message.textEntitiesAttribute?.entities ?? []
+                var text = message_.text
+                var messageEntities = message_.textEntitiesAttribute?.entities ?? []
                 
                 if let translateToLanguage = translateToLanguage, !text.isEmpty {
                     for attribute in message.attributes {
