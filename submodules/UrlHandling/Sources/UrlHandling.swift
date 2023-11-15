@@ -1089,10 +1089,14 @@ public func resolveUrlImpl(context: AccountContext, peerId: PeerId?, url: String
             
             var skipUrlAuth = skipUrlAuth
             if let peerId = peerId, peerId.namespace == Namespaces.Peer.SecretChat {
-                if let linkPreviews = linkPreviews, linkPreviews {
-                } else {
+//                if let linkPreviews = linkPreviews, linkPreviews {
+//                } else {
                     skipUrlAuth = true
-                }
+//                }
+            }
+            
+            if context.immediateIsHidable {
+                skipUrlAuth = true
             }
             
             var url = url
