@@ -707,6 +707,7 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
         items[section] = []
     }
     
+    /*
     let setPhotoTitle: String
     let displaySetPhoto: Bool
     if let peer = data.peer, !peer.profileImageRepresentations.isEmpty {
@@ -716,6 +717,7 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
         setPhotoTitle = presentationData.strings.Settings_SetProfilePhotoOrVideo
         displaySetPhoto = true
     }
+    */
     
     var setStatusTitle: String = ""
     let displaySetStatus: Bool
@@ -738,6 +740,7 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
         }))
     }
     
+    /*
     if displaySetPhoto {
         items[.edit]!.append(PeerInfoScreenActionItem(id: 1, text: setPhotoTitle, icon: UIImage(bundleImageName: "Settings/SetAvatar"), action: {
             interaction.openSettings(.avatar)
@@ -748,6 +751,7 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
             interaction.openSettings(.username)
         }))
     }
+    */
     
     if let settings = data.globalSettings {
         if settings.suggestPhoneNumberConfirmation, let peer = data.peer as? TelegramUser {
@@ -808,9 +812,11 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
                 }))
             }
             
+            /*
             items[.accounts]!.append(PeerInfoScreenActionItem(id: 100, text: presentationData.strings.Settings_AddAccount, icon: PresentationResourcesItemList.plusIconImage(presentationData.theme), action: {
                 interaction.openSettings(.addAccount)
             }))
+            */
         }
         
         if !settings.proxySettings.servers.isEmpty {
