@@ -405,7 +405,7 @@ static NSDictionary<NSString *, NSString *> * _Nonnull replaceAppName(NSDictiona
             value = [value stringByReplacingOccurrencesOfString:originalTitle withString:appTitle];
             if ([key isEqualToString:@"Conversation.UnsupportedMedia"]) {
                 // using 'https:' because 'itms-apps:' links will not be clickable
-                NSString *appStoreLink = [NSString stringWithFormat:@"https://itunes.apple.com/app/id%ld", APP_CONFIG_APPSTORE_ID];
+                NSString *appStoreLink = [NSString stringWithFormat:@"https://itunes.apple.com/app/id%ld", (long)APP_CONFIG_APPSTORE_ID];
                 value = [value stringByReplacingOccurrencesOfString:@"https://telegram.org/update" withString:appStoreLink];
             }
             if ([key isEqualToString:@"Conversation.UpdateTelegram"]) {
