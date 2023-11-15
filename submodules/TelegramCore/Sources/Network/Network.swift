@@ -666,6 +666,9 @@ private final class NetworkHelper: NSObject, MTContextChangeListener {
         self.contextLoggedOutUpdated = contextLoggedOutUpdated
     }
     
+    deinit {
+    }
+    
     func fetchContextDatacenterPublicKeys(_ context: MTContext, datacenterId: Int) -> MTSignal {
         return MTSignal { subscriber in
             let disposable = self.requestPublicKeys(datacenterId).start(next: { next in
@@ -741,6 +744,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     private let queue: Queue
     public let datacenterId: Int
     public let context: MTContext
+    private var networkHelper: NetworkHelper?
     let mtProto: MTProto
     let requestService: MTRequestMessageService
     let basePath: String
@@ -817,7 +821,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
         }
         
         let _contextProxyId = self._contextProxyId
-        context.add(NetworkHelper(requestPublicKeys: { [weak self] id in
+        let networkHelper = NetworkHelper(requestPublicKeys: { [weak self] id in
             if let strongSelf = self {
                 return strongSelf.request(Api.functions.help.getCdnConfig())
                 |> map(Optional.init)
@@ -858,7 +862,9 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
         }, contextLoggedOutUpdated: { [weak self] in
             Logger.shared.log("Network", "contextLoggedOut")
             self?.loggedOut?()
-        }))
+        })
+        self.networkHelper = networkHelper
+        context.add(networkHelper)
         requestService.delegate = self
         
         self._multiplexedRequestManager = MultiplexedRequestManager(takeWorker: { [weak self] target, tag, continueInBackground in
