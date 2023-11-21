@@ -6,6 +6,7 @@ on:
 jobs:
   build:
     runs-on: macos-13
+    if: github.ref == 'refs/heads/master'
 
     steps:
       - uses: actions/checkout@v3
