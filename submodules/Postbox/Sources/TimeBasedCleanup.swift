@@ -16,6 +16,7 @@ private struct ScanFilesResult {
 }
 
 public func printOpenFiles() {
+    #if TEST_BUILD
     var flags: Int32 = 0
     var fd: Int32 = 0
     var buf = Data(count: Int(MAXPATHLEN) + 1)
@@ -39,6 +40,7 @@ public func printOpenFiles() {
         
         fd += 1
     }
+    #endif
 }
 
 private final class TempScanDatabase {

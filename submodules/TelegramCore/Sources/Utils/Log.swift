@@ -246,6 +246,7 @@ public final class Logger {
     }
     
     public func log(_ tag: String, _ what: @autoclosure () -> String) {
+        #if TEST_BUILD
         if !self.logToFile && !self.logToConsole {
             return
         }
@@ -358,6 +359,7 @@ public final class Logger {
                 }
             }
         }
+        #endif
     }
     
     public func shortLog(_ tag: String, _ what: @autoclosure () -> String) {

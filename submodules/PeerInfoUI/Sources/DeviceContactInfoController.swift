@@ -592,7 +592,7 @@ private struct EditingPhoneNumber: Equatable {
 
 private struct DeviceContactInfoState: Equatable {
     var savingData: Bool = false
-    var addToPrivacyExceptions: Bool = true
+    var addToPrivacyExceptions: Bool = false // do not share my phone number by default
     var editingState: DeviceContactInfoEditingState? = nil
     var excludedComponents = Set<DeviceContactInfoDataId>()
     var phoneNumbers: [EditingPhoneNumber] = []

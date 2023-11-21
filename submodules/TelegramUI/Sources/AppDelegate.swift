@@ -909,6 +909,7 @@ extension UserDefaults {
         })
         
         let sharedContextSignal = initialPresentationDataAndSettingsPromise.get()
+        |> take(1)
         |> map { initialPresentationDataAndSettings -> (AccountManager, InitialPresentationDataAndSettings) in
             return (accountManager, initialPresentationDataAndSettings)
         }
@@ -2168,6 +2169,7 @@ extension UserDefaults {
         } else {
             guard var encryptedPayload = payload.dictionaryPayload["p"] as? String else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "encryptedPayload is nil")
+                Logger.shared.sync()
                 completion()
                 return
             }
@@ -2178,16 +2180,19 @@ extension UserDefaults {
             }
             guard let payloadData = Data(base64Encoded: encryptedPayload) else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "Couldn't decode encryptedPayload")
+                Logger.shared.sync()
                 completion()
                 return
             }
             guard let keyId = notificationPayloadKeyId(data: payloadData) else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "Couldn't parse payload key id")
+                Logger.shared.sync()
                 completion()
                 return
             }
             guard let accountManagerState = self.accountManagerState else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "accountManagerState is nil")
+                Logger.shared.sync()
                 completion()
                 return
             }
@@ -2205,16 +2210,19 @@ extension UserDefaults {
 
             guard let accountId = maybeAccountId, let notificationKey = maybeNotificationKey else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "accountId or notificationKey is nil")
+                Logger.shared.sync()
                 completion()
                 return
             }
             guard let decryptedPayload = decryptedNotificationPayload(key: notificationKey, data: payloadData) else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "Couldn't decrypt payload")
+                Logger.shared.sync()
                 completion()
                 return
             }
             guard let payloadJson = try? JSONSerialization.jsonObject(with: decryptedPayload, options: []) as? [AnyHashable: Any] else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "Couldn't decode payload json")
+                Logger.shared.sync()
                 completion()
                 return
             }
@@ -2224,16 +2232,16 @@ extension UserDefaults {
         
         guard let (payloadJson, accountId) = decryptedPayloadAndAccountId else {
             Logger.shared.log("App \(self.episodeId) PushRegistry", "decryptedPayloadAndAccountId is nil")
+            Logger.shared.sync()
             completion()
             return
         }
         
-        if !Logger.shared.redactSensitiveData {
-            Logger.shared.log("App \(self.episodeId) PushRegistry", "decrypted payload: \(payloadJson)")
-        }
+        Logger.shared.log("App \(self.episodeId) PushRegistry", "decrypted payload: \(payloadJson)")
         
         guard var updateString = payloadJson["updates"] as? String else {
             Logger.shared.log("App \(self.episodeId) PushRegistry", "updates is nil")
+            Logger.shared.sync()
             completion()
             return
         }
@@ -2245,11 +2253,13 @@ extension UserDefaults {
         }
         guard let updateData = Data(base64Encoded: updateString) else {
             Logger.shared.log("App \(self.episodeId) PushRegistry", "Couldn't decode updateData")
+            Logger.shared.sync()
             completion()
             return
         }
         guard let callUpdate = AccountStateManager.extractIncomingCallUpdate(data: updateData) else {
             Logger.shared.log("App \(self.episodeId) PushRegistry", "Couldn't extract call update")
+            Logger.shared.sync()
             completion()
             return
         }
@@ -2268,11 +2278,12 @@ extension UserDefaults {
             }
         }
         
-        let _ = (combineLatest(self.sharedContextPromise.get(), useCallKitIntegration)
+        let _ = (useCallKitIntegration
         |> take(1)
-        |> deliverOnMainQueue).start(next: { sharedApplicationContext, useCallKitIntegration in
+        |> deliverOnMainQueue).start(next: { useCallKitIntegration in
             guard useCallKitIntegration else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "CallKitIntegration is disabled")
+                Logger.shared.sync()
                 if #available(iOS 13.0, *) {
                     assertionFailure()
                 } else {
@@ -2285,6 +2296,7 @@ extension UserDefaults {
             
             guard let callKitIntegration = CallKitIntegration.shared else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "CallKitIntegration is not available")
+                Logger.shared.sync()
                 completion()
                 return
             }
@@ -2314,51 +2326,56 @@ extension UserDefaults {
                 }
             )
             
-            let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
+            let _ = (self.sharedContextPromise.get()
             |> take(1)
-            |> deliverOnMainQueue).start(next: { activeAccounts in
-                var processed = false
-                for (_, context, _) in activeAccounts.accounts {
-                    if context.account.id == accountId {
-                        context.account.stateManager.processIncomingCallUpdate(data: updateData, completion: { _ in
-                        })
-                        
-                        //callUpdate.callId
-                        let disposable = MetaDisposable()
-                        self.watchedCallsDisposables.add(disposable)
-                        
-                        disposable.set((context.account.callSessionManager.callState(internalId: CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId))
-                        |> deliverOnMainQueue).start(next: { state in
-                            switch state.state {
-                            case .terminated:
-                                callKitIntegration.dropCall(uuid: CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId))
-                            default:
-                                break
-                            }
-                        }))
-                        
-                        processed = true
-                        
-                        break
+            |> deliverOnMainQueue).start(next: { sharedApplicationContext in
+                let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
+                |> take(1)
+                |> deliverOnMainQueue).start(next: { activeAccounts in
+                    var processed = false
+                    for (_, context, _) in activeAccounts.accounts {
+                        if context.account.id == accountId {
+                            context.account.stateManager.processIncomingCallUpdate(data: updateData, completion: { _ in
+                            })
+                            
+                            //callUpdate.callId
+                            let disposable = MetaDisposable()
+                            self.watchedCallsDisposables.add(disposable)
+                            
+                            disposable.set((context.account.callSessionManager.callState(internalId: CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId))
+                            |> deliverOnMainQueue).start(next: { state in
+                                switch state.state {
+                                case .terminated:
+                                    callKitIntegration.dropCall(uuid: CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId))
+                                default:
+                                    break
+                                }
+                            }))
+                            
+                            processed = true
+                            
+                            break
+                        }
                     }
-                }
+                    
+                    if !processed {
+                        callKitIntegration.dropCall(uuid: CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId))
+                    }
+                })
                 
-                if !processed {
-                    callKitIntegration.dropCall(uuid: CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId))
+                sharedApplicationContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0)
+                
+                // take a chance to deactivate secret passcodes if app was waken up to process push-notification
+                sharedApplicationContext.sharedContext.appLockContext.secretPasscodesTimeoutCheck(completion: nil)
+                
+                if case PKPushType.voIP = type {
+                    Logger.shared.log("App \(self.episodeId) PushRegistry", "pushRegistry payload: \(payload.dictionaryPayload)")
+                    sharedApplicationContext.notificationManager.addNotification(payload.dictionaryPayload)
                 }
             })
             
-            sharedApplicationContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0)
-
-            // take a chance to deactivate secret passcodes if app was waken up to process push-notification
-            sharedApplicationContext.sharedContext.appLockContext.secretPasscodesTimeoutCheck(completion: nil)
-            
-            if case PKPushType.voIP = type {
-                Logger.shared.log("App \(self.episodeId) PushRegistry", "pushRegistry payload: \(payload.dictionaryPayload)")
-                sharedApplicationContext.notificationManager.addNotification(payload.dictionaryPayload)
-            }
-            
             Logger.shared.log("App \(self.episodeId) PushRegistry", "Invoking completion handler")
+            Logger.shared.sync()
             
             completion()
         })

@@ -142,7 +142,7 @@ private final class TempBoxContexts {
     }
 }
 
-private var sharedValue: TempBox?
+private let sharedValue = Atomic<TempBox?>(value: nil)
 
 public final class TempBox {
     private let basePath: String
@@ -153,11 +153,13 @@ public final class TempBox {
     private let contexts = Atomic<TempBoxContexts>(value: TempBoxContexts())
     
     public static func initializeShared(basePath: String, processType: String, launchSpecificId: Int64) {
-        sharedValue = TempBox(basePath: basePath, processType: processType, launchSpecificId: launchSpecificId)
+        let _ = sharedValue.modify { current in
+            return current ?? TempBox(basePath: basePath, processType: processType, launchSpecificId: launchSpecificId)
+        }
     }
     
     public static var shared: TempBox {
-        return sharedValue!
+        return sharedValue.with({ $0 })!
     }
     
     private init(basePath: String, processType: String, launchSpecificId: Int64) {

@@ -366,9 +366,6 @@ public final class SqliteValueBox: ValueBox {
             } else {
                 postboxLog("Encryption key is required")
                 if isReadOnly || !self.removeDatabaseOnError {
-                    #if TEST_BUILD
-                    Thread.sleep(forTimeInterval: 0.5) // for logging to complete before crash
-                    #endif
                     return nil
                 }
                 

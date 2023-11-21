@@ -56,7 +56,7 @@ public final class Database {
             } else {
                 postboxLog("sqlite3_open_v2 sys err: unknown")
             }
-            Thread.sleep(forTimeInterval: 0.5) // for logging to complete before crash
+            postboxLogSync()
             #endif
             return nil
         }

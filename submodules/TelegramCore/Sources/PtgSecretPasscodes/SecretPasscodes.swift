@@ -198,8 +198,10 @@ public struct PtgSecretPasscodes: Codable, Equatable {
                 return sp.withUpdated(active: sp.active && (sp.timeout == nil || !isSecretPasscodeTimedout(timeout: sp.timeout!, state: state)))
             }, dbCoveringAccounts: self.dbCoveringAccounts, cacheCoveringAccounts: self.cacheCoveringAccounts)
         } else {
-            assertionFailure()
-            return self
+            precondition(!FileManager.default.fileExists(atPath: appLockStatePath(rootPath: rootPath)))
+            return PtgSecretPasscodes(secretPasscodes: self.secretPasscodes.map { sp in
+                return sp.withUpdated(active: false)
+            }, dbCoveringAccounts: self.dbCoveringAccounts, cacheCoveringAccounts: self.cacheCoveringAccounts)
         }
     }
 }
