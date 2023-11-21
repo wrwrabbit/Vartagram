@@ -1,73 +1,8 @@
 "PasscodeSettings.AutoLock.IfAwayFor_10seconds" = "Неадкладна";
 
-"PasscodeSettings.FakePasscodes" = "Несапраўдныя кады доступу";
-"PasscodeSettings.FakePasscode" = "Несапраўдны код доступу %1$d";
-"PasscodeSettings.AddFakePasscode" = "Дадаць несапраўдны код доступу";
-"PasscodeSettings.FakePasscodeHelp" = "Пры ўводзе несапраўднага кода доступу выконваюцца выбранныя дзеянні.";
 "PasscodeSettings.PasscodeInUse" = "Гэты код ужо выкарыстоўваецца";
-"PasscodeSettings.ConfirmDeletion" = "Пацвердзіце выдаленне";
-"PasscodeSettings.AllFakePasscodesWillBeDeleted" = "Усе несапраўдныя кады доступу будць выдалены. Жадаеце працягнуць?";
-
-"PasscodeSettings.FakePasscodeChangeName" = "Змяніць назву";
-"PasscodeSettings.FakePasscodeChange" = "Змяніць несапраўдны код блакіроўкі";
-"PasscodeSettings.FakePasscodeChangeHelp" = "Вы можаце змяніць несапраўдны код блакіроўкі, не выдаляя яго.";
-"PasscodeSettings.FakePasscodeAllowLogin" = "Уваходзіць з несапраўдным кодам блакіроўкі";
-"PasscodeSettings.FakePasscodeAllowLoginHelp" = "Вы можаце забараніць уваход з гэтым несапраўдным кодам блакіроўкі. У такім выпадку зламыснік не атрымае доступ да акаунтаў, але зазначанныя дзеянні будуць выкананы.";
-"PasscodeSettings.FakePasscodeClearAfterActivation" = "Чысціць налады код-пароля";
-"PasscodeSettings.FakePasscodeClearAfterActivationHelp" = "Усе налады несапраўднага код-пароля пасля актывацыі будуць выдаляцца і зламыснік не зможа атрымаць да іх доступ.";
-"PasscodeSettings.DeleteOtherPasscodesAfterActivation" = "Выдаляць іншыя код-паролі";
-"PasscodeSettings.DeleteOtherPasscodesAfterActivationHelp" = "Усе астатнія несапраўдныя код-паролі пасля актывацыі будуць выдалены і зламыснік не зможа атрымаць да іх доступ.";
-"PasscodeSettings.FakePasscodeActivationMessage" = "Паведамленне-актыватар";
-"PasscodeSettings.FakePasscodeActivationMessageHelp" = "Дзеянні з несапраўдным кодам блакіроўкі будуць выкананы пры атрыманні паведамлення-актыватара ў любым чаце.";
-"PasscodeSettings.BadPasscodeTriesToActivate" = "Ліміт спроб уваходу для актывацыі";
-"PasscodeSettings.BadPasscodeTriesToActivateHelp" = "Дзеянні з несапраўдным кодам блакіроўкі будуць выкананы пасля адзначанай колькасці няўдалых спроб уводу кода блакіроўкі.";
-"PasscodeSettings.FakePasscodeActionsTitle" = "Дзеянні";
-"PasscodeSettings.FakePasscodeSmsActionTitle" = "СМС";
-"PasscodeSettings.ClearTelegramCache" = "Ачышчаць кэш Vartagram";
-"PasscodeSettings.ClearProxiesOnFakeLogin" = "Ачышчаць спіс проксі";
-"PasscodeSettings.FakePasscodeActionsHelp" = "Пры ўводзе несапраўднага кода блакіроўкі выконваюцца выбраныя дзеянні.";
-"PasscodeSettings.FakePasscodeAccountsTitle" = "Дзеянні для акаўнтаў";
-"PasscodeSettings.FakePasscodeAccountsHelp" = "Наладзьце дзеянні для акаўнтаў.";
-"PasscodeSettings.FakePasscodeDelete" = "Выдаліць несапраўдны код блакіроўкі";
-"PasscodeSettings.FakePasscodeDeleteHelp" = "Калі Вы выдаліце несапраўдны код блакіроўкі, усе дзеянні будуць ачышчаны. Вы можаце змяніць код блакіроўкі, калі не хочаце выдаляць яго.";
-
-"PasscodeSettings.FakePasscodeDeleteTitle" = "Выдаліць несапраўдны код блакіроўкі";
-"PasscodeSettings.FakePasscodeDeleteMessage" = "Вы дакладна хочаце выдаліць гэты несапраўдны код блакіроўкі?";
 
 "Settings.Version" = "Vartagram %1$@ (%2$@)\nНа аснове арыгінальнага Telegram %3$@";
-
-"FakePasscodes.Common.DoNotShowAgain" = "Больш не паказваць";
-
-"FakePasscodes.AccountActions.ChatsToRemove" = "Чаты для выдалення";
-"FakePasscodes.AccountActions.ChatsToRemove.ConfiguredChatsHeader" = "Наладжаныя чаты";
-"FakePasscodes.AccountActions.ChatsToRemove.AvailableChatsHeader" = "Даступныя чаты";
-"FakePasscodes.AccountActions.ChatsToRemove.EmptyListInfo" = "Чаты не знойдзены.";
-"FakePasscodes.AccountActions.ChatsToRemove.SettingsTitle" = "Налады выдалення чатаў";
-"FakePasscodes.AccountActions.ChatsToRemove.SelectedChatsHeader" = "Выбраныя чаты";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeHeader" = "Дзеянне";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeDelete" = "Выдаліць";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeDeleteForEveryone" = "Выдаліць для ўсіх";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeDeleteJustForMe" = "Выдаліць толькі для мяне";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeHide" = "Схаваць";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeInfo" = "Калі была абраная опцыя \"Схаваць\", дыялогі (чаты, каналы) не будуць выдаленыя. Яны будуць схаваныя са спісу дыялогаў. Іх апавяшчэнні таксама будуць схаваныя. Пасля ўваходу з арыгінальным код-паролем дыялогі (чаты, каналы) з'явяцца ў спісе. Больш бяспечна выкарыстоўваць выдаленне.";
-"FakePasscodes.AccountActions.ChatsToRemove.DeleteFromCompanion" = "Выдаліць у суразмоўцы";
-"FakePasscodes.AccountActions.ChatsToRemove.DeleteFromCompanionInfo" = "Выдаліць дыялогі ў суразмоўцаў. Гэтая опцыя прымяняецца толькі для дыялогаў з карыстальнікамі.";
-"FakePasscodes.AccountActions.SessionsToHide" = "Сеансы для хавання";
-"FakePasscodes.AccountActions.SessionsToTerminate" = "Сеансы для завяршэння";
-"FakePasscodes.AccountActions.All" = "Усе";
-"FakePasscodes.AccountActions.AllExceptCount" = "Усе (-%1$@)";
-"FakePasscodes.AccountActions.SessionsSettingsInfo" = "Абярыце сеансы, якія будуць бачны ў наладах і/альбо завершаны пасля актывацыі несапраўднага кода блакіроўкі.";
-"FakePasscodes.AccountActions.LogOut" = "Выходзіць з акаўнту";
-"FakePasscodes.AccountActions.MiscActionsInfo" = "Пры ўводзе несапраўднага кода блакіроўкі выконваюцца выбраныя дзеянні.";
-
-"AccountActions.SessionsToHide.Clear" = "Clear";
-"AccountActions.SessionsToHide.CheckAll" = "Выбраць усе";
-"AccountActions.SessionsToHide.Selected" = "Абраныя";
-"AccountActions.SessionsToHide.ExceptSelected" = "Акрамя абраных";
-"AccountActions.SessionsToHide.ActiveSessions" = "Актыўныя сеансы";
-"AccountActions.SessionsToHide.CleanConfirmation" = "Вы ўпэўнены?";
-
-"AccountActions.SessionsToTerminate.24hWarningMessage" = "Гэта функцыя не будзе працавать, калі пасля увахода ў аккаўнт на гэтым дэвайсе прайшло менш за 24 гадзіны.";
 
 "PtgSettings.Title" = "Vartagram";
 "PtgSettings.ShowPeerId" = "Паказваць ID профіляў";
