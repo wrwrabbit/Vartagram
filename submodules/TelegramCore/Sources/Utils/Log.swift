@@ -5,6 +5,7 @@ import TelegramApi
 import NetworkLogging
 import ManagedFile
 
+#if TEST_BUILD
 public func registerLoggingFunctions() {
     setBridgingTraceFunction({ domain, what in
         if let what = what {
@@ -29,6 +30,7 @@ public func registerLoggingFunctions() {
         Logger.shared.shortLog("Api", what as String)
     })
 }
+#endif
 
 private var sharedLogger: Logger?
 
@@ -45,7 +47,7 @@ public final class Logger {
     private var file: (ManagedFile, Int)?
     private var shortFile: (ManagedFile, Int)?
     
-    public var logToFile: Bool = false {
+    public var logToFile: Bool = LoggingSettings.defaultSettings.logToFile {
         didSet {
             let oldEnabled = self.logToConsole || oldValue
             let newEnabled = self.logToConsole || self.logToFile
@@ -67,12 +69,15 @@ public final class Logger {
     
     public static func setSharedLogger(_ logger: Logger) {
         sharedLogger = logger
+        #if TEST_BUILD
         setPostboxLogger({ s in
             Logger.shared.log("Postbox", s)
             Logger.shared.shortLog("Postbox", s)
         }, sync: {
             Logger.shared.sync()
         })
+        NetworkSetLoggingEnabled(logger.logToFile || logger.logToConsole)
+        #endif
     }
     
     public static var shared: Logger {
@@ -93,11 +98,13 @@ public final class Logger {
     }
     
     public func sync() {
+        #if TEST_BUILD
         self.queue.sync {
             if let (currentFile, _) = self.file {
                 let _ = currentFile.sync()
             }
         }
+        #endif
     }
     
     #if TEST_BUILD
@@ -177,6 +184,7 @@ public final class Logger {
     }
     #endif
     
+    /*
     public func collectShortLog() -> Signal<[(Double, String)], NoError> {
         return Signal { subscriber in
             self.queue.async {
@@ -244,6 +252,7 @@ public final class Logger {
             return EmptyDisposable
         }
     }
+    */
     
     public func log(_ tag: String, _ what: @autoclosure () -> String) {
         #if TEST_BUILD
@@ -362,6 +371,7 @@ public final class Logger {
         #endif
     }
     
+    #if TEST_BUILD
     public func shortLog(_ tag: String, _ what: @autoclosure () -> String) {
         let string = what()
         
@@ -466,6 +476,7 @@ public final class Logger {
             }
         }
     }
+    #endif
     
     public func cleanLogFiles(rootPath: String) {
         self.queue.async {

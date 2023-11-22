@@ -159,8 +159,10 @@ private class MTProtoConnectionStatusDelegate: NSObject, MTProtoDelegate {
 }
 
 private var registeredLoggingFunctions: Void = {
+    #if TEST_BUILD
     NetworkRegisterLoggingFunction()
     registerLoggingFunctions()
+    #endif
 }()
 
 private enum UsageCalculationConnection: Int32 {

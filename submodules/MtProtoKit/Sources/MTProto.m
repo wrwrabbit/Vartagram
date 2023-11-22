@@ -409,7 +409,7 @@ static const NSUInteger MTMaxUnacknowledgedMessageCount = 64;
             if (MTLogEnabled()) {
                 MTLogWithPrefix(_getLogPrefix, @"[MTProto#%p@%p begin time sync]", self, _context);
             }
-            MTLogWithPrefix(_getLogPrefix, @"[MTProto#%p@%p begin time sync]", self, _context);
+            MTShortLog(@"[MTProto#%p@%p begin time sync]", self, _context);
             
             MTTimeSyncMessageService *timeSyncService = [[MTTimeSyncMessageService alloc] init];
             timeSyncService.delegate = self;

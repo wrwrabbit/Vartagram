@@ -1300,6 +1300,7 @@ public class Account {
     }
     
     private func postSmallLogIfNeeded() {
+        /*
         let timestamp = CFAbsoluteTimeGetCurrent()
         if self.lastSmallLogPostTimestamp == nil || self.lastSmallLogPostTimestamp! < timestamp - 30.0 {
             self.lastSmallLogPostTimestamp = timestamp
@@ -1320,6 +1321,7 @@ public class Account {
                 }
             }).start())
         }
+        */
     }
     
     public func resetStateManagement() {
