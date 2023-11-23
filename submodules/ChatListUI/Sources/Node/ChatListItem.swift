@@ -937,6 +937,11 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
     let contextContainer: ContextControllerSourceNode
     let mainContentContainerNode: ASDisplayNode
     
+    private let contextSourceNode: ContextExtractedContentContainingNode
+    private let extractedBackgroundImageNode: ASImageNode
+    private var extractedRect: CGRect?
+    private var nonExtractedRect: CGRect?
+    
     let avatarContainerNode: ASDisplayNode
     let avatarNode: AvatarNode
     var avatarIconView: ComponentHostView<Empty>?
@@ -1254,6 +1259,12 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.separatorNode = ASDisplayNode()
         self.separatorNode.isLayerBacked = true
         
+        self.contextSourceNode = ContextExtractedContentContainingNode()
+        
+        self.extractedBackgroundImageNode = ASImageNode()
+        self.extractedBackgroundImageNode.displaysAsynchronously = false
+        self.extractedBackgroundImageNode.alpha = 0.0
+        
         super.init(layerBacked: false, dynamicBounce: false, rotated: false, seeThrough: false)
         
         self.isAccessibilityElement = true
@@ -1261,11 +1272,14 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.addSubnode(self.backgroundNode)
         self.addSubnode(self.separatorNode)
         
+        self.contextContainer.addSubnode(self.contextSourceNode)
+        self.contextContainer.targetNodeForActivationProgress = self.contextSourceNode.contentNode
         self.addSubnode(self.contextContainer)
-        self.contextContainer.addSubnode(self.mainContentContainerNode)
+        self.contextSourceNode.contentNode.addSubnode(self.extractedBackgroundImageNode)
+        self.contextSourceNode.contentNode.addSubnode(self.mainContentContainerNode)
         
         self.avatarContainerNode.addSubnode(self.avatarNode)
-        self.contextContainer.addSubnode(self.avatarContainerNode)
+        self.contextSourceNode.contentNode.addSubnode(self.avatarContainerNode)
         self.avatarNode.addSubnode(self.onlineNode)
         
         self.mainContentContainerNode.addSubnode(self.titleNode)
@@ -1302,7 +1316,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
                 strongSelf.contextContainer.targetNodeForActivationProgress = strongSelf.compoundTextButtonNode
                 strongSelf.contextContainer.additionalActivationProgressLayer = strongSelf.compoundHighlightingNode?.layer
             } else {
-                strongSelf.contextContainer.targetNodeForActivationProgress = nil
+                strongSelf.contextContainer.targetNodeForActivationProgress = strongSelf.contextSourceNode.contentNode
             }
             
             return true
@@ -1328,6 +1342,27 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
             let avatarTapRecognizer = UITapGestureRecognizer(target: self, action: #selector(self.avatarStoryTapGesture(_:)))
             self.avatarTapRecognizer = avatarTapRecognizer
             self.avatarNode.view.addGestureRecognizer(avatarTapRecognizer)
+        }
+        
+        self.contextSourceNode.willUpdateIsExtractedToContextPreview = { [weak self] isExtracted, transition in
+            guard let strongSelf = self, let item = strongSelf.item else {
+                return
+            }
+            
+            if isExtracted {
+                strongSelf.extractedBackgroundImageNode.image = generateStretchableFilledCircleImage(diameter: 28.0, color: item.presentationData.theme.list.plainBackgroundColor)
+            }
+            
+            if let extractedRect = strongSelf.extractedRect, let nonExtractedRect = strongSelf.nonExtractedRect {
+                let rect = isExtracted ? extractedRect : nonExtractedRect
+                transition.updateFrame(node: strongSelf.extractedBackgroundImageNode, frame: rect)
+            }
+            
+            transition.updateAlpha(node: strongSelf.extractedBackgroundImageNode, alpha: isExtracted ? 1.0 : 0.0, completion: { _ in
+                if !isExtracted {
+                    self?.extractedBackgroundImageNode.image = nil
+                }
+            })
         }
     }
     
@@ -1364,7 +1399,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
             } else {
                 peer = peerData.peer.chatMainPeer
             }
-            if peerData.peer.peerId.namespace == Namespaces.Peer.SecretChat {
+            if peerData.peer.peerId.namespace == Namespaces.Peer.SecretChat && false {
                 enablePreview = false
             }
         case let .groupReference(groupReferenceData):
@@ -1483,7 +1518,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
             }
         }
         
-        self.contextContainer.isGestureEnabled = enablePreview && !item.editing
+        self.contextContainer.isGestureEnabled = enablePreview && !item.editing && !item.hasActiveRevealControls
     }
     
     override func layoutForParams(_ params: ListViewItemLayoutParams, item: ListViewItem, previousItem: ListViewItem?, nextItem: ListViewItem?) {
@@ -2822,6 +2857,21 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
 //                    strongSelf.contextContainer.position = contextContainerFrame.center
                     transition.updatePosition(node: strongSelf.contextContainer, position: contextContainerFrame.center)
                     transition.updateBounds(node: strongSelf.contextContainer, bounds: contextContainerFrame.offsetBy(dx: -strongSelf.revealOffset, dy: 0.0))
+                    
+                    strongSelf.contextSourceNode.frame = contextContainerFrame
+                    strongSelf.contextSourceNode.contentNode.frame = contextContainerFrame
+                    
+                    let nonExtractedRect = CGRect(origin: CGPoint(), size: contextContainerFrame.size)
+                    let extractedRect = CGRect(origin: CGPoint(), size: contextContainerFrame.size).insetBy(dx: params.leftInset, dy: 0.0)
+                    strongSelf.extractedRect = extractedRect
+                    strongSelf.nonExtractedRect = nonExtractedRect
+                    
+                    if strongSelf.contextSourceNode.isExtractedToContextPreview {
+                        strongSelf.extractedBackgroundImageNode.frame = extractedRect
+                    } else {
+                        strongSelf.extractedBackgroundImageNode.frame = nonExtractedRect
+                    }
+                    strongSelf.contextSourceNode.contentRect = extractedRect
                     
                     var mainContentFrame: CGRect
                     var mainContentBoundsOffset: CGFloat
