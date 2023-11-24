@@ -35,6 +35,7 @@
 "PtgSettings.SwipeActionsForChatsHelp" = "Выключите, чтобы предотвратить случайные действия при смахивании чатов влево или вправо в списке чатов. Все эти действия также доступны в контекстном меню чатов.";
 "PtgSettings.SwipeToOpenStoryCamera" = "Смахивание для записи историй";
 "PtgSettings.SwipeToOpenStoryCameraHelp" = "Выключите, чтобы предотвратить случайное открытие камеры для записи историй при пролистывании списка чатов.";
+"PtgSettings.EnableReactionNotifications" = "Уведомления о реакциях";
 
 "Conversation.ContextMenuSaveMessage" = "Сохранить сообщение";
 

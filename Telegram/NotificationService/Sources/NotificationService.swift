@@ -1252,11 +1252,13 @@ private final class NotificationServiceHandler {
                             if let storyId {
                                 content.category = "st"
                                 action = .pollStories(peerId: peerId, content: content, storyId: storyId)
+                                updateCurrentContent(content)
+                            } else if ptgSettings.suppressReactionNotifications, content.category == "t" {
+                                // will be suppressed
                             } else {
                                 action = .poll(peerId: peerId, content: content, messageId: messageIdValue)
+                                updateCurrentContent(content)
                             }
-
-                            updateCurrentContent(content)
                         }
                     }
 

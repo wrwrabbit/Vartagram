@@ -35,6 +35,7 @@
 "PtgSettings.SwipeActionsForChatsHelp" = "Выключыце, каб прадухіліць выпадковыя дзеянні пры змахванні чатаў налева ці направа ў спісе чатаў. Усе гэтыя дзеянні таксама даступны ў кантэксным меню чатаў.";
 "PtgSettings.SwipeToOpenStoryCamera" = "Змахванне для запісу гісторый";
 "PtgSettings.SwipeToOpenStoryCameraHelp" = "Выключыце, каб прадухіліць выпадковае адкрыццё камеры для запісу гісторый падчас прагортвання спісу чатаў.";
+"PtgSettings.EnableReactionNotifications" = "Апавяшчэнні аб рэакцыях";
 
 "Conversation.ContextMenuSaveMessage" = "Захаваць паведамленне";
 
