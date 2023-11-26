@@ -5,7 +5,7 @@ import TelegramCore
 import PtgForeignAgentNoticeRemoval
 
 private let WebContentTextLimit = 500 // it seems Telegram indexes around 500 first characters of attached webpage text
-private let ForeignAgentNoticeLen = 221 // don't need precise number here
+private let ForeignAgentNoticeLen = 300 // don't need precise number here
 
 // this function does not guarantee 100% match with search results from Telegram servers, but in most cases it should provide valid results
 public func findSearchResultsMatchedOnlyBecauseOfForeignAgentNotice(messages: [Message], query: String) -> Set<MessageId> {
@@ -27,7 +27,7 @@ public func findSearchResultsMatchedOnlyBecauseOfForeignAgentNotice(messages: [M
                 if case let .Loaded(content) = webpage.content {
                     webpageContent = content
                     
-                    if let contentText = content.text {
+                    if let contentText = content.text, contentText.count >= ForeignAgentNoticeMinLen {
                         var endIndex = contentText.index(contentText.startIndex, offsetBy: WebContentTextLimit, limitedBy: contentText.endIndex) ?? contentText.endIndex
                         if let _ = content.instantPage, let newLineIndex = contentText[..<endIndex].firstIndex(where: { $0.isNewline }) {
                             endIndex = newLineIndex
