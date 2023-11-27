@@ -980,7 +980,7 @@ public final class ContactListNode: ASDisplayNode {
         let presentationDataPromise = self.presentationDataPromise
         
         transition = presentation
-        |> mapToSignal { presentation in
+        |> mapToSignal { [weak self] presentation in
             var generateSections = false
             var includeChatList = false
             if case let .natural(_, includeChatListValue) = presentation {
@@ -1272,6 +1272,10 @@ public final class ContactListNode: ASDisplayNode {
                     }
                 } else {
                     chatListSignal = .single([])
+                }
+                
+                guard let self else {
+                    return .never()
                 }
                 
                 return (combineLatest(self.contactPeersViewPromise.get(), chatListSignal, selectionStateSignal, presentationDataPromise.get(), contactsAuthorization.get(), contactsWarningSuppressed.get(), self.storySubscriptions.get())
