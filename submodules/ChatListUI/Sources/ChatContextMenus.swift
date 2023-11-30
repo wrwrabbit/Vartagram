@@ -104,7 +104,7 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
                     TelegramEngine.EngineData.Item.Peer.IsContact(id: peer.id),
                     TelegramEngine.EngineData.Item.Peer.NotificationSettings(id: peer.id),
                     TelegramEngine.EngineData.Item.NotificationSettings.Global(),
-                    TelegramEngine.EngineData.Item.Messages.PeerReadCounters(id: peer.id)
+                    TelegramEngine.EngineData.Item.Messages.PeerReadCounters(id: peerId)
                 )
                 |> map { [weak chatListController] isContact, notificationSettings, globalNotificationSettings, readCounters -> [ContextMenuItem] in
                     if promoInfo != nil {
@@ -146,7 +146,7 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
 
                     let isSavedMessages = peerId == context.account.peerId
 
-                    if !isSavedMessages, case let .user(peer) = peer, !peer.flags.contains(.isSupport), peer.botInfo == nil && !peer.isDeleted {
+                    if !isSavedMessages, case let .user(peer) = peer, !peer.flags.contains(.isSupport), peer.botInfo == nil && !peer.isDeleted, peerId.namespace != Namespaces.Peer.SecretChat {
                         if !isContact {
                             items.append(.action(ContextMenuActionItem(text: strings.ChatList_Context_AddToContacts, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/AddUser"), color: theme.contextMenu.primaryColor) }, action: { _, f in
                                 context.sharedContext.openAddPersonContact(context: context, peerId: peerId, pushController: { controller in

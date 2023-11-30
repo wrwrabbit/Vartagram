@@ -1551,12 +1551,12 @@ private final class NotificationServiceHandler {
                                                     }
                                                     
                                                     var updatedBody = message_.text
-                                                    let maxCount = bodyHasEmojiPrefix ? body.count - 2 : body.count
+                                                    let maxCount = min(body.count, 256) - (bodyHasEmojiPrefix ? 2 : 0)
                                                     if updatedBody.count > maxCount {
                                                         updatedBody.removeLast(updatedBody.count - (maxCount - 1))
-                                                        while let lastChar = updatedBody.last, lastChar.isWhitespace {
-                                                            updatedBody.removeLast()
-                                                        }
+//                                                        while let lastChar = updatedBody.last, lastChar.isWhitespace {
+//                                                            updatedBody.removeLast()
+//                                                        }
                                                         updatedBody.append("…")
                                                     }
                                                     
@@ -1565,23 +1565,22 @@ private final class NotificationServiceHandler {
                                                     if updatedBody.isEmpty {
                                                         if let _ = mediaAttachment as? TelegramMediaImage {
                                                             updatedBody = presentationStrings?.messagePhoto ?? "Photo"
+                                                            emojiPrefix = emojiPrefix?.replacingOccurrences(of: "🖼", with: "📷")[...]
                                                         } else if let file = mediaAttachment as? TelegramMediaFile {
-                                                            if file.isVideo {
+                                                            if file.isAnimated {
+                                                                updatedBody = presentationStrings?.messageAnimation ?? "GIF"
+                                                            } else if file.isInstantVideo {
+                                                                updatedBody = presentationStrings?.messageVideoMessage ?? "Video Message"
+                                                            } else if file.isVideo {
                                                                 updatedBody = presentationStrings?.messageVideo ?? "Video"
-                                                            } else if file.isMusic {
-                                                                updatedBody = presentationStrings?.messageMusic ?? "Music"
                                                             } else if file.isVoice {
                                                                 updatedBody = presentationStrings?.messageVoice ?? "Voice Message"
                                                             } else if file.isSticker || file.isAnimatedSticker {
                                                                 updatedBody = presentationStrings?.messageSticker ?? "Sticker"
-                                                            } else if file.isAnimated {
-                                                                updatedBody = presentationStrings?.messageAnimation ?? "GIF"
                                                             } else {
                                                                 updatedBody = presentationStrings?.messageFile ?? "File"
                                                             }
                                                         }
-                                                        
-                                                        emojiPrefix = emojiPrefix?.replacingOccurrences(of: "🖼", with: "📷")[...]
                                                     }
                                                     
                                                     if let emojiPrefix {
