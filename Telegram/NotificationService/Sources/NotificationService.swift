@@ -1499,7 +1499,7 @@ private final class NotificationServiceHandler {
                                         if let messageId, let body = content.body, let ptgSettings {
                                             if (ptgSettings.suppressForeignAgentNotice && body.count >= ForeignAgentNoticeMinLen) || (ptgSettings.hideSignatureInChannels && peerId.namespace == Namespaces.Peer.CloudChannel) {
                                                 updatedContentBody = stateManager.postbox.transaction { transaction -> String? in
-                                                    guard let message = transaction.getMessage(messageId) else {
+                                                    guard var message = transaction.getMessage(messageId) else {
                                                         return nil
                                                     }
                                                     
@@ -1510,6 +1510,76 @@ private final class NotificationServiceHandler {
                                                     
                                                     guard shouldSuppressForeignAgentNotice || shouldHideChannelSignature else {
                                                         return nil
+                                                    }
+                                                    
+                                                    if let spoilerEntities = message.textEntitiesAttribute?.entities.filter({ entity in
+                                                        if case .Spoiler = entity.type {
+                                                            return true
+                                                        }
+                                                        return false
+                                                    }), !spoilerEntities.isEmpty {
+                                                        var text = message.text
+                                                        var textWasUpdated = false
+                                                        var entities = message.textEntitiesAttribute!.entities
+                                                        var entitiesWereUpdated = false
+                                                        
+                                                        for entity in spoilerEntities.sorted(by: { lhs, rhs in
+                                                            return lhs.range.upperBound > rhs.range.upperBound
+                                                        }) {
+                                                            let nsRange = NSRange(location: entity.range.lowerBound, length: entity.range.upperBound - entity.range.lowerBound)
+                                                            
+                                                            guard let range = Range(nsRange, in: text) else {
+                                                                continue
+                                                            }
+                                                            
+                                                            let blb = body.index(body.startIndex, offsetBy: text.distance(from: text.startIndex, to: range.lowerBound), limitedBy: body.endIndex) ?? body.endIndex
+                                                            var bub = body.index(blb, offsetBy: text[range].count, limitedBy: body.endIndex) ?? body.endIndex
+                                                            if bub == body.endIndex, body.hasSuffix("…"), bub > blb {
+                                                                bub = body.index(before: bub)
+                                                            }
+                                                            let bodyRange = blb..<bub
+                                                            
+                                                            if !bodyRange.isEmpty {
+                                                                // spoilers in notification body are replaced with Braile symbols
+                                                                if body[bodyRange].unicodeScalars.allSatisfy({ scalar in
+                                                                    return scalar.value >= 0x2800 && scalar.value <= 0x28FF
+                                                                }) {
+                                                                    // replace the same number of characters
+                                                                    let tub = text.index(range.lowerBound, offsetBy: body[bodyRange].count, limitedBy: text.endIndex) ?? text.endIndex
+                                                                    let textRange = range.lowerBound..<tub
+                                                                    
+                                                                    let nsTextRange = NSRange(textRange, in: text)
+                                                                    let nsBodyRange = NSRange(bodyRange, in: body)
+                                                                    
+                                                                    text.replaceSubrange(textRange, with: body[bodyRange])
+                                                                    textWasUpdated = true
+                                                                    
+                                                                    // character count is the same, but NSString length may differ e.g. for emoji
+                                                                    if nsTextRange.length != nsBodyRange.length {
+                                                                        for index in entities.indices {
+                                                                            let entity = entities[index]
+                                                                            if entity.range.upperBound > nsTextRange.lowerBound {
+                                                                                let l = entity.range.lowerBound > nsTextRange.lowerBound ? max(entity.range.lowerBound - nsTextRange.length + nsBodyRange.length, nsTextRange.lowerBound) : entity.range.lowerBound
+                                                                                let u = max(entity.range.upperBound - nsTextRange.length + nsBodyRange.length, nsTextRange.lowerBound)
+                                                                                entities[index] = MessageTextEntity(range: l..<u, type: entity.type)
+                                                                                entitiesWereUpdated = true
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        if textWasUpdated {
+                                                            message = message.withUpdatedText(text)
+                                                        }
+                                                        
+                                                        if entitiesWereUpdated {
+                                                            var attributes = message.attributes
+                                                            let entitiesIndex = attributes.firstIndex { $0 is TextEntitiesMessageAttribute }
+                                                            attributes[entitiesIndex!] = TextEntitiesMessageAttribute(entities: entities)
+                                                            message = message.withUpdatedAttributes(attributes)
+                                                        }
                                                     }
                                                     
                                                     var bodyContainsMessageText = false
