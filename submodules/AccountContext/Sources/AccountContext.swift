@@ -1089,6 +1089,7 @@ public protocol AccountContext: AnyObject {
     
     func shouldSuppressForeignAgentNotice(in message: Message) -> Bool
     func shouldHideChannelSignature(in message: Message) -> Bool
+    func isMessageTextEmptyAfterOptionalRemovals(in message: Message) -> Bool
 }
 
 public struct PremiumConfiguration {

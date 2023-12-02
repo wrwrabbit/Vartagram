@@ -2,6 +2,7 @@ import ItemListUI
 import MonotonicTime
 import AppLockState
 import PtgSecretPasscodesUI
+import PtgForeignAgentNoticeRemoval
 
 import UIKit
 import SwiftSignalKit
@@ -1642,6 +1643,8 @@ extension UserDefaults {
                 }
             })
         })
+        
+        setupForeignAgentNoticeRemovalCache()
         
         // exclude from backup folders that may reveal hidden secrets
         let libraryPath = NSSearchPathForDirectoriesInDomains(.libraryDirectory, .userDomainMask, true)[0]

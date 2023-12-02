@@ -1204,8 +1204,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             }
         }
         
-        // exporting logs is not secure, may reveal deleted/hidden data
-        #if DEBUG
+        /*
         var downloadableMediaResourceInfos: [String] = []
         for media in message.media {
             if let file = media as? TelegramMediaFile {
@@ -1220,6 +1219,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 }
             }
         }
+        */
         
         if !isCopyProtected {
             for media in message.media {
@@ -1237,6 +1237,8 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             }
         }
         
+        // exporting logs is not secure, may reveal deleted/hidden data
+        /*
         if (loggingSettings.logToFile || loggingSettings.logToConsole) && !downloadableMediaResourceInfos.isEmpty {
             actions.append(.action(ContextMenuActionItem(text: "Send Logs", icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Message"), color: theme.actionSheet.primaryTextColor)
@@ -1247,7 +1249,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 f(.default)
             })))
         }
-        #endif
+        */
         
         var threadId: Int64?
         var threadMessageCount: Int = 0

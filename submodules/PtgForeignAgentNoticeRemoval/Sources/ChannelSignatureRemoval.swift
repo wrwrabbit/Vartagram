@@ -3,9 +3,6 @@ import Postbox
 import TelegramCore
 
 public func removeChannelSignature(text: String, entities: [MessageTextEntity], mayRemoveWholeText: Bool, username: String) -> (text: String, entities: [MessageTextEntity]) {
-    if text.isEmpty {
-        return (text, entities)
-    }
     var newText = text
     var newEntities = entities
     

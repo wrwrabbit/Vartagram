@@ -425,7 +425,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                         } else if media is TelegramMediaDice {
                             isDice = true
                         } else {
-                            if !message.text.isEmpty {
+                            if let strongSelf = self, !strongSelf.context.isMessageTextEmptyAfterOptionalRemovals(in: message) {
                                 if media is TelegramMediaImage || media is TelegramMediaFile {
                                     hasCaptions = true
                                 }

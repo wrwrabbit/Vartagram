@@ -13,35 +13,49 @@ private let foreignAgentNoticePatterns = [ #"\s*+\bДАННОЕ\s++СООБЩЕ�
 
 public let foreignAgentNoticeRegExes = foreignAgentNoticePatterns.map { try! NSRegularExpression(pattern: $0, options: .caseInsensitive) }
 
+// cache is used only in main app
+private var cache: Cache<String, [NSTextCheckingResult]>?
+
+public func setupForeignAgentNoticeRemovalCache() {
+    cache = Cache<String, [NSTextCheckingResult]>()
+    cache?.countLimit = 1000
+}
+
 public func removeForeignAgentNotice(text: String, entities: [MessageTextEntity], mayRemoveWholeText: Bool) -> (text: String, entities: [MessageTextEntity]) {
     if text.count < ForeignAgentNoticeMinLen {
         return (text, entities)
     }
     var newText = text
     var newEntities = entities
-    let nsrange = NSRange(text.startIndex..<text.endIndex, in: text)
-    for foreignAgentNoticeRegEx in foreignAgentNoticeRegExes {
-        let matches = foreignAgentNoticeRegEx.matches(in: text, range: nsrange)
-        for match in matches.reversed() {
-            if let range = Range(match.range, in: text), range.lowerBound != text.startIndex || range.upperBound != text.endIndex || mayRemoveWholeText {
-                let replaceWith = (range.lowerBound == text.startIndex || range.upperBound == text.endIndex) ? "" : "\n\n"
-                newText.replaceSubrange(range, with: replaceWith)
-                for index in newEntities.indices.reversed() {
-                    let entity = newEntities[index]
-                    if entity.range.upperBound > match.range.lowerBound {
-                        let l = entity.range.lowerBound > match.range.lowerBound ? max(entity.range.lowerBound - match.range.length + replaceWith.count, match.range.lowerBound) : entity.range.lowerBound
-                        let u = max(entity.range.upperBound - match.range.length + replaceWith.count, match.range.lowerBound)
-                        if (l..<u).isEmpty {
-                            newEntities.remove(at: index)
-                        } else {
-                            newEntities[index] = MessageTextEntity(range: l..<u, type: entity.type)
-                        }
+    var matches: [NSTextCheckingResult] = []
+    if let cachedValue = cache?.value(forKey: text) {
+        matches = cachedValue
+    } else {
+        let nsrange = NSRange(text.startIndex..<text.endIndex, in: text)
+        for foreignAgentNoticeRegEx in foreignAgentNoticeRegExes {
+            matches = foreignAgentNoticeRegEx.matches(in: text, range: nsrange)
+            if !matches.isEmpty {
+                break
+            }
+        }
+        cache?.set(matches, forKey: text)
+    }
+    for match in matches.reversed() {
+        if let range = Range(match.range, in: text), range.lowerBound != text.startIndex || range.upperBound != text.endIndex || mayRemoveWholeText {
+            let replaceWith = (range.lowerBound == text.startIndex || range.upperBound == text.endIndex) ? "" : "\n\n"
+            newText.replaceSubrange(range, with: replaceWith)
+            for index in newEntities.indices.reversed() {
+                let entity = newEntities[index]
+                if entity.range.upperBound > match.range.lowerBound {
+                    let l = entity.range.lowerBound > match.range.lowerBound ? max(entity.range.lowerBound - match.range.length + replaceWith.count, match.range.lowerBound) : entity.range.lowerBound
+                    let u = max(entity.range.upperBound - match.range.length + replaceWith.count, match.range.lowerBound)
+                    if (l..<u).isEmpty {
+                        newEntities.remove(at: index)
+                    } else {
+                        newEntities[index] = MessageTextEntity(range: l..<u, type: entity.type)
                     }
                 }
             }
-        }
-        if matches.count > 0 {
-            break
         }
     }
     return (newText, newEntities)
@@ -103,20 +117,26 @@ public func removeForeignAgentNotice(attrString string: NSAttributedString) -> N
     }
     var updated: NSMutableAttributedString?
     let text = string.string
-    let nsrange = NSRange(text.startIndex..<text.endIndex, in: text)
-    for foreignAgentNoticeRegEx in foreignAgentNoticeRegExes {
-        let matches = foreignAgentNoticeRegEx.matches(in: text, range: nsrange)
-        for match in matches.reversed() {
-            if let range = Range(match.range, in: text) {
-                let replaceWith = (range.lowerBound == text.startIndex || range.upperBound == text.endIndex) ? "" : "\n\n"
-                if updated == nil {
-                    updated = string.mutableCopy() as? NSMutableAttributedString
-                }
-                updated!.replaceCharacters(in: match.range, with: replaceWith)
+    var matches: [NSTextCheckingResult] = []
+    if let cachedValue = cache?.value(forKey: text) {
+        matches = cachedValue
+    } else {
+        let nsrange = NSRange(text.startIndex..<text.endIndex, in: text)
+        for foreignAgentNoticeRegEx in foreignAgentNoticeRegExes {
+            matches = foreignAgentNoticeRegEx.matches(in: text, range: nsrange)
+            if !matches.isEmpty {
+                break
             }
         }
-        if matches.count > 0 {
-            break
+        cache?.set(matches, forKey: text)
+    }
+    for match in matches.reversed() {
+        if let range = Range(match.range, in: text) {
+            let replaceWith = (range.lowerBound == text.startIndex || range.upperBound == text.endIndex) ? "" : "\n\n"
+            if updated == nil {
+                updated = string.mutableCopy() as? NSMutableAttributedString
+            }
+            updated!.replaceCharacters(in: match.range, with: replaceWith)
         }
     }
     return updated ?? string

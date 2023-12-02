@@ -150,7 +150,7 @@ private func chatForwardOptions(selfController: ChatControllerImpl, sourceNode: 
                 } else if media is TelegramMediaDice {
                     isDice = true
                 } else {
-                    if !message.text.isEmpty {
+                    if !selfController.context.isMessageTextEmptyAfterOptionalRemovals(in: message) {
                         if media is TelegramMediaImage || media is TelegramMediaFile {
                             hasCaptions = true
                         }
@@ -329,7 +329,7 @@ private func generateChatReplyOptionItems(selfController: ChatControllerImpl, ch
                 
                 f(.default)
             })))
-        } else if let message = messages.first, !message.text.isEmpty {
+        } else if let message = messages.first, !selfController.context.isMessageTextEmptyAfterOptionalRemovals(in: message) {
             items.append(.action(ContextMenuActionItem(text: selfController.presentationData.strings.Conversation_MessageOptionsQuoteSelect, icon: { theme in return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Quote"), color: theme.contextMenu.primaryColor) }, action: { [weak selfController, weak chatController] c, _ in
                 guard let selfController, let chatController else {
                     return
