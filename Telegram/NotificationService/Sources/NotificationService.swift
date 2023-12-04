@@ -1523,6 +1523,27 @@ private final class NotificationServiceHandler {
                                                         var entities = message.textEntitiesAttribute!.entities
                                                         var entitiesWereUpdated = false
                                                         
+                                                        var bodyHasEmojiPrefix = false
+                                                        if body.count >= 2, String(body.prefix(1)).containsEmoji, body[body.index(after: body.startIndex)] == " " {
+                                                            let firstSpoiler = spoilerEntities.min { lhs, rhs in
+                                                                return lhs.range.lowerBound < rhs.range.lowerBound
+                                                            }!
+                                                            let nsRange = NSRange(location: firstSpoiler.range.lowerBound, length: firstSpoiler.range.upperBound - firstSpoiler.range.lowerBound)
+                                                            if let range = Range(nsRange, in: text) {
+                                                                let index1 = body.index(body.startIndex, offsetBy: text.distance(from: text.startIndex, to: range.lowerBound), limitedBy: body.endIndex) ?? body.endIndex
+                                                                if index1 != body.endIndex, !isBrailleSymbol(body[index1]) {
+                                                                    let index2 = body.index(index1, offsetBy: 2, limitedBy: body.endIndex) ?? body.endIndex
+                                                                    if index2 != body.endIndex, isBrailleSymbol(body[index2]) {
+                                                                        bodyHasEmojiPrefix = true
+                                                                    }
+                                                                }
+                                                            }
+                                                            
+                                                            func isBrailleSymbol(_ char: Character) -> Bool {
+                                                                return char.unicodeScalars.count == 1 && char.unicodeScalars.first!.value >= 0x2800 && char.unicodeScalars.first!.value <= 0x28FF
+                                                            }
+                                                        }
+                                                        
                                                         for entity in spoilerEntities.sorted(by: { lhs, rhs in
                                                             return lhs.range.upperBound > rhs.range.upperBound
                                                         }) {
@@ -1532,7 +1553,7 @@ private final class NotificationServiceHandler {
                                                                 continue
                                                             }
                                                             
-                                                            let blb = body.index(body.startIndex, offsetBy: text.distance(from: text.startIndex, to: range.lowerBound), limitedBy: body.endIndex) ?? body.endIndex
+                                                            let blb = body.index(body.startIndex, offsetBy: text.distance(from: text.startIndex, to: range.lowerBound) + (bodyHasEmojiPrefix ? 2 : 0), limitedBy: body.endIndex) ?? body.endIndex
                                                             var bub = body.index(blb, offsetBy: text[range].count, limitedBy: body.endIndex) ?? body.endIndex
                                                             if bub == body.endIndex, body.hasSuffix("…"), bub > blb {
                                                                 bub = body.index(before: bub)
@@ -1540,7 +1561,7 @@ private final class NotificationServiceHandler {
                                                             let bodyRange = blb..<bub
                                                             
                                                             if !bodyRange.isEmpty {
-                                                                // spoilers in notification body are replaced with Braile symbols
+                                                                // spoilers in notification body are replaced with Braille symbols
                                                                 if body[bodyRange].unicodeScalars.allSatisfy({ scalar in
                                                                     return scalar.value >= 0x2800 && scalar.value <= 0x28FF
                                                                 }) {
@@ -1639,8 +1660,6 @@ private final class NotificationServiceHandler {
                                                         } else if let file = mediaAttachment as? TelegramMediaFile {
                                                             if file.isAnimated {
                                                                 updatedBody = presentationStrings?.messageAnimation ?? "GIF"
-                                                            } else if file.isInstantVideo {
-                                                                updatedBody = presentationStrings?.messageVideoMessage ?? "Video Message"
                                                             } else if file.isVideo {
                                                                 updatedBody = presentationStrings?.messageVideo ?? "Video"
                                                             } else if file.isVoice {

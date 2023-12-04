@@ -314,7 +314,6 @@ final class WidgetDataContext {
                 messagePhoto: presentationData.strings.Message_Photo,
                 messageVideo: presentationData.strings.Message_Video,
                 messageSticker: presentationData.strings.Message_Sticker,
-                messageVideoMessage: presentationData.strings.Message_VideoMessage,
                 messageVoice: presentationData.strings.Message_Audio,
                 messageAnimation: presentationData.strings.Message_Animation,
                 messageFile: presentationData.strings.Message_File

@@ -1461,8 +1461,14 @@ public final class MediaBox {
                     
                     storageBox.addEmptyReferencesIfNotReferenced(ids: results.compactMap { name -> (id: Data, size: Int64)? in
                         let resourceId = MediaBox.idForFileName(name: name)
-                        let size = self.fileSizeForId(MediaResourceId(resourceId))
+                        var size = self.fileSizeForId(MediaResourceId(resourceId))
                         if size != 0 {
+                            if resourceId.contains(Character(".")) {
+                                // most probably this is hard link with added file extension, for example .mp3
+                                // for example such files created in saveMediaToFiles
+                                // they do not increase storage size
+                                size = 0
+                            }
                             return (resourceId.data(using: .utf8)!, size)
                         } else {
                             return nil

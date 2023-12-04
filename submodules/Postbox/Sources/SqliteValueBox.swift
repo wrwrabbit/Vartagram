@@ -302,6 +302,7 @@ public final class SqliteValueBox: ValueBox {
                 if !resultCode {
                     throw TempError.generic
                 }
+                let _ = try? FileManager.default.removeItem(atPath: tempPath)
             } catch {
                 let _ = try? FileManager.default.removeItem(atPath: tempPath)
                 postboxLog("Don't have write access to database folder")

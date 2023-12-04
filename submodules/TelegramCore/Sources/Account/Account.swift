@@ -1425,7 +1425,7 @@ public class Account {
                                         
                                         let everywhereHoleUpperId = topIndices[limit].id.id
                                         
-                                        let neverRemoveMessagesWithTags: [MessageTags] = [.unseenPersonalMessage, .pinned, .unseenReaction]
+                                        let neverRemoveMessagesWithTags: [MessageTags] = [.unseenPersonalMessage, .unseenReaction]
                                         
                                         var tagHoleRangesToRemove: [MessageTags: ClosedRange<MessageId.Id>] = [:]
                                         
