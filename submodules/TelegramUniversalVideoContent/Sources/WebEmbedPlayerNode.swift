@@ -81,7 +81,7 @@ final class WebEmbedPlayerNode: ASDisplayNode, WKNavigationDelegate {
     private let intrinsicDimensions: CGSize
     private let webView: WKWebView
     
-    private let semaphore = DispatchSemaphore(value: 0)
+    private let semaphore = DispatchSemaphore(value: 1)
     private let queue = Queue()
     
     init(impl: WebEmbedImplementation, intrinsicDimensions: CGSize, openUrl: @escaping (URL) -> Void) {
@@ -213,8 +213,9 @@ final class WebEmbedPlayerNode: ASDisplayNode, WKNavigationDelegate {
                     })
                 }
                 
-                Queue.mainQueue().async(impl)
+                // changed semaphore initial value and call order to ensure gestureRecognizers and subviews properties are always accessed on main queue in deinit
                 strongSelf.semaphore.wait()
+                Queue.mainQueue().async(impl)
             }
         }
     }

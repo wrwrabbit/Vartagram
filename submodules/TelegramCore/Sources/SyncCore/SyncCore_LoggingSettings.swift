@@ -5,7 +5,7 @@ public final class LoggingSettings: Codable {
     public let logToConsole: Bool
     public let redactSensitiveData: Bool
     
-    #if DEBUG
+    #if TEST_BUILD
     public static let defaultSettings = LoggingSettings(logToFile: true, logToConsole: false, redactSensitiveData: true)
     #else
     public static let defaultSettings = LoggingSettings(logToFile: false, logToConsole: false, redactSensitiveData: true)

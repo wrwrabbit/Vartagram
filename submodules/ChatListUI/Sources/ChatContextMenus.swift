@@ -104,7 +104,7 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
                     TelegramEngine.EngineData.Item.Peer.IsContact(id: peer.id),
                     TelegramEngine.EngineData.Item.Peer.NotificationSettings(id: peer.id),
                     TelegramEngine.EngineData.Item.NotificationSettings.Global(),
-                    TelegramEngine.EngineData.Item.Messages.PeerReadCounters(id: peer.id)
+                    TelegramEngine.EngineData.Item.Messages.PeerReadCounters(id: peerId)
                 )
                 |> map { [weak chatListController] isContact, notificationSettings, globalNotificationSettings, readCounters -> [ContextMenuItem] in
                     if promoInfo != nil {
@@ -146,7 +146,7 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
 
                     let isSavedMessages = peerId == context.account.peerId
 
-                    if !isSavedMessages, case let .user(peer) = peer, !peer.flags.contains(.isSupport), peer.botInfo == nil && !peer.isDeleted {
+                    if !isSavedMessages, case let .user(peer) = peer, !peer.flags.contains(.isSupport), peer.botInfo == nil && !peer.isDeleted, peerId.namespace != Namespaces.Peer.SecretChat {
                         if !isContact {
                             items.append(.action(ContextMenuActionItem(text: strings.ChatList_Context_AddToContacts, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/AddUser"), color: theme.contextMenu.primaryColor) }, action: { _, f in
                                 context.sharedContext.openAddPersonContact(context: context, peerId: peerId, pushController: { controller in
@@ -193,7 +193,7 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
                     }
 
                     var hasRemoveFromFolder = false
-                    if case let .chatList(currentFilter) = source {
+                    if case let .chatList(currentFilter) = source, peerId.namespace != Namespaces.Peer.SecretChat {
                         if let currentFilter = currentFilter, case let .filter(id, title, emoticon, data) = currentFilter {
                             items.append(.action(ContextMenuActionItem(text: strings.ChatList_Context_RemoveFromFolder, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/RemoveFromFolder"), color: theme.contextMenu.primaryColor) }, action: { c, _ in
                                 let _ = (context.engine.peers.updateChatListFiltersInteractively { filters in
@@ -220,7 +220,7 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
                         }
                     }
                     
-                    if !hasRemoveFromFolder && peerGroup != nil {
+                    if !hasRemoveFromFolder && peerGroup != nil, peerId.namespace != Namespaces.Peer.SecretChat {
                         var hasFolders = false
 
                         for case let .filter(_, _, _, data) in filters {

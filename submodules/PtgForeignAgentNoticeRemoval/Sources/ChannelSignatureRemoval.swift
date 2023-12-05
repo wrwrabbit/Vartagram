@@ -68,7 +68,7 @@ public func removeChannelSignature(message: Message, inAssociatedPinnedMessageTo
     let entities = entitiesIndex != nil ? (message.attributes[entitiesIndex!] as! TextEntitiesMessageAttribute).entities : []
     let (newText, newEntities) = removeChannelSignature(text: message.text, entities: entities, mayRemoveWholeText: mayRemoveWholeText(with: message.media), username: username)
     var newMessage = message
-    if newText != message.text {
+    if newText.count != message.text.count {
         if let entitiesIndex = entitiesIndex, (message.attributes[entitiesIndex] as! TextEntitiesMessageAttribute).entities != newEntities {
             var newAttributes = message.attributes
             newAttributes[entitiesIndex] = TextEntitiesMessageAttribute(entities: newEntities)

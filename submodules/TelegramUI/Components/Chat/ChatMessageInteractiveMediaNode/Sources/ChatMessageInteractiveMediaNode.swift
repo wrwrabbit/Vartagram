@@ -750,7 +750,7 @@ public final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTr
                     case .unconstrained:
                         maxDimensions.width = unboundSize.width
                     }
-                    if message.text.isEmpty {
+                    if context.isMessageTextEmptyAfterOptionalRemovals(in: message) {
                         maxDimensions.width = max(layoutConstants.image.maxDimensions.width, unboundSize.aspectFitted(CGSize(width: maxDimensions.width, height: layoutConstants.image.minDimensions.height)).width)
                     }
                 }

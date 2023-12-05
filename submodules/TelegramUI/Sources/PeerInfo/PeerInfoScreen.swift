@@ -809,7 +809,7 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
                     }
                 }, contextAction: { node, gesture in
                     interaction.accountContextMenu(peerAccountContext.account.id, node, gesture)
-                }))
+                }, disableSwipeActionsForAccounts: context.sharedContext.currentPtgSettings.with { $0.disableSwipeActionsForChats }))
             }
             
             /*

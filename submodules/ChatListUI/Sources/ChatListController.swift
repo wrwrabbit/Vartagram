@@ -1360,7 +1360,10 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         let source: ContextContentSource
                         if let location = location {
                             source = .location(ChatListContextLocationContentSource(controller: strongSelf, location: location))
+                        } else if peer.peerId.namespace == Namespaces.Peer.SecretChat, let node = node.subnodes?.first as? ContextExtractedContentContainingNode {
+                            source = .extracted(ChatListHeaderBarContextExtractedContentSource(controller: strongSelf, sourceNode: node, keepInPlace: false))
                         } else {
+                            precondition(peer.peerId.namespace != Namespaces.Peer.SecretChat)
                             let chatController = strongSelf.context.sharedContext.makeChatController(context: strongSelf.context, chatLocation: .peer(id: peer.peerId), subject: nil, botStart: nil, mode: .standard(previewing: true))
                             chatController.canReadHistory.set(false)
                             source = .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node, navigationController: strongSelf.navigationController as? NavigationController))
@@ -1426,6 +1429,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 if peer.id.namespace == Namespaces.Peer.SecretChat, let node = node.subnodes?.first as? ContextExtractedContentContainingNode {
                     contextContentSource = .extracted(ChatListHeaderBarContextExtractedContentSource(controller: strongSelf, sourceNode: node, keepInPlace: false))
                 } else {
+                    precondition(peer.id.namespace != Namespaces.Peer.SecretChat)
                     var subject: ChatControllerSubject?
                     if case let .search(messageId) = source, let id = messageId {
                         subject = .message(id: .id(id), highlight: nil, timecode: nil)

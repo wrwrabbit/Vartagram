@@ -1,3 +1,5 @@
+import PtgForeignAgentNoticeRemoval
+
 import Foundation
 import SwiftSignalKit
 import UIKit
@@ -622,6 +624,18 @@ public final class AccountContextImpl: AccountContext {
     
     public func shouldHideChannelSignature(in message: Message) -> Bool {
         return message.isPeerBroadcastChannel && self.sharedContext.currentPtgSettings.with { $0.hideSignatureInChannels }
+    }
+    
+    public func isMessageTextEmptyAfterOptionalRemovals(in message: Message) -> Bool {
+        var text = message.text
+        var entities = message.textEntitiesAttribute?.entities ?? []
+        if self.shouldSuppressForeignAgentNotice(in: message) {
+            (text, entities) = removeForeignAgentNotice(text: text, entities: entities, media: message.media)
+        }
+        if self.shouldHideChannelSignature(in: message), let username = message.channelUsername {
+            (text, entities) = removeChannelSignature(text: text, entities: entities, media: message.media, username: username)
+        }
+        return text.isEmpty
     }
     
     public func scheduleGroupCall(peerId: PeerId) {

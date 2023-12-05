@@ -503,9 +503,6 @@ private struct NotificationContent: CustomStringConvertible {
     
     var isLockedMessage: String?
     
-    var suppressForeignAgentNotice: Bool = false
-    var messageType: String?
-    
     init(isLockedMessage: String?) {
         self.isLockedMessage = isLockedMessage
     }
@@ -573,17 +570,7 @@ private struct NotificationContent: CustomStringConvertible {
             content.subtitle = subtitle
         }
         if let body = self.body {
-            if self.suppressForeignAgentNotice && !body.isEmpty {
-                content.body = removeForeignAgentNotice(text: body, mayRemoveWholeText: self.messageType != nil)
-                if content.body == body {
-                    content.body = removeForeignAgentNoticePartialMatchAtEnd(text: body, mayRemoveWholeText: self.messageType != nil)
-                }
-                if content.body.isEmpty, let messageType = self.messageType {
-                    content.body = messageType
-                }
-            } else {
-                content.body = body
-            }
+            content.body = body
         }
         
         if !content.title.isEmpty || !content.subtitle.isEmpty || !content.body.isEmpty {
@@ -969,6 +956,8 @@ private final class NotificationServiceHandler {
                     var interactionAuthorId: PeerId?
                     var topicTitle: String?
 
+                    var ptgSettings: PtgSettings?
+                    
                     struct CallData {
                         var id: Int64
                         var accessHash: Int64
@@ -1132,8 +1121,7 @@ private final class NotificationServiceHandler {
                                 return
                             }
                             
-                            let ptgSettings = PtgSettings(sharedData.entries[ApplicationSpecificSharedDataKeys.ptgSettings])
-                            content.suppressForeignAgentNotice = ptgSettings.suppressForeignAgentNotice
+                            ptgSettings = PtgSettings(sharedData.entries[ApplicationSpecificSharedDataKeys.ptgSettings])
 
                             var messageIdValue: MessageId?
                             if let messageId = messageId {
@@ -1252,11 +1240,13 @@ private final class NotificationServiceHandler {
                             if let storyId {
                                 content.category = "st"
                                 action = .pollStories(peerId: peerId, content: content, storyId: storyId)
+                                updateCurrentContent(content)
+                            } else if let ptgSettings, ptgSettings.suppressReactionNotifications, content.category == "t" {
+                                // will be suppressed
                             } else {
                                 action = .poll(peerId: peerId, content: content, messageId: messageIdValue)
+                                updateCurrentContent(content)
                             }
-
-                            updateCurrentContent(content)
                         }
                     }
 
@@ -1505,20 +1495,211 @@ private final class NotificationServiceHandler {
                                             }
                                         }
 
+                                        var updatedContentBody: Signal<String?, NoError> = .single(nil)
+                                        if let messageId, let body = content.body, let ptgSettings {
+                                            if (ptgSettings.suppressForeignAgentNotice && body.count >= ForeignAgentNoticeMinLen) || (ptgSettings.hideSignatureInChannels && peerId.namespace == Namespaces.Peer.CloudChannel) {
+                                                updatedContentBody = stateManager.postbox.transaction { transaction -> String? in
+                                                    guard var message = transaction.getMessage(messageId) else {
+                                                        return nil
+                                                    }
+                                                    
+                                                    let shouldSuppressForeignAgentNotice = ptgSettings.suppressForeignAgentNotice && body.count >= ForeignAgentNoticeMinLen && message.isPeerOrForwardSourceBroadcastChannel
+                                                    
+                                                    let maxExpectedSignatureLength = 100
+                                                    let shouldHideChannelSignature = ptgSettings.hideSignatureInChannels && message.text.count - maxExpectedSignatureLength < body.count && message.isPeerBroadcastChannel
+                                                    
+                                                    guard shouldSuppressForeignAgentNotice || shouldHideChannelSignature else {
+                                                        return nil
+                                                    }
+                                                    
+                                                    if let spoilerEntities = message.textEntitiesAttribute?.entities.filter({ entity in
+                                                        if case .Spoiler = entity.type {
+                                                            return true
+                                                        }
+                                                        return false
+                                                    }), !spoilerEntities.isEmpty {
+                                                        var text = message.text
+                                                        var textWasUpdated = false
+                                                        var entities = message.textEntitiesAttribute!.entities
+                                                        var entitiesWereUpdated = false
+                                                        
+                                                        var bodyHasEmojiPrefix = false
+                                                        if body.count >= 2, String(body.prefix(1)).containsEmoji, body[body.index(after: body.startIndex)] == " " {
+                                                            let firstSpoiler = spoilerEntities.min { lhs, rhs in
+                                                                return lhs.range.lowerBound < rhs.range.lowerBound
+                                                            }!
+                                                            let nsRange = NSRange(location: firstSpoiler.range.lowerBound, length: firstSpoiler.range.upperBound - firstSpoiler.range.lowerBound)
+                                                            if let range = Range(nsRange, in: text) {
+                                                                let index1 = body.index(body.startIndex, offsetBy: text.distance(from: text.startIndex, to: range.lowerBound), limitedBy: body.endIndex) ?? body.endIndex
+                                                                if index1 != body.endIndex, !isBrailleSymbol(body[index1]) {
+                                                                    let index2 = body.index(index1, offsetBy: 2, limitedBy: body.endIndex) ?? body.endIndex
+                                                                    if index2 != body.endIndex, isBrailleSymbol(body[index2]) {
+                                                                        bodyHasEmojiPrefix = true
+                                                                    }
+                                                                }
+                                                            }
+                                                            
+                                                            func isBrailleSymbol(_ char: Character) -> Bool {
+                                                                return char.unicodeScalars.count == 1 && char.unicodeScalars.first!.value >= 0x2800 && char.unicodeScalars.first!.value <= 0x28FF
+                                                            }
+                                                        }
+                                                        
+                                                        for entity in spoilerEntities.sorted(by: { lhs, rhs in
+                                                            return lhs.range.upperBound > rhs.range.upperBound
+                                                        }) {
+                                                            let nsRange = NSRange(location: entity.range.lowerBound, length: entity.range.upperBound - entity.range.lowerBound)
+                                                            
+                                                            guard let range = Range(nsRange, in: text) else {
+                                                                continue
+                                                            }
+                                                            
+                                                            let blb = body.index(body.startIndex, offsetBy: text.distance(from: text.startIndex, to: range.lowerBound) + (bodyHasEmojiPrefix ? 2 : 0), limitedBy: body.endIndex) ?? body.endIndex
+                                                            var bub = body.index(blb, offsetBy: text[range].count, limitedBy: body.endIndex) ?? body.endIndex
+                                                            if bub == body.endIndex, body.hasSuffix("…"), bub > blb {
+                                                                bub = body.index(before: bub)
+                                                            }
+                                                            let bodyRange = blb..<bub
+                                                            
+                                                            if !bodyRange.isEmpty {
+                                                                // spoilers in notification body are replaced with Braille symbols
+                                                                if body[bodyRange].unicodeScalars.allSatisfy({ scalar in
+                                                                    return scalar.value >= 0x2800 && scalar.value <= 0x28FF
+                                                                }) {
+                                                                    // replace the same number of characters
+                                                                    let tub = text.index(range.lowerBound, offsetBy: body[bodyRange].count, limitedBy: text.endIndex) ?? text.endIndex
+                                                                    let textRange = range.lowerBound..<tub
+                                                                    
+                                                                    let nsTextRange = NSRange(textRange, in: text)
+                                                                    let nsBodyRange = NSRange(bodyRange, in: body)
+                                                                    
+                                                                    text.replaceSubrange(textRange, with: body[bodyRange])
+                                                                    textWasUpdated = true
+                                                                    
+                                                                    // character count is the same, but NSString length may differ e.g. for emoji
+                                                                    if nsTextRange.length != nsBodyRange.length {
+                                                                        for index in entities.indices {
+                                                                            let entity = entities[index]
+                                                                            if entity.range.upperBound > nsTextRange.lowerBound {
+                                                                                let l = entity.range.lowerBound > nsTextRange.lowerBound ? max(entity.range.lowerBound - nsTextRange.length + nsBodyRange.length, nsTextRange.lowerBound) : entity.range.lowerBound
+                                                                                let u = max(entity.range.upperBound - nsTextRange.length + nsBodyRange.length, nsTextRange.lowerBound)
+                                                                                entities[index] = MessageTextEntity(range: l..<u, type: entity.type)
+                                                                                entitiesWereUpdated = true
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        if textWasUpdated {
+                                                            message = message.withUpdatedText(text)
+                                                        }
+                                                        
+                                                        if entitiesWereUpdated {
+                                                            var attributes = message.attributes
+                                                            let entitiesIndex = attributes.firstIndex { $0 is TextEntitiesMessageAttribute }
+                                                            attributes[entitiesIndex!] = TextEntitiesMessageAttribute(entities: entities)
+                                                            message = message.withUpdatedAttributes(attributes)
+                                                        }
+                                                    }
+                                                    
+                                                    var bodyContainsMessageText = false
+                                                    var bodyHasEmojiPrefix = false
+                                                    
+                                                    let bodyEndsWithEllipsis = body.hasSuffix("…")
+                                                    if !bodyEndsWithEllipsis && message.text == body {
+                                                        bodyContainsMessageText = true
+                                                    } else if bodyEndsWithEllipsis && message.text.hasPrefix(body.dropLast(1)) {
+                                                        bodyContainsMessageText = true
+                                                    } else if body.count >= 2, String(body.prefix(1)).containsEmoji, body[body.index(after: body.startIndex)] == " " {
+                                                        let bodyWithoutEmojiPrefix = body[body.index(body.startIndex, offsetBy: 2)...]
+                                                        if !bodyEndsWithEllipsis && message.text == bodyWithoutEmojiPrefix {
+                                                            bodyContainsMessageText = true
+                                                            bodyHasEmojiPrefix = true
+                                                        } else if bodyEndsWithEllipsis && message.text.hasPrefix(bodyWithoutEmojiPrefix.dropLast(1)) {
+                                                            bodyContainsMessageText = true
+                                                            bodyHasEmojiPrefix = true
+                                                        }
+                                                    }
+                                                    
+                                                    // notification text may not include message text and be something like "2 Photos"
+                                                    if !bodyContainsMessageText {
+                                                        return nil
+                                                    }
+                                                    
+                                                    var message_ = message
+                                                    
+                                                    if shouldSuppressForeignAgentNotice {
+                                                        message_ = removeForeignAgentNotice(message: message_)
+                                                    }
+                                                    
+                                                    if shouldHideChannelSignature {
+                                                        message_ = removeChannelSignature(message: message_)
+                                                    }
+                                                    
+                                                    if message_.text.count == message.text.count {
+                                                        return nil
+                                                    }
+                                                    
+                                                    var updatedBody = message_.text
+                                                    let maxCount = min(body.count, 256) - (bodyHasEmojiPrefix ? 2 : 0)
+                                                    if updatedBody.count > maxCount {
+                                                        updatedBody.removeLast(updatedBody.count - (maxCount - 1))
+//                                                        while let lastChar = updatedBody.last, lastChar.isWhitespace {
+//                                                            updatedBody.removeLast()
+//                                                        }
+                                                        updatedBody.append("…")
+                                                    }
+                                                    
+                                                    var emojiPrefix = bodyHasEmojiPrefix ? body.prefix(2) : nil
+                                                    
+                                                    if updatedBody.isEmpty {
+                                                        if let _ = mediaAttachment as? TelegramMediaImage {
+                                                            updatedBody = presentationStrings?.messagePhoto ?? "Photo"
+                                                            emojiPrefix = emojiPrefix?.replacingOccurrences(of: "🖼", with: "📷")[...]
+                                                        } else if let file = mediaAttachment as? TelegramMediaFile {
+                                                            if file.isAnimated {
+                                                                updatedBody = presentationStrings?.messageAnimation ?? "GIF"
+                                                            } else if file.isVideo {
+                                                                updatedBody = presentationStrings?.messageVideo ?? "Video"
+                                                            } else if file.isVoice {
+                                                                updatedBody = presentationStrings?.messageVoice ?? "Voice Message"
+                                                            } else if file.isSticker || file.isAnimatedSticker {
+                                                                updatedBody = presentationStrings?.messageSticker ?? "Sticker"
+                                                            } else {
+                                                                updatedBody = presentationStrings?.messageFile ?? "File"
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    if let emojiPrefix {
+                                                        updatedBody.insert(contentsOf: emojiPrefix, at: updatedBody.startIndex)
+                                                    }
+                                                    
+                                                    return updatedBody
+                                                }
+                                            }
+                                        }
+                                        
                                         Logger.shared.log("NotificationService \(episode)", "Will fetch media")
                                         let _ = (combineLatest(queue: queue,
                                             fetchMediaSignal
                                             |> timeout(10.0, queue: queue, alternate: .single(nil)),
                                             fetchNotificationSoundSignal
                                             |> timeout(10.0, queue: queue, alternate: .single(nil)),
-                                            wasDisplayed
+                                            wasDisplayed,
+                                            updatedContentBody
                                         )
-                                        |> deliverOn(queue)).start(next: { mediaData, notificationSoundData, wasDisplayed in
+                                        |> deliverOn(queue)).start(next: { mediaData, notificationSoundData, wasDisplayed, updatedContentBody in
                                             guard let strongSelf = self, let stateManager = strongSelf.stateManager else {
                                                 completed()
                                                 return
                                             }
 
+                                            if let updatedContentBody {
+                                                content.body = updatedContentBody
+                                            }
+                                            
                                             Logger.shared.log("NotificationService \(episode)", "Did fetch media \(mediaData == nil ? "Non-empty" : "Empty")")
                                             
                                             if let notificationSoundData = notificationSoundData {
@@ -1601,26 +1782,6 @@ private final class NotificationServiceHandler {
                                                             if let attachment = try? UNNotificationAttachment(identifier: "image", url: URL(fileURLWithPath: storedPath), options: nil) {
                                                                 content.attachments.append(attachment)
                                                             }
-                                                        }
-                                                    }
-                                                }
-                                                
-                                                if content.suppressForeignAgentNotice && content.messageType == nil {
-                                                    if mediaAttachment is TelegramMediaImage {
-                                                        content.messageType = presentationStrings?.messagePhoto ?? "Photo"
-                                                    } else if let file = mediaAttachment as? TelegramMediaFile {
-                                                        if file.isVideo {
-                                                            content.messageType = presentationStrings?.messageVideo ?? "Video"
-                                                        } else if file.isMusic {
-                                                            content.messageType = presentationStrings?.messageMusic ?? "Music"
-                                                        } else if file.isVoice {
-                                                            content.messageType = presentationStrings?.messageVoice ?? "Voice Message"
-                                                        } else if file.isSticker || file.isAnimatedSticker {
-                                                            content.messageType = presentationStrings?.messageSticker ?? "Sticker"
-                                                        } else if file.isAnimated {
-                                                            content.messageType = presentationStrings?.messageAnimation ?? "GIF"
-                                                        } else {
-                                                            content.messageType = presentationStrings?.messageFile ?? "File"
                                                         }
                                                     }
                                                 }

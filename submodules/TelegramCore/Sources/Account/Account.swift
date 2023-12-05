@@ -1300,6 +1300,7 @@ public class Account {
     }
     
     private func postSmallLogIfNeeded() {
+        /*
         let timestamp = CFAbsoluteTimeGetCurrent()
         if self.lastSmallLogPostTimestamp == nil || self.lastSmallLogPostTimestamp! < timestamp - 30.0 {
             self.lastSmallLogPostTimestamp = timestamp
@@ -1320,6 +1321,7 @@ public class Account {
                 }
             }).start())
         }
+        */
     }
     
     public func resetStateManagement() {
@@ -1423,7 +1425,7 @@ public class Account {
                                         
                                         let everywhereHoleUpperId = topIndices[limit].id.id
                                         
-                                        let neverRemoveMessagesWithTags: [MessageTags] = [.unseenPersonalMessage, .pinned, .unseenReaction]
+                                        let neverRemoveMessagesWithTags: [MessageTags] = [.unseenPersonalMessage, .unseenReaction]
                                         
                                         var tagHoleRangesToRemove: [MessageTags: ClosedRange<MessageId.Id>] = [:]
                                         

@@ -119,6 +119,7 @@ public final class ChatMessageAttachedContentNode: ASDisplayNode {
     
     deinit {
         self.highlightTimer?.invalidate()
+        self.currentProgressDisposable?.dispose()
     }
     
     @objc private func pressed() {

@@ -302,6 +302,7 @@ public final class SqliteValueBox: ValueBox {
                 if !resultCode {
                     throw TempError.generic
                 }
+                let _ = try? FileManager.default.removeItem(atPath: tempPath)
             } catch {
                 let _ = try? FileManager.default.removeItem(atPath: tempPath)
                 postboxLog("Don't have write access to database folder")
@@ -366,9 +367,6 @@ public final class SqliteValueBox: ValueBox {
             } else {
                 postboxLog("Encryption key is required")
                 if isReadOnly || !self.removeDatabaseOnError {
-                    #if TEST_BUILD
-                    Thread.sleep(forTimeInterval: 0.5) // for logging to complete before crash
-                    #endif
                     return nil
                 }
                 

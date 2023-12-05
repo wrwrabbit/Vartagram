@@ -1,73 +1,8 @@
 "PasscodeSettings.AutoLock.IfAwayFor_10seconds" = "Immediately";
 
-"PasscodeSettings.FakePasscodes" = "Fake Passcodes";
-"PasscodeSettings.FakePasscode" = "Fake Passcode %1$d";
-"PasscodeSettings.AddFakePasscode" = "Add Fake Passcode";
-"PasscodeSettings.FakePasscodeHelp" = "When a fake passcode is entered, selected actions are performed.";
 "PasscodeSettings.PasscodeInUse" = "This code is already in use";
-"PasscodeSettings.ConfirmDeletion" = "Confirm deletion";
-"PasscodeSettings.AllFakePasscodesWillBeDeleted" = "All fake passcodes will be deleted. Are you sure you want to continue?";
-
-"PasscodeSettings.FakePasscodeChangeName" = "Change Name";
-"PasscodeSettings.FakePasscodeChange" = "Change Fake Passcode";
-"PasscodeSettings.FakePasscodeChangeHelp" = "You can change the fake passcode without deleting it.";
-"PasscodeSettings.FakePasscodeAllowLogin" = "Allow login using Fake Passcode";
-"PasscodeSettings.FakePasscodeAllowLoginHelp" = "You can deny login with this fake passcode. In this case, the attacker will not gain access to the accounts, but the actions will be performed.";
-"PasscodeSettings.FakePasscodeClearAfterActivation" = "Clear Passcode Settings After Activation";
-"PasscodeSettings.FakePasscodeClearAfterActivationHelp" = "All fake passcode settings will be cleared after activation and an attacker will not be able to access them.";
-"PasscodeSettings.DeleteOtherPasscodesAfterActivation" = "Delete Other Passcodes After Activation";
-"PasscodeSettings.DeleteOtherPasscodesAfterActivationHelp" = "All other fake passwords will be deleted after activation and an attacker will not be able to access them.";
-"PasscodeSettings.FakePasscodeActivationMessage" = "Activation Message";
-"PasscodeSettings.FakePasscodeActivationMessageHelp" = "Fake passcode actions will be executed upon receipt of the activation message in any chat.";
-"PasscodeSettings.BadPasscodeTriesToActivate" = "Bad Login Tries for Activation";
-"PasscodeSettings.BadPasscodeTriesToActivateHelp" = "After this number of bad attempts to enter the password code, the fake passcode actions will be executed.";
-"PasscodeSettings.FakePasscodeActionsTitle" = "Actions";
-"PasscodeSettings.FakePasscodeSmsActionTitle" = "SMS";
-"PasscodeSettings.ClearTelegramCache" = "Clear Vartagram Cache";
-"PasscodeSettings.ClearProxiesOnFakeLogin" = "Clear Proxies";
-"PasscodeSettings.FakePasscodeActionsHelp" = "When a fake passcode is entered, selected actions are performed.";
-"PasscodeSettings.FakePasscodeAccountsTitle" = "Account-specific Actions";
-"PasscodeSettings.FakePasscodeAccountsHelp" = "Configure actions for accounts.";
-"PasscodeSettings.FakePasscodeDelete" = "Delete Fake Passcode";
-"PasscodeSettings.FakePasscodeDeleteHelp" = "If you delete the fake passcode, all actions will be cleared. You can change the passcode if you don't want to delete it.";
-
-"PasscodeSettings.FakePasscodeDeleteTitle" = "Delete Fake Passcode";
-"PasscodeSettings.FakePasscodeDeleteMessage" = "Are you sure you want to delete this fake passcode?";
 
 "Settings.Version" = "Vartagram %1$@ (%2$@)\nBased on original Telegram %3$@";
-
-"FakePasscodes.Common.DoNotShowAgain" = "Do not show again";
-
-"FakePasscodes.AccountActions.ChatsToRemove" = "Chats to Remove";
-"FakePasscodes.AccountActions.ChatsToRemove.ConfiguredChatsHeader" = "Configured Chats";
-"FakePasscodes.AccountActions.ChatsToRemove.AvailableChatsHeader" = "Available Chats";
-"FakePasscodes.AccountActions.ChatsToRemove.EmptyListInfo" = "Chats not found.";
-"FakePasscodes.AccountActions.ChatsToRemove.SettingsTitle" = "Chat Removal Settings";
-"FakePasscodes.AccountActions.ChatsToRemove.SelectedChatsHeader" = "Selected Chats";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeHeader" = "Action";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeDelete" = "Delete";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeDeleteForEveryone" = "Delete for everyone";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeDeleteJustForMe" = "Delete just for me";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeHide" = "Hide";
-"FakePasscodes.AccountActions.ChatsToRemove.RemovalTypeInfo" = "If the \"Hide\" option is selected, the dialogs (chats, channels) will not be deleted. They will be hidden from the dialog list. Their notifications will also be hidden. After logging in with the original passcode, the dialog will appear in the list. It is safer to use delete.";
-"FakePasscodes.AccountActions.ChatsToRemove.DeleteFromCompanion" = "Delete from Companion";
-"FakePasscodes.AccountActions.ChatsToRemove.DeleteFromCompanionInfo" = "Delete dialogs from the companion. This option only applies to dialogs with users.";
-"FakePasscodes.AccountActions.SessionsToHide" = "Sessions to Hide";
-"FakePasscodes.AccountActions.SessionsToTerminate" = "Sessions to Terminate";
-"FakePasscodes.AccountActions.All" = "All";
-"FakePasscodes.AccountActions.AllExceptCount" = "All (-%1$@)";
-"FakePasscodes.AccountActions.SessionsSettingsInfo" = "Choose sessions which will be visible in Settings and/or terminated on Fake Passcode Activation";
-"FakePasscodes.AccountActions.LogOut" = "Log Out";
-"FakePasscodes.AccountActions.MiscActionsInfo" = "When a fake passcode is entered, selected actions are performed.";
-
-"AccountActions.SessionsToHide.Clear" = "Clear";
-"AccountActions.SessionsToHide.Selected" = "Selected";
-"AccountActions.SessionsToHide.CheckAll" = "Check all";
-"AccountActions.SessionsToHide.ExceptSelected" = "Except selected";
-"AccountActions.SessionsToHide.ActiveSessions" = "Active sessions";
-"AccountActions.SessionsToHide.CleanConfirmation" = "Are your sure?";
-
-"AccountActions.SessionsToTerminate.24hWarningMessage" = "This feature will not work if less than 24 hours have passed since you signed in to your account on this device.";
 
 "PtgSettings.Title" = "Vartagram";
 "PtgSettings.ShowPeerId" = "Show Profile ID";
@@ -102,6 +37,7 @@
 "PtgSettings.SwipeActionsForChatsHelp" = "Turn off to prevent accidental actions when swiping chats left or right in the chat list. All of those actions are also available in the chat context menu.";
 "PtgSettings.SwipeToOpenStoryCamera" = "Swipe to Open Story Camera";
 "PtgSettings.SwipeToOpenStoryCameraHelp" = "Turn off to prevent accidentally opening the story camera when swiping through the chat list.";
+"PtgSettings.EnableReactionNotifications" = "Reaction Notifications";
 
 "Conversation.ContextMenuSaveMessage" = "Save Message";
 

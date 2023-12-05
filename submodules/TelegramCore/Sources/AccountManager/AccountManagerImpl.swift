@@ -83,7 +83,12 @@ final class AccountManagerImpl<Types: AccountManagerTypes> {
         } catch let e {
             postboxLog("decode atomic state error: \(e)")
             postboxLogSync()
-            preconditionFailure()
+            if FileManager.default.fileExists(atPath: atomicStatePath) {
+                preconditionFailure()
+            } else {
+                // it is possible in app extension before first app launch
+                return ([], nil)
+            }
         }
     }
     
@@ -154,7 +159,12 @@ final class AccountManagerImpl<Types: AccountManagerTypes> {
                 self.currentAtomicState = AccountManagerAtomicState(records: legacyRecordDict, currentRecordId: self.legacyMetadataTable.getCurrentAccountId(), currentAuthRecord: self.legacyMetadataTable.getCurrentAuthAccount(), accessChallengeData: self.legacyMetadataTable.getAccessChallengeData())
                 self.syncAtomicStateToFile()
             } else {
-                preconditionFailure()
+                if FileManager.default.fileExists(atPath: self.atomicStatePath) {
+                    preconditionFailure()
+                } else {
+                    // it is possible in app extension before first app launch
+                    self.currentAtomicState = AccountManagerAtomicState()
+                }
             }
         }
         

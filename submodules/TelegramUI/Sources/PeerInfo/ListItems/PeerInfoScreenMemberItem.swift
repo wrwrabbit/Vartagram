@@ -27,6 +27,7 @@ final class PeerInfoScreenMemberItem: PeerInfoScreenItem {
     let action: ((PeerInfoScreenMemberItemAction) -> Void)?
     let contextAction: ((ASDisplayNode, ContextGesture?) -> Void)?
     let openStories: ((UIView) -> Void)?
+    let disableSwipeActionsForAccounts: Bool
     
     init(
         id: AnyHashable,
@@ -37,7 +38,8 @@ final class PeerInfoScreenMemberItem: PeerInfoScreenItem {
         isAccount: Bool,
         action: ((PeerInfoScreenMemberItemAction) -> Void)?,
         contextAction: ((ASDisplayNode, ContextGesture?) -> Void)? = nil,
-        openStories: ((UIView) -> Void)? = nil
+        openStories: ((UIView) -> Void)? = nil,
+        disableSwipeActionsForAccounts: Bool = false
     ) {
         self.id = id
         self.context = context
@@ -48,6 +50,7 @@ final class PeerInfoScreenMemberItem: PeerInfoScreenItem {
         self.action = action
         self.contextAction = contextAction
         self.openStories = openStories
+        self.disableSwipeActionsForAccounts = disableSwipeActionsForAccounts
     }
     
     func node() -> PeerInfoScreenItemNode {
@@ -167,7 +170,7 @@ private final class PeerInfoScreenMemberItemNode: PeerInfoScreenItemNode {
                 item.action?(.remove)
             }))
         }
-        if actions.contains(.logout) {
+        if actions.contains(.logout) && !item.disableSwipeActionsForAccounts {
             options.append(ItemListPeerItemRevealOption(type: .destructive, title: presentationData.strings.Settings_Context_Logout, action: {
                 item.action?(.remove)
             }))

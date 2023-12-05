@@ -682,7 +682,7 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
                     }
                 }, contextAction: peerContextAction.flatMap { peerContextAction in
                     return { node, gesture, location in
-                        if let chatPeer = chatPeer, chatPeer.id.namespace != Namespaces.Peer.SecretChat {
+                        if let chatPeer = chatPeer/*, chatPeer.id.namespace != Namespaces.Peer.SecretChat*/ {
                             peerContextAction(chatPeer, .search(nil), node, gesture, location)
                         } else {
                             gesture?.cancel()

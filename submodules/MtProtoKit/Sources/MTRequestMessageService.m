@@ -1037,8 +1037,10 @@
                 request.requestContext.responseMessageId = responseMessageId;
                 return true;
             } else {
-                MTLog(@"[MTRequestMessageService#%" PRIxPTR " will not request message %" PRId64 " (transaction was not completed)]", (intptr_t)self, messageId);
-                MTLog(@"[MTRequestMessageService#%" PRIxPTR " but today it will]", (intptr_t)self);
+                if (MTLogEnabled()) {
+                    MTLog(@"[MTRequestMessageService#%" PRIxPTR " will not request message %" PRId64 " (transaction was not completed)]", (intptr_t)self, messageId);
+                    MTLog(@"[MTRequestMessageService#%" PRIxPTR " but today it will]", (intptr_t)self);
+                }
                 return true;
             }
         }

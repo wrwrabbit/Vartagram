@@ -1774,7 +1774,7 @@ public func debugController(sharedContext: SharedAccountContext, context: Accoun
     return controller
 }
 
-#if DEBUG
+/*
 public func triggerDebugSendLogsUI(context: AccountContext, additionalInfo: String = "", pushController: @escaping (ViewController) -> Void) {
     let _ = (Logger.shared.collectLogs()
     |> deliverOnMainQueue).start(next: { logs in
@@ -1832,4 +1832,4 @@ public func triggerDebugSendLogsUI(context: AccountContext, additionalInfo: Stri
         pushController(controller)
     })
 }
-#endif
+*/

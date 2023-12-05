@@ -400,7 +400,7 @@ public final class StorageBox {
                         self.internalAddSize(peerId: peerId, contentType: previousContentType, delta: deltaSize)
                     }
                     if !referencingPeers.contains(reference.peerId) {
-                        self.internalAddSize(peerId: reference.peerId, contentType: previousContentType, delta: updatedSize)
+                        self.internalAddSize(peerId: reference.peerId, contentType: previousContentType, delta: deltaSize)
                     }
                 }
             } else if updatedSize != 0 {
