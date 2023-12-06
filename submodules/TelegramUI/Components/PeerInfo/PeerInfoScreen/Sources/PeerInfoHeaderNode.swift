@@ -99,6 +99,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
     let backgroundBannerView: UIView
     let backgroundCover = ComponentView<Empty>()
     let buttonsContainerNode: SparseNode
+    let buttonsBackgroundNode: NavigationBackgroundNode
+    let buttonsMaskView: UIView
     let regularContentNode: PeerInfoHeaderRegularContentNode
     let editingContentNode: PeerInfoHeaderEditingContentNode
     let avatarOverlayNode: PeerInfoEditingAvatarOverlayNode
@@ -215,6 +217,11 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         
         self.buttonsContainerNode = SparseNode()
         self.buttonsContainerNode.clipsToBounds = true
+        
+        self.buttonsBackgroundNode = NavigationBackgroundNode(color: .clear, enableBlur: true, enableSaturation: false)
+        self.buttonsContainerNode.addSubnode(self.buttonsBackgroundNode)
+        self.buttonsMaskView = UIView()
+        self.buttonsBackgroundNode.view.mask = self.buttonsMaskView
         
         self.regularContentNode = PeerInfoHeaderRegularContentNode()
         var requestUpdateLayoutImpl: (() -> Void)?
@@ -851,8 +858,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         if self.isSettings {
             expandedAvatarListHeight = expandedAvatarListHeight + 60.0
         } else {
-            let avatarEnlargementFactor: CGFloat = 1.35
-            expandedAvatarListHeight = floor(expandedAvatarListHeight * avatarEnlargementFactor)
+            expandedAvatarListHeight = expandedAvatarListHeight + 98.0
         }
         
         let expandedAvatarListSize = CGSize(width: width, height: expandedAvatarListHeight)
@@ -878,7 +884,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             isFake = peer.isFake || peer.isScam
         }
         
-        let titleShadowColor = UIColor(white: 0.0, alpha: 0.1)
+        let titleShadowColor: UIColor? = nil
         var idStringText = ""
         
         if let peer = peer {
@@ -1152,7 +1158,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         
         var bottomShadowHeight: CGFloat = 88.0
         if !self.isSettings {
-            bottomShadowHeight += 110.0
+            bottomShadowHeight += 100.0
         }
         let bottomShadowFrame = CGRect(origin: CGPoint(x: 0.0, y: expandedAvatarHeight - bottomShadowHeight - idSize.height), size: CGSize(width: width, height: bottomShadowHeight + idSize.height))
         transition.updateFrame(node: self.avatarListNode.listContainerNode.bottomShadowNode, frame: bottomShadowFrame, beginWithCurrentState: true)
@@ -1697,6 +1703,10 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             buttonRightOrigin.y += actionButtonSize.height + 24.0
         }
         
+        transition.updateFrameAdditive(node: self.buttonsBackgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: buttonRightOrigin.y), size: CGSize(width: width, height: buttonSize.height)))
+        self.buttonsBackgroundNode.update(size: self.buttonsBackgroundNode.bounds.size, transition: transition)
+        self.buttonsBackgroundNode.updateColor(color: contentButtonBackgroundColor, enableBlur: true, transition: transition)
+        
         for buttonKey in buttonKeys.reversed() {
             let buttonNode: PeerInfoHeaderButtonNode
             var wasAdded = false
@@ -1709,6 +1719,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 })
                 self.buttonNodes[buttonKey] = buttonNode
                 self.buttonsContainerNode.addSubnode(buttonNode)
+                self.buttonsMaskView.addSubview(buttonNode.backgroundContainerView)
             }
             
             let buttonFrame = CGRect(origin: CGPoint(x: buttonRightOrigin.x - buttonSize.width, y: buttonRightOrigin.y), size: buttonSize)
@@ -1719,6 +1730,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             } else {
                 buttonTransition.updateFrame(node: buttonNode, frame: buttonFrame)
             }
+            buttonTransition.updateFrame(view: buttonNode.backgroundContainerView, frame: buttonFrame.offsetBy(dx: 0.0, dy: -buttonFrame.minY))
+            
             let buttonText: String
             let buttonIcon: PeerInfoHeaderButtonIcon
             switch buttonKey {
@@ -1778,8 +1791,10 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             
             if wasAdded {
                 buttonNode.alpha = 0.0
+                buttonNode.backgroundContainerView.alpha = 0.0
             }
             transition.updateAlpha(node: buttonNode, alpha: buttonsTransitionFraction)
+            transition.updateAlpha(layer: buttonNode.backgroundContainerView.layer, alpha: buttonsTransitionFraction)
             
             if case .mute = buttonKey, buttonNode.containerNode.alpha.isZero, additive {
                 if case let .animated(duration, curve) = transition {
@@ -1797,7 +1812,9 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             if !buttonKeys.contains(key) {
                 if let buttonNode = self.buttonNodes[key] {
                     self.buttonNodes.removeValue(forKey: key)
+                    transition.updateAlpha(layer: buttonNode.backgroundContainerView.layer, alpha: 0.0)
                     transition.updateAlpha(node: buttonNode, alpha: 0.0) { [weak buttonNode] _ in
+                        buttonNode?.backgroundContainerView.removeFromSuperview()
                         buttonNode?.removeFromSupernode()
                     }
                 }
