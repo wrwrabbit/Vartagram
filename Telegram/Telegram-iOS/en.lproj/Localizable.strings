@@ -17,10 +17,11 @@
 "PtgSettings.UseFullWidth" = "Use Full Screen Width";
 "PtgSettings.EnableLiveText" = "Live Text";
 "PtgSettings.EnableLiveTextHelp" = "Automatically perform text recognition and bar code detection (e.g. QR-code) on each image you preview in fullscreen. Turn it off to save battery life.";
-"PtgSettings.VoiceToTextPremiumAccountsImplmentation" = "Voice-to-Text Conversion";
-"PtgSettings.VoiceToTextPremiumAccountsImplmentation.Telegram" = "Telegram";
-"PtgSettings.VoiceToTextPremiumAccountsImplmentation.Apple" = "Apple";
-"PtgSettings.VoiceToTextHelp" = "For account with Telegram Premium subscription you can choose which implementation to use for voice-to-text conversion, Telegram or Apple. Accounts without Telegram Premium subscription always use Apple services.";
+"PtgSettings.VoiceToTextHeader" = "Voice-to-Text Conversion";
+"PtgSettings.VoiceToTextPreferredImplmentation" = "Preferred Implementation";
+"PtgSettings.VoiceToTextPreferredImplmentation.Telegram" = "Telegram";
+"PtgSettings.VoiceToTextPreferredImplmentation.Apple" = "Apple";
+"PtgSettings.VoiceToTextHelp" = "Telegram servers can convert unlimited number of messages for Premium accounts, or up to 2 messages per week for regular accounts. Apple speech recognition can be used for all accounts. You can choose which implementation to use if both options are available.";
 "PtgSettings.DefaultCameraForVideos" = "Default Camera for Videos";
 "PtgSettings.DefaultCameraForVideos.Front" = "Front";
 "PtgSettings.DefaultCameraForVideos.Rear" = "Rear";
