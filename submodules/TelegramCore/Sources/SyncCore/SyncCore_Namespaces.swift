@@ -115,12 +115,11 @@ public struct Namespaces {
         public static let displayedMessageNotifications: Int8 = 32
         public static let recommendedChannels: Int8 = 33
         public static let peerColorOptions: Int8 = 34
-
+        
         // 64 - ...: ApplicationSpecificItemCacheCollectionIdValues
         // 100: CachedChannelAdminRanks
         // 101: CachedRecentPeers
         public static let cachedOrderedItemListHashes: Int8 = 97
-
     }
     
     public struct UnorderedItemList {
@@ -441,7 +440,7 @@ public struct PreferencesKeys {
         key.setInt32(0, value: PreferencesKeyValues.storiesConfiguration.rawValue)
         return key
     }()
-
+    
     public static let audioTranscriptionTrialState: ValueBoxKey = {
         let key = ValueBoxKey(length: 4)
         key.setInt32(0, value: PreferencesKeyValues.audioTranscriptionTrialState.rawValue)

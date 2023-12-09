@@ -826,11 +826,11 @@ func peerInfoScreenData(context: AccountContext, peerId: PeerId, strings: Presen
                 
                 var peer: Peer?
                 peer = peerView.peers[userPeerId]
-
+                
                 /*if let user = peer as? TelegramUser, let profileColor = user.nameColor {
                     peer = user.withUpdatedProfileColor(PeerNameColor(rawValue: profileColor.rawValue)).withUpdatedProfileBackgroundEmojiId(user.backgroundEmojiId)
                 }*/
-
+                
                 return PeerInfoScreenData(
                     peer: peer,
                     chatPeer: peerView.peers[peerId],
@@ -904,9 +904,20 @@ func peerInfoScreenData(context: AccountContext, peerId: PeerId, strings: Presen
                 requestsStatePromise.get(),
                 hasStories,
                 accountIsPremium,
-                context.engine.peers.recommendedChannels(peerId: peerId)
+                context.engine.peers.recommendedChannels(peerId: peerId),
+                Signal<Message?, NoError>.single(nil)
+                |> then (
+                    context.engine.messages.getMessagesLoadIfNecessary([MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: 1)])
+                    |> mapToSignal { result -> Signal<[Message], NoError> in
+                        guard case let .result(result) = result else {
+                            return .complete()
+                        }
+                        return .single(result)
+                    }
+                    |> map { $0.first }
                 )
-            |> map { peerView, availablePanes, globalNotificationSettings, status, currentInvitationsContext, invitations, currentRequestsContext, requests, hasStories, accountIsPremium, recommendedChannels -> PeerInfoScreenData in
+            )
+            |> map { peerView, availablePanes, globalNotificationSettings, status, currentInvitationsContext, invitations, currentRequestsContext, requests, hasStories, accountIsPremium, recommendedChannels, firstMessage -> PeerInfoScreenData in
                 var availablePanes = availablePanes
                 if let hasStories {
                     if hasStories {

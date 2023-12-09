@@ -168,7 +168,7 @@ final class PeerInfoEditingAvatarNode: ASDisplayNode {
                     self.videoNode?.removeFromSupernode()
                     
                     let mediaManager = self.context.sharedContext.mediaManager
-                    let videoNode = UniversalVideoNode(postbox: self.context.account.postbox, audioSession: mediaManager.audioSession, manager: mediaManager.universalVideoManager, decoration: GalleryVideoDecoration(), content: videoContent, priority: .gallery)
+                    let videoNode = UniversalVideoNode(postbox: self.context.account.postbox, audioSession: mediaManager.audioSession, manager: mediaManager.universalVideoManager, decoration: GalleryVideoDecoration(), content: videoContent, priority: .gallery, sourceAccountId: self.context.account.id)
                     videoNode.isUserInteractionEnabled = false
                     self.videoStartTimestamp = video.representation.startTimestamp
                     self.videoContent = videoContent

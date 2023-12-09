@@ -24,7 +24,7 @@ private final class MessageStatsControllerArguments {
     let openMessage: (EngineMessage.Id) -> Void
     let openStory: (EnginePeer.Id, EngineStoryItem, UIView) -> Void
     let storyContextAction: (EnginePeer.Id, ASDisplayNode, ContextGesture?, Bool) -> Void
-
+    
     init(context: AccountContext, loadDetailedGraph: @escaping (StatsGraph, Int64) -> Signal<StatsGraph?, NoError>, openMessage: @escaping (EngineMessage.Id) -> Void, openStory: @escaping (EnginePeer.Id, EngineStoryItem, UIView) -> Void, storyContextAction: @escaping (EnginePeer.Id, ASDisplayNode, ContextGesture?, Bool) -> Void) {
         self.context = context
         self.loadDetailedGraph = loadDetailedGraph
@@ -47,7 +47,7 @@ private enum StatsEntry: ItemListNodeEntry {
     
     case interactionsTitle(PresentationTheme, String)
     case interactionsGraph(PresentationTheme, PresentationStrings, PresentationDateTimeFormat, StatsGraph, ChartType, Bool)
-
+    
     case reactionsTitle(PresentationTheme, String)
     case reactionsGraph(PresentationTheme, PresentationStrings, PresentationDateTimeFormat, StatsGraph, ChartType, Bool)
     
@@ -173,7 +173,7 @@ private enum StatsEntry: ItemListNodeEntry {
                 var views: Int32 = 0
                 var forwards: Int32 = 0
                 var reactions: Int32 = 0
-
+            
                 var isStory = false
                 let peer: Peer
                 switch item {
@@ -220,7 +220,7 @@ private func messageStatsControllerEntries(data: PostStats?, storyViews: EngineS
     
     if let data = data {
         entries.append(.overviewTitle(presentationData.theme, presentationData.strings.Stats_MessageOverview.uppercased()))
-
+        
         var publicShares: Int32?
         if let messages {
             publicShares = messages.totalCount
@@ -228,7 +228,7 @@ private func messageStatsControllerEntries(data: PostStats?, storyViews: EngineS
             publicShares = forwards.count
         }
         entries.append(.overview(presentationData.theme, data, storyViews, publicShares))
-
+        
         var isStories = false
         if let _ = data as? StoryStats {
             isStories = true
@@ -248,7 +248,7 @@ private func messageStatsControllerEntries(data: PostStats?, storyViews: EngineS
             
             entries.append(.interactionsGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.interactionsGraph, chartType, isStories))
         }
-
+        
         if !data.reactionsGraph.isEmpty {
             entries.append(.reactionsTitle(presentationData.theme, presentationData.strings.Stats_MessageReactionsTitle.uppercased()))
             entries.append(.reactionsGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.reactionsGraph, .bars, isStories))
@@ -262,7 +262,7 @@ private func messageStatsControllerEntries(data: PostStats?, storyViews: EngineS
                 index += 1
             }
         }
-
+        
         if let forwards, !forwards.forwards.isEmpty {
             entries.append(.publicForwardsTitle(presentationData.theme, presentationData.strings.Stats_MessagePublicForwardsTitle.uppercased()))
             var index: Int32 = 0
@@ -293,11 +293,11 @@ protocol PostStats {
 }
 
 extension MessageStats: PostStats {
-
+    
 }
 
 extension StoryStats: PostStats {
-
+    
 }
 
 public func messageStatsController(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil, subject: StatsSubject) -> ViewController {
@@ -307,13 +307,13 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
     let dataPromise = Promise<PostStats?>(nil)
     let messagesPromise = Promise<(SearchMessagesResult, SearchMessagesState)?>(nil)
     let forwardsPromise = Promise<StoryStatsPublicForwardsContext.State?>(nil)
-
+    
     let anyStatsContext: Any
     let dataSignal: Signal<PostStats?, NoError>
     var loadDetailedGraphImpl: ((StatsGraph, Int64) -> Signal<StatsGraph?, NoError>)?
     var openStoryImpl: ((EnginePeer.Id, EngineStoryItem, UIView) -> Void)?
     var storyContextActionImpl: ((EnginePeer.Id, ASDisplayNode, ContextGesture?, Bool) -> Void)?
-
+    
     var forwardsContext: StoryStatsPublicForwardsContext?
     let peerId: EnginePeer.Id
     var storyItem: EngineStoryItem?
@@ -330,12 +330,8 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
         }
         dataPromise.set(.single(nil) |> then(dataSignal))
         anyStatsContext = statsContext
-
-    let longLoadingSignal: Signal<Bool, NoError> = .single(false) |> then(.single(true) |> delay(2.0, queue: Queue.mainQueue()))
-    
-    let previousData = Atomic<MessageStats?>(value: nil)
-    
-    let searchSignal = context.engine.messages.searchMessages(location: .publicForwards(messageId: id), query: "", state: nil)
+        
+        let searchSignal = context.engine.messages.searchMessages(location: .publicForwards(messageId: id), query: "", state: nil, inactiveSecretChatPeerIds: context.currentInactiveSecretChatPeerIds.with { $0 })
         |> map(Optional.init)
         |> afterNext { result in
             if let result = result {
@@ -351,7 +347,7 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
     case let .story(peerIdValue, id, item, _):
         peerId = peerIdValue
         storyItem = item
-
+        
         let statsContext = StoryStatsContext(account: context.account, peerId: peerId, storyId: id)
         loadDetailedGraphImpl = { [weak statsContext] graph, x in
             return statsContext?.loadDetailedGraph(graph, x: x) ?? .single(nil)
@@ -362,9 +358,9 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
         }
         dataPromise.set(.single(nil) |> then(dataSignal))
         anyStatsContext = statsContext
-
+        
         messagesPromise.set(.single(nil))
-
+        
         forwardsContext = StoryStatsPublicForwardsContext(account: context.account, peerId: peerId, storyId: id)
         if let forwardsContext {
             forwardsPromise.set(
@@ -378,7 +374,7 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
             forwardsPromise.set(.single(nil))
         }
     }
-
+    
     let arguments = MessageStatsControllerArguments(context: context, loadDetailedGraph: { graph, x -> Signal<StatsGraph?, NoError> in
         return loadDetailedGraphImpl?(graph, x) ?? .single(nil)
     }, openMessage: { messageId in
@@ -388,11 +384,11 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
     }, storyContextAction: { peerId, node, gesture, isMessage in
         storyContextActionImpl?(peerId, node, gesture, isMessage)
     })
-
+    
     let longLoadingSignal: Signal<Bool, NoError> = .single(false) |> then(.single(true) |> delay(2.0, queue: Queue.mainQueue()))
-
+    
     let previousData = Atomic<PostStats?>(value: nil)
-
+    
     let iconNodePromise = Promise<ASDisplayNode?>()
     if case let .story(peerId, id, storyItem, fromStory) = subject, !fromStory {
         let _ = id
@@ -412,11 +408,11 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
     } else {
         iconNodePromise.set(.single(nil))
     }
-
+    
     let presentationData = updatedPresentationData?.signal ?? context.sharedContext.presentationData
     let signal = combineLatest(
         presentationData,
-        dataPromise.get(),
+        dataPromise.get(), 
         messagesPromise.get(),
         forwardsPromise.get(),
         longLoadingSignal,
@@ -443,7 +439,7 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
             title = presentationData.strings.Stats_StoryTitle
             storyViews = storyItem.views
         }
-
+        
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(title), leftNavigationButton: nil, rightNavigationButton: iconNode.flatMap { ItemListNavigationButton(content: .node($0), style: .regular, enabled: true, action: { [weak iconNode] in
             if let iconNode, let storyItem {
                 openStoryImpl?(peerId, storyItem, iconNode.view)
@@ -502,7 +498,7 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
                 sourceCornerRadius: sourceView.bounds.width * 0.5,
                 sourceIsAvatar: false
             )
-
+        
             let storyContainerScreen = StoryContainerScreen(
                 context: context,
                 content: storyContent,
@@ -552,11 +548,11 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
         guard let controller = controller, let sourceNode = sourceNode as? ContextExtractedContentContainingNode else {
             return
         }
-
+        
         let presentationData = updatedPresentationData?.initial ?? context.sharedContext.currentPresentationData.with { $0 }
-
+        
         var items: [ContextMenuItem] = []
-
+        
         let title: String
         let iconName: String
         if isMessage {
@@ -571,7 +567,7 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
                 iconName = "Chat/Context Menu/User"
             }
         }
-
+        
         items.append(.action(ContextMenuActionItem(text: title, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: iconName), color: theme.contextMenu.primaryColor) }, action: { [weak controller] c, _ in
             c.dismiss(completion: {
                 let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
@@ -589,7 +585,7 @@ public func messageStatsController(context: AccountContext, updatedPresentationD
                 })
             })
         })))
-
+        
         let contextController = ContextController(presentationData: presentationData, source: .extracted(ChannelStatsContextExtractedContentSource(controller: controller, sourceNode: sourceNode, keepInPlace: false)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
         controller.presentInGlobalOverlay(contextController)
     }

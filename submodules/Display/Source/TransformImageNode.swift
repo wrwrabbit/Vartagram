@@ -146,7 +146,7 @@ open class TransformImageNode: ASDisplayNode {
         let currentArguments = self.currentArguments
         return { [weak self] arguments in
             let updatedImage: UIImage?
-            if currentArguments != arguments || self?.captureProtectedContentLayer?.status == .failed {
+            if currentArguments != arguments {
                 updatedImage = currentTransform?(arguments)?.generateImage()
             } else {
                 updatedImage = nil

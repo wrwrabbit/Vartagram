@@ -149,7 +149,7 @@ public func galleryCaptionStringWithAppliedEntities(context: AccountContext, tex
             baseQuoteTertiaryTintColor = .clear
         }
     }
-
+    
     return stringWithAppliedEntities(
         text,
         entities: entities,
@@ -254,7 +254,7 @@ public func galleryItemForEntry(
                 if context.shouldHideChannelSignature(in: message), let username = message.channelUsername {
                     (text_, entities_) = removeChannelSignature(text: text_, entities: entities_, media: message.media, username: username)
                 }
-                let caption = galleryCaptionStringWithAppliedEntities(context: context, text: text, entities: entities, message: message)
+                let caption = galleryCaptionStringWithAppliedEntities(context: context, text: text_, entities: entities_, message: message)
                 return UniversalVideoGalleryItem(
                     context: context,
                     presentationData: presentationData,

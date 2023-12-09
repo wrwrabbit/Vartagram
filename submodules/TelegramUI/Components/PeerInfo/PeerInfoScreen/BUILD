@@ -10,6 +10,8 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
+        "//submodules/PtgSecretPasscodesUI",
+        
         "//submodules/AccountContext",
         "//submodules/AccountUtils",
         "//submodules/ActionSheetPeerItem",

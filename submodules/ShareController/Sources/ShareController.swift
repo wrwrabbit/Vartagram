@@ -365,7 +365,7 @@ public protocol ShareControllerAccountContext: AnyObject {
     
     var ptgSettings: PtgSettings { get }
     var inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError> { get }
-
+    
     func resolveInlineStickers(fileIds: [Int64]) -> Signal<[Int64: TelegramMediaFile], NoError>
 }
 
@@ -397,11 +397,11 @@ public final class ShareControllerAppAccountContext: ShareControllerAccountConte
     public var ptgSettings: PtgSettings {
         return self.context.sharedContext.currentPtgSettings.with { $0 }
     }
-
+    
     public var inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError> {
         return self.context.inactiveSecretChatPeerIds
     }
-
+    
     public init(context: AccountContext) {
         self.context = context
     }
@@ -478,7 +478,7 @@ public final class ShareController: ViewController {
     }
     
     public var openShareAsImage: (([Message]) -> Void)?
-
+    
     public var shareStory: (() -> Void)?
 
     public var debugAction: (() -> Void)?
@@ -695,7 +695,7 @@ public final class ShareController: ViewController {
         self.readyDisposable.dispose()
         self.accountActiveDisposable.dispose()
         self.presentationDataDisposable?.dispose()
-
+        
         if self.fromForeignApp {
             if let application = UIApplication.value(forKeyPath: #keyPath(UIApplication.shared)) as? UIApplication {
                 application.isIdleTimerDisabled = false
@@ -1029,9 +1029,9 @@ public final class ShareController: ViewController {
                     case let .messages(messages):
                         for message in messages {
                             let shouldSuppressForeignAgentNotice = message.isPeerOrForwardSourceBroadcastChannel && strongSelf.currentContext.ptgSettings.suppressForeignAgentNotice
-
+                            
                             let message_ = shouldSuppressForeignAgentNotice ? removeForeignAgentNotice(message: message) : message
-
+                            
                             var url: String?
                             var selectedMedia: Media?
                             loop: for media in message_.media {
@@ -1125,24 +1125,24 @@ public final class ShareController: ViewController {
                                         activityController.popoverPresentationController?.sourceView = window
                                         activityController.popoverPresentationController?.sourceRect = CGRect(origin: CGPoint(x: window.bounds.width / 2.0, y: window.bounds.size.height - 1.0), size: CGSize(width: 1.0, height: 1.0))
                                         rootViewController.present(activityController, animated: true, completion: nil)
-
+                                        
                                         final class DeinitWatcher: NSObject {
                                             let f: () -> Void
-
+                                            
                                             init(_ f: @escaping () -> Void) {
                                                 self.f = f
                                             }
-
+                                            
                                             deinit {
                                                 f()
                                             }
                                         }
-
+                                        
                                         let watchDisposable = MetaDisposable()
                                         objc_setAssociatedObject(activityController, &ObjCKey_DeinitWatcher, DeinitWatcher {
                                             watchDisposable.dispose()
                                         }, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-
+                                        
                                         if case let .messages(messages) = subject {
                                             watchDisposable.set((currentContext.context.engine.data.subscribe(
                                                 EngineDataMap(messages.map { TelegramEngine.EngineData.Item.Messages.Message(id: $0.id) })
@@ -1159,7 +1159,7 @@ public final class ShareController: ViewController {
                                                         break
                                                     }
                                                 }
-
+                                                
                                                 if !allFound {
                                                     activityController.presentingViewController?.dismiss(animated: true)
                                                 }
@@ -2403,7 +2403,7 @@ public final class ShareController: ViewController {
     public func updatePeers() {
         self.switchToAccount(account: self.currentContext, animateIn: false)
     }
-
+    
     private func switchToAccount(account: ShareControllerAccountContext, animateIn: Bool) {
         self.currentContext = account
         self.accountActiveDisposable.set(self.environment.setAccountUserInterfaceInUse(id: account.accountId))
@@ -2500,6 +2500,22 @@ public final class ShareController: ViewController {
             }
         }))
     }
+}
+
+// copied from TelegramAccountAuxiliaryMethods.swift
+private func prepareSecretThumbnailData(_ data: EngineMediaResource.ResourceData) -> (CGSize, Data)? {
+    if data.isComplete, let image = UIImage(contentsOfFile: data.path) {
+        if image.size.width < 100 && image.size.height < 100 {
+            if let resultData = try? Data(contentsOf: URL(fileURLWithPath: data.path)) {
+                return (image.size, resultData)
+            }
+        }
+        let scaledSize = image.size.fitted(CGSize(width: 90.0, height: 90.0))
+        if let scaledImage = generateScaledImage(image: image, size: scaledSize, scale: 1.0), let scaledData = scaledImage.jpegData(compressionQuality: 0.4) {
+            return (scaledSize, scaledData)
+        }
+    }
+    return nil
 }
 
 public class ShareToInstagramActivity: UIActivity {

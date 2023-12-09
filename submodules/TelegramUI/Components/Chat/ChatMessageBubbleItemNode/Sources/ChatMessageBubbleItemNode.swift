@@ -116,11 +116,11 @@ private func contentNodeMessagesAndClassesForItem(_ item: ChatMessageItem) -> ([
         }
         
         var message_ = item.context.shouldSuppressForeignAgentNotice(in: message) ? removeForeignAgentNotice(message: message) : message
-
+        
         if item.context.shouldHideChannelSignature(in: message) {
             message_ = removeChannelSignature(message: message_)
         }
-
+        
         var messageText = message_.text
 
         var isFile = false
@@ -237,7 +237,7 @@ private func contentNodeMessagesAndClassesForItem(_ item: ChatMessageItem) -> ([
             }
             previousItemIsFile = isFile
         }
-
+        
         if let updatingMedia = itemAttributes.updatingMedia {
             messageText = updatingMedia.text
         }
@@ -320,7 +320,7 @@ private func contentNodeMessagesAndClassesForItem(_ item: ChatMessageItem) -> ([
     }
     
     let hideComments = firstMessage.isPeerBroadcastChannel && item.context.sharedContext.currentPtgSettings.with { $0.hideCommentsInChannels }
-
+    
     if !isAction && !hasSeparateCommentsButton && !Namespaces.Message.allScheduled.contains(firstMessage.id.namespace) && !hideComments {
         if hasCommentButton(item: item) {
             result.append((firstMessage, ChatMessageCommentFooterContentNode.self, ChatMessageEntryAttributes(), BubbleItemAttributes(isAttachment: true, neighborType: .footer, neighborSpacing: .default)))
@@ -328,7 +328,7 @@ private func contentNodeMessagesAndClassesForItem(_ item: ChatMessageItem) -> ([
     }
     
     let hideReactions = firstMessage.isPeerBroadcastChannel && item.context.sharedContext.currentPtgSettings.with { $0.hideReactionsInChannels }
-
+    
     if !hideReactions, !reactionsAreInline, let reactionsAttribute = mergedMessageReactions(attributes: firstMessage.attributes), !reactionsAttribute.reactions.isEmpty {
         if result.last?.1 == ChatMessageTextBubbleContentNode.self {
         } else {
@@ -1543,13 +1543,18 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         if let subject = item.associatedData.subject, case .messageOptions = subject {
             needsShareButton = false
         }
-
+                
         let (contentNodeMessagesAndClasses, needSeparateContainers, needReactions) = contentNodeMessagesAndClassesForItem(item)
-
+        
+        var hasJoinedChannel = false
         var hasGiveaway = false
         var hasInstantVideo = false
         for contentNodeItemValue in contentNodeMessagesAndClasses {
             let contentNodeItem = contentNodeItemValue as (message: Message, type: AnyClass, attributes: ChatMessageEntryAttributes, bubbleAttributes: BubbleItemAttributes)
+            if contentNodeItem.type == ChatMessageJoinedChannelBubbleContentNode.self {
+                hasJoinedChannel = true
+                break
+            }
             if contentNodeItem.type == ChatMessageGiveawayBubbleContentNode.self {
                 hasGiveaway = true
                 break
@@ -1559,13 +1564,13 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 break
             }
         }
-
+        
         let hideShareButton = item.message.isPeerBroadcastChannel && item.context.sharedContext.currentPtgSettings.with { (!hasInstantVideo || $0.hideCommentsInChannels) && $0.hideShareButtonInChannels }
-
+        
         if hideShareButton {
             needsShareButton = false
         }
-
+        
         var tmpWidth: CGFloat
         if allowFullWidth {
             tmpWidth = baseWidth
@@ -1587,20 +1592,16 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         }
         
         tmpWidth -= deliveryFailedInset
-
+        
         var maximumContentWidth = floor(tmpWidth - layoutConstants.bubble.edgeInset * 3.0 - layoutConstants.bubble.contentInsets.left - layoutConstants.bubble.contentInsets.right - avatarInset)
         if needsShareButton {
             maximumContentWidth -= 10.0
         }
         
-        var hasInstantVideo = false
-        for contentNodeItemValue in contentNodeMessagesAndClasses {
-            let contentNodeItem = contentNodeItemValue as (message: Message, type: AnyClass, attributes: ChatMessageEntryAttributes, bubbleAttributes: BubbleItemAttributes)
-            if contentNodeItem.type == ChatMessageJoinedChannelBubbleContentNode.self {
-                maximumContentWidth = baseWidth
-                break
-            }
-            if contentNodeItem.type == ChatMessageGiveawayBubbleContentNode.self {
+        if hasJoinedChannel {
+            maximumContentWidth = baseWidth
+        }
+        if hasGiveaway {
             maximumContentWidth = min(305.0, maximumContentWidth)
         }
         if hasInstantVideo {
@@ -1906,7 +1907,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         var bottomNodeMergeStatus: ChatMessageBubbleMergeStatus = mergedBottom.merged ? (incoming ? .Left : .Right) : .None(incoming ? .Incoming : .Outgoing)
         
         let hideReactions = item.message.isPeerBroadcastChannel && item.context.sharedContext.currentPtgSettings.with { $0.hideReactionsInChannels }
-
+        
         let bubbleReactions: ReactionsMessageAttribute
         if needReactions && !hideReactions {
             bubbleReactions = mergedMessageReactions(attributes: item.message.attributes) ?? ReactionsMessageAttribute(canViewList: false, reactions: [], recentPeers: [])
@@ -2065,7 +2066,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                     return size
                 })
             }
-
+            
             let framesAndPositions = innerFramesAndPositions.map { ($0.0.offsetBy(dx: layoutConstants.image.bubbleInsets.left, dy: layoutConstants.image.bubbleInsets.top), $0.1) }
             
             let size = CGSize(width: innerSize.width + layoutConstants.image.bubbleInsets.left + layoutConstants.image.bubbleInsets.right, height: innerSize.height + layoutConstants.image.bubbleInsets.top + layoutConstants.image.bubbleInsets.bottom)
@@ -2807,7 +2808,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         }
         
         let hideComments = item.message.isPeerBroadcastChannel && item.context.sharedContext.currentPtgSettings.with { $0.hideCommentsInChannels }
-
+        
         let disablesComments = !hasInstantVideo || hideComments
         
         return (layout, { animation, applyInfo, synchronousLoads in
@@ -5431,13 +5432,13 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
     override public func contentFrame() -> CGRect {
         return self.backgroundNode.frame
     }
-
+    
     override public func makeContentSnapshot() -> (UIImage, CGRect)? {
         UIGraphicsBeginImageContextWithOptions(self.backgroundNode.view.bounds.size, false, 0.0)
         let context = UIGraphicsGetCurrentContext()!
-
+        
         context.translateBy(x: -self.backgroundNode.frame.minX, y: -self.backgroundNode.frame.minY)
-
+        
         context.translateBy(x: -self.mainContextSourceNode.contentNode.view.frame.minX, y: -self.mainContextSourceNode.contentNode.view.frame.minY)
         for subview in self.mainContextSourceNode.contentNode.view.subviews {
             if subview.isHidden || subview.alpha == 0.0 {
@@ -5453,11 +5454,11 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                         }
                     }
                 }
-
+                
                 if let targetPortalView, let sourceView = getPortalViewSourceView(targetPortalView) {
                     context.saveGState()
                     context.translateBy(x: subview.frame.minX, y: subview.frame.minY)
-
+                    
                     if let mask = subview.mask {
                         let maskImage = generateImage(subview.bounds.size, rotatedContext: { size, context in
                             context.clear(CGRect(origin: CGPoint(), size: size))
@@ -5469,20 +5470,20 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                             context.translateBy(x: subview.frame.midX, y: subview.frame.midY)
                             context.scaleBy(x: 1.0, y: -1.0)
                             context.translateBy(x: -subview.frame.midX, y: -subview.frame.midY)
-
+                            
                             context.clip(to: subview.bounds, mask: cgImage)
-
+                            
                             context.translateBy(x: subview.frame.midX, y: subview.frame.midY)
                             context.scaleBy(x: 1.0, y: -1.0)
                             context.translateBy(x: -subview.frame.midX, y: -subview.frame.midY)
                         }
                     }
-
+                    
                     let sourceLocalFrame = sourceView.convert(sourceView.bounds, to: subview)
                     for sourceSubview in sourceView.subviews {
                         sourceSubview.drawHierarchy(in: CGRect(origin: sourceLocalFrame.origin, size: sourceSubview.bounds.size), afterScreenUpdates: false)
                     }
-
+                    
                     context.resetClip()
                     context.restoreGState()
                 } else {
@@ -5492,14 +5493,14 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 subview.drawHierarchy(in: subview.frame, afterScreenUpdates: false)
             }
         }
-
+        
         let image = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
-
+        
         guard let image else {
             return nil
         }
-
+        
         return (image, self.backgroundNode.frame)
     }
 }

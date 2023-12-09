@@ -43,12 +43,14 @@ extension ChatControllerImpl {
                 return
             }
             
+            let hideReactions = topMessage.isPeerBroadcastChannel && self.context.sharedContext.currentPtgSettings.with { $0.hideReactionsInChannels }
+            
             let _ = combineLatest(queue: .mainQueue(),
                 self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: self.context.account.peerId)),
                 contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState: self.presentationInterfaceState, context: self.context, messages: updatedMessages, controllerInteraction: self.controllerInteraction, selectAll: selectAll, interfaceInteraction: self.interfaceInteraction, messageNode: node as? ChatMessageItemView),
-                peerMessageAllowedReactions(context: self.context, message: topMessage),
-                peerMessageSelectedReactions(context: self.context, message: topMessage),
-                topMessageReactions(context: self.context, message: topMessage),
+                !hideReactions ? peerMessageAllowedReactions(context: self.context, message: topMessage) : .single(nil),
+                !hideReactions ? peerMessageSelectedReactions(context: self.context, message: topMessage) : .single(([], [])),
+                !hideReactions ? topMessageReactions(context: self.context, message: topMessage) : .single([]),
                 ApplicationSpecificNotice.getChatTextSelectionTips(accountManager: self.context.sharedContext.accountManager)
             ).startStandalone(next: { [weak self] peer, actions, allowedReactions, selectedReactions, topReactions, chatTextSelectionTips in
                 guard let self else {

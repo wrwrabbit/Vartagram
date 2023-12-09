@@ -564,7 +564,6 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     if let controller {
                         AuthorizationSequenceController.presentDidNotGetCodeUI(controller: controller, presentationData: strongSelf.presentationData, number: number)
                     }
-                    */
                 } else {
                     controller?.inProgress = true
                     strongSelf.actionDisposable.set((resendAuthorizationCode(accountManager: strongSelf.sharedContext.accountManager, account: strongSelf.account, apiId: strongSelf.apiId, apiHash: strongSelf.apiHash, firebaseSecretStream: strongSelf.sharedContext.firebaseSecretStream)
@@ -1243,12 +1242,12 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     controller.dismiss(animated: true, completion: nil)
                 }
             }
-
+        
             let composeController = MFMailComposeViewController()
             composeController.setToRecipients([address])
             composeController.setSubject(subject)
             composeController.setMessageBody(body, isHTML: false)
-
+            
             let composeDelegate = ComposeDelegate()
             objc_setAssociatedObject(composeDelegate, &ObjCKey_Delegate, composeDelegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
             composeController.mailComposeDelegate = composeDelegate
@@ -1315,15 +1314,17 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         
         return countryCode
     }
-
+    
     public static func presentDidNotGetCodeUI(controller: ViewController, presentationData: PresentationData, number: String) {
+        controller.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: nil, text: presentationData.strings.Login_HaveNotReceivedCodeInThirdPartyApp, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+        /*
         if MFMailComposeViewController.canSendMail() {
             let formattedNumber = formatPhoneNumber(number)
-
+            
             var emailBody = ""
             emailBody.append(presentationData.strings.Login_EmailCodeBody(formattedNumber).string)
             emailBody.append("\n\n")
-
+            
             let appVersion = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "unknown"
             let systemVersion = UIDevice.current.systemVersion
             let locale = Locale.current.identifier
@@ -1333,10 +1334,11 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
             emailBody.append("OS: \(systemVersion)\n")
             emailBody.append("Locale: \(locale)\n")
             emailBody.append("MNC: \(mnc)")
-
+            
             AuthorizationSequenceController.presentEmailComposeController(address: "sms@telegram.org", subject: presentationData.strings.Login_EmailCodeSubject(formattedNumber).string, body: emailBody, from: controller, presentationData: presentationData)
         } else {
             controller.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: nil, text: presentationData.strings.Login_EmailNotConfiguredError, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), in: .window(.root))
         }
+        */
     }
 }

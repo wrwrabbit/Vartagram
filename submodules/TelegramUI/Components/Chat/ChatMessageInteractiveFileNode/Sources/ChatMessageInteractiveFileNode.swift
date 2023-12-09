@@ -345,18 +345,108 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
         }
     }
     
-    private func transcribe() {
+    private func detectLanguage() -> Signal<String?, NoError> {
+        guard let context = self.context, let message = self.message else {
+            return .single(nil)
+        }
+        
+        // checking previous text messages to detect language
+        // prefer to analyze messages of the same author, fallback to others
+        // if message is forwarded, messages analyzed in source chat
+        
+        let messageId: MessageId
+        let author: PeerId?
+        
+        if let source = message.attributes.first(where: { $0 is SourceReferenceMessageAttribute }) as? SourceReferenceMessageAttribute {
+            messageId = source.messageId
+            author = message.forwardInfo?.author?.id
+        } else {
+            messageId = message.id
+            author = message.author?.id
+        }
+        
+        return context.account.postbox.transaction { transaction -> String? in
+            if #available(iOS 12.0, *) {
+                let recognizer = NLLanguageRecognizer()
+                var authorProcessedTextLength = 0
+                var nonAuthorStrings: [String] = []
+                var nonAuthorTextLength = 0
+                
+                transaction.scanMessages(peerId: messageId.peerId, namespace: messageId.namespace, fromId: messageId, includeFrom: true, limit: 100) { message in
+                    var messageText = message.text
+                    if let textEntities = message.textEntitiesAttribute?.entities, !textEntities.isEmpty {
+                        var lowerBound = messageText.count
+                        for entity in textEntities.sorted(by: { $0.range.upperBound > $1.range.upperBound }) {
+                            switch entity.type {
+                            case .Mention, .Hashtag, .BotCommand, .Url, .Email, .Code, .PhoneNumber, .BankCard, .CustomEmoji:
+                                let l = min(entity.range.lowerBound, lowerBound)
+                                let u = min(entity.range.upperBound, lowerBound)
+                                if l < u, let range = Range(NSMakeRange(l, u - l), in: messageText) {
+                                    messageText.removeSubrange(range)
+                                    lowerBound = l
+                                }
+                            default:
+                                break
+                            }
+                        }
+                    }
+                    if !messageText.isEmpty {
+                        if let voiceAuthor = author, let msgAuthor = message.forwardInfo?.author?.id ?? message.author?.id, voiceAuthor == msgAuthor {
+                            if authorProcessedTextLength < 200 {
+                                recognizer.processString(messageText)
+                                authorProcessedTextLength += messageText.count
+                                if authorProcessedTextLength >= 50 {
+                                    let hypotheses = recognizer.languageHypotheses(withMaximum: 1)
+                                    if let dominant = hypotheses.first, dominant.value >= 0.95 {
+                                        return false
+                                    }
+                                }
+                            }
+                        } else if message.forwardInfo == nil { // ignore forwarded messages
+                            if nonAuthorTextLength < 200 {
+                                nonAuthorStrings.append(messageText)
+                                nonAuthorTextLength += messageText.count
+                            }
+                        }
+                        if authorProcessedTextLength >= 200 && nonAuthorTextLength >= 200 {
+                            return false
+                        }
+                    }
+                    return true
+                }
+                
+                var hypotheses = recognizer.languageHypotheses(withMaximum: 1)
+                if let dominant = hypotheses.first, dominant.value >= 0.8 {
+                    return dominant.key.rawValue
+                }
+                
+                recognizer.reset()
+                for string in nonAuthorStrings {
+                    recognizer.processString(string)
+                }
+                
+                hypotheses = recognizer.languageHypotheses(withMaximum: 1)
+                if let dominant = hypotheses.first, dominant.value >= 0.8 {
+                    return dominant.key.rawValue
+                }
+            }
+            
+            return nil
+        }
+    }
+    
+    private func transcribe(audioDuration: Int32) {
         guard let arguments = self.arguments, let context = self.context, let message = self.message else {
             return
         }
-
+        
         if !context.isPremium, case .inProgress = self.audioTranscriptionState {
             return
         }
-
+        
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         let premiumConfiguration = PremiumConfiguration.with(appConfiguration: arguments.context.currentAppConfiguration.with { $0 })
-
+        
         let transcriptionText = self.forcedAudioTranscriptionText ?? transcribedText(message: message)
         if transcriptionText == nil {
             if premiumConfiguration.audioTransciptionTrialCount > 0 {
@@ -366,12 +456,12 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                     }
                 }
             } else {
-                guard arguments.associatedData.isPremium else {
+                guard arguments.associatedData.isPremium || context.sharedContext.immediateExperimentalUISettings.localTranscription else {
                     if self.hapticFeedback == nil {
                         self.hapticFeedback = HapticFeedback()
                     }
                     self.hapticFeedback?.impact(.medium)
-
+                    
                     let tipController = UndoOverlayController(presentationData: presentationData, content: .universal(animation: "anim_voiceToText", scale: 0.065, colors: [:], title: nil, text: presentationData.strings.Message_AudioTranscription_SubscribeToPremium, customUndoText: presentationData.strings.Message_AudioTranscription_SubscribeToPremiumAction, timeout: nil), elevatedLayout: false, position: .top, animateInAsReplacement: false, action: { action in
                         if case .undo = action {
                             var replaceImpl: ((ViewController) -> Void)?
@@ -383,7 +473,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                                 controller?.replace(with: c)
                             }
                             arguments.controllerInteraction.navigationController()?.pushViewController(controller, animated: true)
-
+                            
                             let _ = ApplicationSpecificNotice.incrementAudioTranscriptionSuggestion(accountManager: context.sharedContext.accountManager).startStandalone()
                         }
                         return false })
@@ -392,7 +482,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 }
             }
         }
-
+        
         var shouldBeginTranscription = false
         var shouldExpandNow = false
         
@@ -493,7 +583,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                         }
                         strongSelf.transcribeDisposable?.dispose()
                         strongSelf.transcribeDisposable = nil
-
+                        
                         if let arguments = strongSelf.arguments, !arguments.associatedData.isPremium {
                             Queue.mainQueue().after(0.1, {
                                 let _ = strongSelf.presentAudioTranscriptionTooltip(finished: true)
@@ -524,21 +614,21 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
         guard let arguments = self.arguments, !arguments.associatedData.isPremium else {
             return false
         }
-
+        
         let presentationData = arguments.context.sharedContext.currentPresentationData.with { $0 }
         var text: String?
         var timeout: Double = 5.0
-
+        
         let currentTime = Int32(Date().timeIntervalSince1970)
         if let cooldownUntilTime = arguments.associatedData.audioTranscriptionTrial.cooldownUntilTime, cooldownUntilTime > currentTime {
             let premiumConfiguration = PremiumConfiguration.with(appConfiguration: arguments.context.currentAppConfiguration.with { $0 })
-
+            
             let time = stringForMediumDate(timestamp: cooldownUntilTime, strings: arguments.presentationData.strings, dateTimeFormat: arguments.presentationData.dateTimeFormat)
             let usedString = arguments.presentationData.strings.Conversation_FreeTranscriptionCooldownTooltip(premiumConfiguration.audioTransciptionTrialCount)
             let waitString = arguments.presentationData.strings.Conversation_FreeTranscriptionWaitOrSubscribe(time).string
             let fullString = "\(usedString) \(waitString)"
             text = fullString
-
+            
             if self.hapticFeedback == nil {
                 self.hapticFeedback = HapticFeedback()
             }
@@ -548,7 +638,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
             let remainingCount = arguments.associatedData.audioTranscriptionTrial.remainingCount
             text = arguments.presentationData.strings.Conversation_FreeTranscriptionLimitTooltip(remainingCount)
         }
-
+        
         guard let text else {
             return false
         }
@@ -571,7 +661,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
         arguments.controllerInteraction.presentControllerInCurrent(tipController, nil)
         return true
     }
-
+    
     public func asyncLayout() -> (Arguments) -> (CGFloat, (CGSize) -> (CGFloat, (CGFloat) -> (CGSize, (Bool, ListViewItemUpdateAnimation, ListViewItemApply?) -> Void))) {
         let currentFile = self.file
         
@@ -772,9 +862,13 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 var updatedAudioTranscriptionState: AudioTranscriptionButtonComponent.TranscriptionState?
                 
                 var displayTranscribe = false
+                var displayingTranscribeDueToLocalTranscription = false
                 if arguments.message.id.peerId.namespace != Namespaces.Peer.SecretChat {
                     let premiumConfiguration = PremiumConfiguration.with(appConfiguration: arguments.context.currentAppConfiguration.with { $0 })
-                    if arguments.associatedData.isPremium {
+                    if arguments.context.sharedContext.immediateExperimentalUISettings.localTranscription && (!(arguments.associatedData.isPremium || (premiumConfiguration.audioTransciptionTrialCount > 0 && arguments.incoming && audioDuration < premiumConfiguration.audioTransciptionTrialMaxDuration)) || arguments.context.currentPtgAccountSettings.with { ($0 ?? .default).preferAppleVoiceToText }) {
+                        displayTranscribe = true
+                        displayingTranscribeDueToLocalTranscription = true
+                    } else if arguments.associatedData.isPremium {
                         displayTranscribe = true
                     } else if premiumConfiguration.audioTransciptionTrialCount > 0 {
                         if arguments.incoming {
@@ -806,7 +900,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 if transcribedText == nil, let cooldownUntilTime = arguments.associatedData.audioTranscriptionTrial.cooldownUntilTime, cooldownUntilTime > currentTime {
                     updatedAudioTranscriptionState = .locked
                 }
-
+                
                 let effectiveAudioTranscriptionState = updatedAudioTranscriptionState ?? audioTranscriptionState
                 
                 var displayTrailingAnimatedDots = false
@@ -895,7 +989,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 var statusSuggestedWidthAndContinue: (CGFloat, (CGFloat) -> (CGSize, (ListViewItemUpdateAnimation) -> Void))?
                 if let statusType = arguments.dateAndStatusType {
                     let hideReactions = arguments.topMessage.isPeerBroadcastChannel && arguments.context.sharedContext.currentPtgSettings.with { $0.hideReactionsInChannels }
-
+                    
                     var edited = false
                     if arguments.attributes.updatingMedia != nil {
                         edited = true
@@ -1274,11 +1368,11 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                             
                             if isVoice {
                                 var scrubbingFrame = CGRect(origin: CGPoint(x: 57.0, y: 1.0), size: CGSize(width: boundingWidth - 60.0, height: 18.0))
-
+                                
                                 if displayingTranscribeDueToLocalTranscription {
                                     displayTranscribe = messageHasCompleteTransription(arguments.message) || (strongSelf.resourceStatus?.fetchStatus ?? voiceFetchStatusFirstTime) == .Local
                                 }
-
+                                
                                 if displayTranscribe {
                                     scrubbingFrame.size.width -= 30.0 + 4.0
                                 }

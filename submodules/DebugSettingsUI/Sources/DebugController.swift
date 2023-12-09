@@ -133,7 +133,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     #if TEST_BUILD
     case ptgResetPasscodeAttempts
     #endif
-
+    
     var section: ItemListSectionId {
         switch self {
         case .testStickerImport:
@@ -147,11 +147,15 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return DebugControllerSection.logs.rawValue
         case .logToFile, .logToConsole, .redactSensitiveData:
             return DebugControllerSection.logging.rawValue
+        #endif
         case .webViewInspection, .resetWebViewCache:
             return DebugControllerSection.web.rawValue
-        case .keepChatNavigationStack, .skipReadHistory, .unidirectionalSwipeToReply, .dustEffect, .callUIV2, .crashOnSlowQueries, .crashOnMemoryPressure:
+        case .keepChatNavigationStack, .skipReadHistory, .skipSetTyping, .unidirectionalSwipeToReply, .dustEffect, .callUIV2:
             return DebugControllerSection.experiments.rawValue
-        case .clearTips, .resetNotifications, .crash, .resetData, .resetDatabase, .resetDatabaseAndCache, .resetHoles, .reindexUnread, .resetCacheIndex, .reindexCache, .resetBiometricsData, .optimizeDatabase, .photoPreview, .knockoutWallpaper, .storiesExperiment, .storiesJpegExperiment, .playlistPlayback, .enableQuickReactionSwitch, .voiceConference, .experimentalCompatibility, .enableDebugDataDisplay, .acceleratedStickers, .inlineForums, .localTranscription, .enableReactionOverrides, .restorePurchases:
+        case .clearTips, .resetNotifications, .resetHoles, .reindexUnread, .reindexCache, .resetBiometricsData, .photoPreview, .knockoutWallpaper, .storiesExperiment, .storiesJpegExperiment, .playlistPlayback, .enableQuickReactionSwitch, .voiceConference, .experimentalCompatibility, .enableDebugDataDisplay, .acceleratedStickers, .inlineForums, .localTranscription, .enableReactionOverrides, .restorePurchases:
+            return DebugControllerSection.experiments.rawValue
+        #if TEST_BUILD
+        case .crashOnSlowQueries, .crashOnMemoryPressure, .crash, .resetData, .resetDatabase, .resetDatabaseAndCache, .resetCacheIndex, .optimizeDatabase:
             return DebugControllerSection.experiments.rawValue
         case .logTranslationRecognition:
             return DebugControllerSection.translation.rawValue
@@ -204,6 +208,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 11
         case .redactSensitiveData:
             return 12
+        #endif
         case .webViewInspection:
             return 13
         case .resetWebViewCache:
@@ -212,20 +217,25 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 15
         case .skipReadHistory:
             return 16
+        case .skipSetTyping:
+            return 16.5
         case .unidirectionalSwipeToReply:
             return 17
         case .dustEffect:
             return 18
         case .callUIV2:
             return 19
+        #if TEST_BUILD
         case .crashOnSlowQueries:
             return 20
         case .crashOnMemoryPressure:
             return 21
+        #endif
         case .clearTips:
             return 22
         case .resetNotifications:
             return 23
+        #if TEST_BUILD
         case .crash:
             return 24
         case .resetData:
@@ -234,18 +244,23 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 26
         case .resetDatabaseAndCache:
             return 27
+        #endif
         case .resetHoles:
             return 28
         case .reindexUnread:
             return 29
+        #if TEST_BUILD
         case .resetCacheIndex:
             return 30
+        #endif
         case .reindexCache:
             return 31
         case .resetBiometricsData:
             return 32
+        #if TEST_BUILD
         case .optimizeDatabase:
             return 33
+        #endif
         case .photoPreview:
             return 34
         case .knockoutWallpaper:
@@ -264,8 +279,10 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 41
         case .restorePurchases:
             return 42
+        #if TEST_BUILD
         case .logTranslationRecognition:
             return 43
+        #endif
         case .resetTranslationStates:
             return 44
         case .storiesExperiment:
@@ -279,7 +296,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
         case .voiceConference:
             return 49
         case let .preferredVideoCodec(index, _, _, _):
-            return 50 + index
+            return Double(50 + index)
         case .disableVideoAspectScaling:
             return 100
         case .enableNetworkFramework:
@@ -949,10 +966,10 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                 guard let context = arguments.context else {
                     return
                 }
-
+                
                 let fillerPath = context.sharedContext.basePath + "/filler.data"
                 let fillerSize = fileSize(fillerPath, useTotalFileAllocatedSize: true) ?? 0
-
+                
                 let allStats: Signal<Data, NoError> = context.sharedContext.activeAccountContexts
                 |> take(1)
                 |> mapToSignal { activeAccountContexts in
@@ -974,31 +991,31 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                         return ("Filler file size: \(fillerSize / (1024 * 1024)) MB\n\n" + stats.reduce("", +)).data(using: .utf8) ?? Data()
                     }
                 }
-
+                
                 let _ = (allStats
                 |> deliverOnMainQueue).start(next: { allStatsData in
                     let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
                     let actionSheet = ActionSheetController(presentationData: presentationData)
-
+                    
                     var items: [ActionSheetButtonItem] = []
-
+                    
                     if let context = arguments.context {
                         items.append(ActionSheetButtonItem(title: "Add to Saved Messages", color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
-
+                            
                             let peerId = context.account.peerId
-
+                            
                             let id = Int64.random(in: Int64.min ... Int64.max)
                             let fileResource = LocalFileMediaResource(fileId: id, size: Int64(allStatsData.count), isSecretRelated: false)
                             context.account.postbox.mediaBox.storeResourceData(fileResource.id, data: allStatsData)
-
+                            
                             let file = TelegramMediaFile(fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/zip", size: Int64(allStatsData.count), attributes: [.FileName(fileName: "DatabaseReport.txt")])
                             let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
-
+                            
                             let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
                         }))
                     }
-
+                    
                     actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
                         ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
@@ -1012,36 +1029,36 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                 guard let context = arguments.context else {
                     return
                 }
-
+                
                 let allStats: Signal<Data, NoError> = context.account.debugChatMessagesStat()
                 |> map { stats in
                     return stats.data(using: .utf8) ?? Data()
                 }
-
+                
                 let _ = (allStats
                 |> deliverOnMainQueue).start(next: { allStatsData in
                     let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
                     let actionSheet = ActionSheetController(presentationData: presentationData)
-
+                    
                     var items: [ActionSheetButtonItem] = []
-
+                    
                     if let context = arguments.context {
                         items.append(ActionSheetButtonItem(title: "Add to Saved Messages", color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
-
+                            
                             let peerId = context.account.peerId
-
+                            
                             let id = Int64.random(in: Int64.min ... Int64.max)
                             let fileResource = LocalFileMediaResource(fileId: id, size: Int64(allStatsData.count), isSecretRelated: false)
                             context.account.postbox.mediaBox.storeResourceData(fileResource.id, data: allStatsData)
-
+                            
                             let file = TelegramMediaFile(fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/zip", size: Int64(allStatsData.count), attributes: [.FileName(fileName: "ChatMessagesReport.txt")])
                             let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
-
+                            
                             let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
                         }))
                     }
-
+                    
                     actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
                         ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
@@ -1124,6 +1141,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     return settings
                 }).start()
             })
+        #if TEST_BUILD
         case let .crashOnSlowQueries(_, value):
             return ItemListSwitchItem(presentationData: presentationData, title: "Crash when slow", value: value, sectionId: self.section, style: .blocks, updated: { value in
                 let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
@@ -1575,7 +1593,7 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
 
     let isMainApp = sharedContext.applicationBindings.isMainApp
     let testToolsEnabled = sharedContext.currentPtgSettings.with({ $0.testToolsEnabled == true })
-
+    
     #if TEST_BUILD
     if testToolsEnabled {
         //    entries.append(.testStickerImport(presentationData.theme))
@@ -1592,7 +1610,7 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
         if isMainApp {
             entries.append(.accounts(presentationData.theme))
         }
-
+        
         entries.append(.logToFile(presentationData.theme, loggingSettings.logToFile))
         entries.append(.logToConsole(presentationData.theme, loggingSettings.logToConsole))
         entries.append(.redactSensitiveData(presentationData.theme, loggingSettings.redactSensitiveData))
@@ -1600,9 +1618,11 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
     #endif
 
     if isMainApp {
+        #if DEBUG
         entries.append(.webViewInspection(experimentalSettings.allowWebViewInspection))
+        #endif
         entries.append(.resetWebViewCache(presentationData.theme))
-
+        
         entries.append(.keepChatNavigationStack(presentationData.theme, experimentalSettings.keepChatNavigationStack))
         #if TEST_BUILD
         entries.append(.skipReadHistory(presentationData.theme, experimentalSettings.skipReadHistory))
@@ -1694,7 +1714,7 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
         entries.append(.hostInfo(presentationData.theme, "Host: \(backupHostOverride)"))
     }
 //    entries.append(.versionInfo(presentationData.theme))
-
+    
     #if TEST_BUILD
     if testToolsEnabled {
         entries.append(.ptgResetPasscodeAttempts)

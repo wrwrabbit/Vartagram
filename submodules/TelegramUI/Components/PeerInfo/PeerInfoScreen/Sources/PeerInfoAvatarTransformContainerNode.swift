@@ -326,7 +326,7 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
                         self.videoNode?.removeFromSupernode()
                         
                         let mediaManager = self.context.sharedContext.mediaManager
-                        let videoNode = UniversalVideoNode(postbox: self.context.account.postbox, audioSession: mediaManager.audioSession, manager: mediaManager.universalVideoManager, decoration: GalleryVideoDecoration(), content: videoContent, priority: .embedded)
+                        let videoNode = UniversalVideoNode(postbox: self.context.account.postbox, audioSession: mediaManager.audioSession, manager: mediaManager.universalVideoManager, decoration: GalleryVideoDecoration(), content: videoContent, priority: .embedded, sourceAccountId: self.context.account.id)
                         videoNode.isUserInteractionEnabled = false
                         videoNode.isHidden = true
                         

@@ -20,6 +20,7 @@ def generate_xcodeproj(build_environment: BuildEnvironment, disable_extensions, 
         app_target_clean = app_target.replace('/', '_')
 
     bazel_generate_arguments = [build_environment.bazel_path]
+    bazel_generate_arguments += bazel_startup_arguments
 
     bazel_generate_arguments += ['run', '//{}_xcodeproj'.format(app_target_spec)]
     bazel_generate_arguments += ['--override_repository=build_configuration={}'.format(configuration_path)]

@@ -530,6 +530,7 @@ public final class AccountContextImpl: AccountContext {
         self.inactiveSecretChatPeerIdsDisposable?.dispose()
         self.ptgAccountSettingsDisposable?.dispose()
         self.peerNameColorsConfigurationDisposable?.dispose()
+        self.audioTranscriptionTrialDisposable?.dispose()
     }
     
     public func storeSecureIdPassword(password: String) {
