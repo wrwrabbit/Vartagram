@@ -49,6 +49,7 @@ private enum DebugControllerSection: Int32 {
     case sticker
     case logs
     case logging
+    case web
     case experiments
     case translation
     case videoExperiments
@@ -79,6 +80,8 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     case skipReadHistory(PresentationTheme, Bool)
     case skipSetTyping(Bool)
     case unidirectionalSwipeToReply(Bool)
+    case dustEffect(Bool)
+    case callUIV2(Bool)
     #if TEST_BUILD
     case crashOnSlowQueries(PresentationTheme, Bool)
     case crashOnMemoryPressure(PresentationTheme, Bool)
@@ -98,6 +101,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     #endif
     case reindexCache
     case resetBiometricsData(PresentationTheme)
+    case webViewInspection(Bool)
     case resetWebViewCache(PresentationTheme)
     #if TEST_BUILD
     case optimizeDatabase(PresentationTheme)
@@ -144,9 +148,11 @@ private enum DebugControllerEntry: ItemListNodeEntry {
         case .logToFile, .logToConsole, .redactSensitiveData:
             return DebugControllerSection.logging.rawValue
         #endif
-        case .keepChatNavigationStack, .skipReadHistory, .skipSetTyping, .unidirectionalSwipeToReply:
+        case .webViewInspection, .resetWebViewCache:
+            return DebugControllerSection.web.rawValue
+        case .keepChatNavigationStack, .skipReadHistory, .skipSetTyping, .unidirectionalSwipeToReply, .dustEffect, .callUIV2:
             return DebugControllerSection.experiments.rawValue
-        case .clearTips, .resetNotifications, .resetHoles, .reindexUnread, .reindexCache, .resetBiometricsData, .resetWebViewCache, .photoPreview, .knockoutWallpaper, .storiesExperiment, .storiesJpegExperiment, .playlistPlayback, .enableQuickReactionSwitch, .voiceConference, .experimentalCompatibility, .enableDebugDataDisplay, .acceleratedStickers, .inlineForums, .localTranscription, .enableReactionOverrides, .restorePurchases:
+        case .clearTips, .resetNotifications, .resetHoles, .reindexUnread, .reindexCache, .resetBiometricsData, .photoPreview, .knockoutWallpaper, .storiesExperiment, .storiesJpegExperiment, .playlistPlayback, .enableQuickReactionSwitch, .voiceConference, .experimentalCompatibility, .enableDebugDataDisplay, .acceleratedStickers, .inlineForums, .localTranscription, .enableReactionOverrides, .restorePurchases:
             return DebugControllerSection.experiments.rawValue
         #if TEST_BUILD
         case .crashOnSlowQueries, .crashOnMemoryPressure, .crash, .resetData, .resetDatabase, .resetDatabaseAndCache, .resetCacheIndex, .optimizeDatabase:
@@ -203,88 +209,94 @@ private enum DebugControllerEntry: ItemListNodeEntry {
         case .redactSensitiveData:
             return 12
         #endif
-        case .keepChatNavigationStack:
+        case .webViewInspection:
+            return 13
+        case .resetWebViewCache:
             return 14
-        case .skipReadHistory:
+        case .keepChatNavigationStack:
             return 15
-        case .skipSetTyping:
-            return 15.5
-        case .unidirectionalSwipeToReply:
+        case .skipReadHistory:
             return 16
+        case .skipSetTyping:
+            return 16.5
+        case .unidirectionalSwipeToReply:
+            return 17
+        case .dustEffect:
+            return 18
+        case .callUIV2:
+            return 19
         #if TEST_BUILD
         case .crashOnSlowQueries:
-            return 17
+            return 20
         case .crashOnMemoryPressure:
-            return 18
+            return 21
         #endif
         case .clearTips:
-            return 19
+            return 22
         case .resetNotifications:
-            return 20
+            return 23
         #if TEST_BUILD
         case .crash:
-            return 21
-        case .resetData:
-            return 22
-        case .resetDatabase:
-            return 23
-        case .resetDatabaseAndCache:
             return 24
-        #endif
-        case .resetHoles:
+        case .resetData:
             return 25
-        case .reindexUnread:
+        case .resetDatabase:
             return 26
-        #if TEST_BUILD
-        case .resetCacheIndex:
+        case .resetDatabaseAndCache:
             return 27
         #endif
-        case .reindexCache:
+        case .resetHoles:
             return 28
-        case .resetBiometricsData:
+        case .reindexUnread:
             return 29
-        case .resetWebViewCache:
+        #if TEST_BUILD
+        case .resetCacheIndex:
             return 30
+        #endif
+        case .reindexCache:
+            return 31
+        case .resetBiometricsData:
+            return 32
         #if TEST_BUILD
         case .optimizeDatabase:
-            return 31
+            return 33
         #endif
         case .photoPreview:
-            return 32
-        case .knockoutWallpaper:
-            return 33
-        case .experimentalCompatibility:
             return 34
-        case .enableDebugDataDisplay:
+        case .knockoutWallpaper:
             return 35
-        case .acceleratedStickers:
+        case .experimentalCompatibility:
             return 36
-        case .inlineForums:
+        case .enableDebugDataDisplay:
             return 37
-        case .localTranscription:
+        case .acceleratedStickers:
             return 38
-        case .enableReactionOverrides:
+        case .inlineForums:
             return 39
-        case .restorePurchases:
+        case .localTranscription:
             return 40
+        case .enableReactionOverrides:
+            return 41
+        case .restorePurchases:
+            return 42
         #if TEST_BUILD
         case .logTranslationRecognition:
-            return 41
+            return 43
         #endif
         case .resetTranslationStates:
-            return 42
-        case .storiesExperiment:
-            return 43
-        case .storiesJpegExperiment:
             return 44
-        case .playlistPlayback:
+        case .storiesExperiment:
             return 45
-        case .enableQuickReactionSwitch:
+        case .storiesJpegExperiment:
             return 46
-        case .voiceConference:
+        case .playlistPlayback:
             return 47
+        case .enableQuickReactionSwitch:
+            return 48
+        case .voiceConference:
+            return 49
         case let .preferredVideoCodec(index, _, _, _):
-            return Double(48 + index)
+            return Double(50 + index)
         case .disableVideoAspectScaling:
             return 100
         case .enableNetworkFramework:
@@ -321,7 +333,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     } else {
                         UIPasteboard.general.setData(data, forPasteboardType: dataType)
                     }
-                    context.sharedContext.openResolvedUrl(.importStickers, context: context, urlContext: .generic, navigationController: arguments.getNavigationController(), forceExternal: false, openPeer: { _, _ in }, sendFile: nil, sendSticker: nil, requestMessageActionUrlAuth: nil, joinVoiceChat: nil, present: { c, a in arguments.presentController(c, a as? ViewControllerPresentationArguments) }, dismissInput: {}, contentContext: nil, progress: nil)
+                    context.sharedContext.openResolvedUrl(.importStickers, context: context, urlContext: .generic, navigationController: arguments.getNavigationController(), forceExternal: false, openPeer: { _, _ in }, sendFile: nil, sendSticker: nil, requestMessageActionUrlAuth: nil, joinVoiceChat: nil, present: { c, a in arguments.presentController(c, a as? ViewControllerPresentationArguments) }, dismissInput: {}, contentContext: nil, progress: nil, completion: nil)
                 }
             })
         #if TEST_BUILD
@@ -1113,6 +1125,22 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     return settings
                 }).start()
             })
+        case let .dustEffect(value):
+            return ItemListSwitchItem(presentationData: presentationData, title: "Dust Effect", value: value, sectionId: self.section, style: .blocks, updated: { value in
+                let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
+                    var settings = settings
+                    settings.dustEffect = value
+                    return settings
+                }).start()
+            })
+        case let .callUIV2(value):
+            return ItemListSwitchItem(presentationData: presentationData, title: "Call UI V2", value: value, sectionId: self.section, style: .blocks, updated: { value in
+                let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
+                    var settings = settings
+                    settings.callUIV2 = value
+                    return settings
+                }).start()
+            })
         #if TEST_BUILD
         case let .crashOnSlowQueries(_, value):
             return ItemListSwitchItem(presentationData: presentationData, title: "Crash when slow", value: value, sectionId: self.section, style: .blocks, updated: { value in
@@ -1321,6 +1349,14 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return ItemListActionItem(presentationData: presentationData, title: "Reset Biometrics Data", kind: .destructive, alignment: .natural, sectionId: self.section, style: .blocks, action: {
                 let _ = updatePresentationPasscodeSettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
                     return settings.withUpdatedBiometricsDomainState(nil).withUpdatedShareBiometricsDomainState(nil)
+                }).start()
+            })
+        case let .webViewInspection(value):
+            return ItemListSwitchItem(presentationData: presentationData, title: "Allow Web View Inspection", value: value, sectionId: self.section, style: .blocks, updated: { value in
+                let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
+                    var settings = settings
+                    settings.allowWebViewInspection = value
+                    return settings
                 }).start()
             })
         case .resetWebViewCache:
@@ -1582,6 +1618,11 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
     #endif
 
     if isMainApp {
+        #if DEBUG
+        entries.append(.webViewInspection(experimentalSettings.allowWebViewInspection))
+        #endif
+        entries.append(.resetWebViewCache(presentationData.theme))
+        
         entries.append(.keepChatNavigationStack(presentationData.theme, experimentalSettings.keepChatNavigationStack))
         #if TEST_BUILD
         entries.append(.skipReadHistory(presentationData.theme, experimentalSettings.skipReadHistory))
@@ -1590,6 +1631,8 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
         }
         #endif
         entries.append(.unidirectionalSwipeToReply(experimentalSettings.unidirectionalSwipeToReply))
+        entries.append(.dustEffect(experimentalSettings.dustEffect))
+        entries.append(.callUIV2(experimentalSettings.callUIV2))
     }
     #if TEST_BUILD
     entries.append(.crashOnSlowQueries(presentationData.theme, experimentalSettings.crashOnLongQueries))
@@ -1616,7 +1659,6 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
         }
         #endif
         entries.append(.reindexCache)
-        entries.append(.resetWebViewCache(presentationData.theme))
     }
     #if TEST_BUILD
     if testToolsEnabled {

@@ -676,6 +676,7 @@ private final class NotificationServiceHandler {
 
     private let notificationKeyDisposable = MetaDisposable()
     private let pollDisposable = MetaDisposable()
+    private let fetchDisposable = MetaDisposable()
 
     init?(queue: Queue, episode: String, updateCurrentContent: @escaping (NotificationContent) -> Void, completed: @escaping () -> Void, payload: [AnyHashable: Any]) {
         //debug_linker_fail_test()
@@ -1183,7 +1184,7 @@ private final class NotificationServiceHandler {
                                             
                                             if !FileManager.default.fileExists(atPath: soundFilePath) {
                                                 let _ = try? FileManager.default.createDirectory(atPath: containerSoundsPath, withIntermediateDirectories: true, attributes: nil)
-                                                if let filePath = stateManager.postbox.mediaBox.completedResourcePath(id: sound.file.resource.id, pathExtension: nil) {
+                                                if let stateManager = strongSelf.stateManager, let filePath = stateManager.postbox.mediaBox.completedResourcePath(id: sound.file.resource.id, pathExtension: nil) {
                                                     let _ = try? FileManager.default.copyItem(atPath: filePath, toPath: soundFilePath)
                                                 } else {
                                                     downloadNotificationSound = (sound.file, soundFilePath, soundFileName)
@@ -1302,6 +1303,8 @@ private final class NotificationServiceHandler {
                                         completed()
                                     }
                                 })
+                            } else {
+                                completed()
                             }
                         case .logout:
                             Logger.shared.log("NotificationService \(episode)", "Will logout")
@@ -1682,7 +1685,7 @@ private final class NotificationServiceHandler {
                                         }
                                         
                                         Logger.shared.log("NotificationService \(episode)", "Will fetch media")
-                                        let _ = (combineLatest(queue: queue,
+                                        strongSelf.fetchDisposable.set((combineLatest(queue: queue,
                                             fetchMediaSignal
                                             |> timeout(10.0, queue: queue, alternate: .single(nil)),
                                             fetchNotificationSoundSignal
@@ -1801,7 +1804,7 @@ private final class NotificationServiceHandler {
 
                                                 completed()
                                             })
-                                        })
+                                        }))
                                     }
                                 }
 
@@ -2087,7 +2090,7 @@ private final class NotificationServiceHandler {
                                         }
 
                                         Logger.shared.log("NotificationService \(episode)", "Will fetch media")
-                                        let _ = (combineLatest(queue: queue,
+                                        strongSelf.fetchDisposable.set((combineLatest(queue: queue,
                                             fetchMediaSignal
                                             |> timeout(10.0, queue: queue, alternate: .single(nil)),
                                             fetchNotificationSoundSignal
@@ -2126,7 +2129,7 @@ private final class NotificationServiceHandler {
                                             updateCurrentContent(content)
 
                                             completed()
-                                        })
+                                        }))
                                     }
                                 }
 
@@ -2174,56 +2177,60 @@ private final class NotificationServiceHandler {
                             }
                         case let .deleteMessage(ids):
                             Logger.shared.log("NotificationService \(episode)", "Will delete messages \(ids)")
-                            let mediaBox = stateManager.postbox.mediaBox
-                            let _ = (stateManager.postbox.transaction { transaction -> Void in
-                                _internal_deleteMessages(transaction: transaction, mediaBox: mediaBox, ids: ids, deleteMedia: true)
-                            }
-                            |> deliverOn(strongSelf.queue)).start(completed: {
-                                UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { notifications in
-                                    var removeIdentifiers: [String] = []
-                                    for notification in notifications {
-                                        if let peerIdString = notification.request.content.userInfo["peerId"] as? String, let peerIdValue = Int64(peerIdString), let messageIdString = notification.request.content.userInfo["msg_id"] as? String, let messageIdValue = Int32(messageIdString) {
-                                            for id in ids {
-                                                if PeerId(peerIdValue) == id.peerId && messageIdValue == id.id {
-                                                    removeIdentifiers.append(notification.request.identifier)
+                            if let stateManager = strongSelf.stateManager {
+                                let mediaBox = stateManager.postbox.mediaBox
+                                let _ = (stateManager.postbox.transaction { transaction -> Void in
+                                    _internal_deleteMessages(transaction: transaction, mediaBox: mediaBox, ids: ids, deleteMedia: true)
+                                }
+                                |> deliverOn(strongSelf.queue)).start(completed: {
+                                    UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { notifications in
+                                        var removeIdentifiers: [String] = []
+                                        for notification in notifications {
+                                            if let peerIdString = notification.request.content.userInfo["peerId"] as? String, let peerIdValue = Int64(peerIdString), let messageIdString = notification.request.content.userInfo["msg_id"] as? String, let messageIdValue = Int32(messageIdString) {
+                                                for id in ids {
+                                                    if PeerId(peerIdValue) == id.peerId && messageIdValue == id.id {
+                                                        removeIdentifiers.append(notification.request.identifier)
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
 
-                                    let completeRemoval: () -> Void = {
-                                        guard let strongSelf = self else {
-                                            return
-                                        }
-                                        let _ = (getCurrentRenderedTotalUnreadCount(
-                                            accountManager: strongSelf.accountManager,
-                                            postbox: stateManager.postbox
-                                        )
-                                        |> deliverOn(strongSelf.queue)).start(next: { value in
-                                            var content = NotificationContent(isLockedMessage: nil)
-                                            if isCurrentAccount {
-                                                content.badge = Int(value.0)
+                                        let completeRemoval: () -> Void = {
+                                            guard let strongSelf = self, let stateManager = strongSelf.stateManager else {
+                                                return
                                             }
-                                            Logger.shared.log("NotificationService \(episode)", "Unread count: \(value.0), isCurrentAccount: \(isCurrentAccount)")
-                                            Logger.shared.log("NotificationService \(episode)", "Updating content to \(content)")
+                                            let _ = (getCurrentRenderedTotalUnreadCount(
+                                                accountManager: strongSelf.accountManager,
+                                                postbox: stateManager.postbox
+                                            )
+                                            |> deliverOn(strongSelf.queue)).start(next: { value in
+                                                var content = NotificationContent(isLockedMessage: nil)
+                                                if isCurrentAccount {
+                                                    content.badge = Int(value.0)
+                                                }
+                                                Logger.shared.log("NotificationService \(episode)", "Unread count: \(value.0), isCurrentAccount: \(isCurrentAccount)")
+                                                Logger.shared.log("NotificationService \(episode)", "Updating content to \(content)")
 
-                                            updateCurrentContent(content)
+                                                updateCurrentContent(content)
 
-                                            completed()
-                                        })
-                                    }
+                                                completed()
+                                            })
+                                        }
 
-                                    if !removeIdentifiers.isEmpty {
-                                        Logger.shared.log("NotificationService \(episode)", "Will try to remove \(removeIdentifiers.count) notifications")
-                                        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: removeIdentifiers)
-                                        queue.after(1.0, {
+                                        if !removeIdentifiers.isEmpty {
+                                            Logger.shared.log("NotificationService \(episode)", "Will try to remove \(removeIdentifiers.count) notifications")
+                                            UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: removeIdentifiers)
+                                            queue.after(1.0, {
+                                                completeRemoval()
+                                            })
+                                        } else {
                                             completeRemoval()
-                                        })
-                                    } else {
-                                        completeRemoval()
-                                    }
+                                        }
+                                    })
                                 })
-                            })
+                            } else {
+                                completed()
+                            }
                         case let .readReactions(ids):
                             Logger.shared.log("NotificationService \(episode)", "Will read reactions \(ids)")
                             UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { notifications in
@@ -2262,96 +2269,104 @@ private final class NotificationServiceHandler {
                             })
                         case let .readMessage(id):
                             Logger.shared.log("NotificationService \(episode)", "Will read message \(id)")
-                            let _ = (stateManager.postbox.transaction { transaction -> Void in
-                                transaction.applyIncomingReadMaxId(id)
-                            }
-                            |> deliverOn(strongSelf.queue)).start(completed: {
-                                UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { notifications in
-                                    let notificationDebugList = notifications.map { notification -> String in
-                                        if let peerIdString = notification.request.content.userInfo["peerId"] as? String, let peerIdValue = Int64(peerIdString), let messageIdString = notification.request.content.userInfo["msg_id"] as? String, let messageIdValue = Int32(messageIdString) {
-                                            return "peerId: \(peerIdValue), messageId: \(messageIdValue)"
+                            if let stateManager = strongSelf.stateManager {
+                                let _ = (stateManager.postbox.transaction { transaction -> Void in
+                                    transaction.applyIncomingReadMaxId(id)
+                                }
+                                |> deliverOn(strongSelf.queue)).start(completed: {
+                                    UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { notifications in
+                                        let notificationDebugList = notifications.map { notification -> String in
+                                            if let peerIdString = notification.request.content.userInfo["peerId"] as? String, let peerIdValue = Int64(peerIdString), let messageIdString = notification.request.content.userInfo["msg_id"] as? String, let messageIdValue = Int32(messageIdString) {
+                                                return "peerId: \(peerIdValue), messageId: \(messageIdValue)"
+                                            } else {
+                                                return "unknown: \(String(describing: notification.request.content.userInfo))"
+                                            }
+                                        }.joined(separator: "\n")
+                                        Logger.shared.log("NotificationService \(episode)", "Filtering delivered notifications: \(notificationDebugList)")
+                                        
+                                        var removeIdentifiers: [String] = []
+                                        for notification in notifications {
+                                            if let peerIdString = notification.request.content.userInfo["peerId"] as? String, let peerIdValue = Int64(peerIdString), let messageIdString = notification.request.content.userInfo["msg_id"] as? String, let messageIdValue = Int32(messageIdString) {
+                                                if PeerId(peerIdValue) == id.peerId && messageIdValue <= id.id {
+                                                    removeIdentifiers.append(notification.request.identifier)
+                                                }
+                                            }
+                                        }
+
+                                        let completeRemoval: () -> Void = {
+                                            guard let strongSelf = self, let stateManager = strongSelf.stateManager else {
+                                                return
+                                            }
+                                            let _ = (getCurrentRenderedTotalUnreadCount(
+                                                accountManager: strongSelf.accountManager,
+                                                postbox: stateManager.postbox
+                                            )
+                                            |> deliverOn(strongSelf.queue)).start(next: { value in
+                                                var content = NotificationContent(isLockedMessage: nil)
+                                                if isCurrentAccount {
+                                                    content.badge = Int(value.0)
+                                                }
+
+                                                Logger.shared.log("NotificationService \(episode)", "Unread count: \(value.0), isCurrentAccount: \(isCurrentAccount)")
+                                                Logger.shared.log("NotificationService \(episode)", "Updating content to \(content)")
+
+                                                updateCurrentContent(content)
+
+                                                completed()
+                                            })
+                                        }
+
+                                        if !removeIdentifiers.isEmpty {
+                                            Logger.shared.log("NotificationService \(episode)", "Will try to remove \(removeIdentifiers.count) notifications")
+                                            UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: removeIdentifiers)
+                                            queue.after(1.0, {
+                                                completeRemoval()
+                                            })
                                         } else {
-                                            return "unknown: \(String(describing: notification.request.content.userInfo))"
-                                        }
-                                    }.joined(separator: "\n")
-                                    Logger.shared.log("NotificationService \(episode)", "Filtering delivered notifications: \(notificationDebugList)")
-                                    
-                                    var removeIdentifiers: [String] = []
-                                    for notification in notifications {
-                                        if let peerIdString = notification.request.content.userInfo["peerId"] as? String, let peerIdValue = Int64(peerIdString), let messageIdString = notification.request.content.userInfo["msg_id"] as? String, let messageIdValue = Int32(messageIdString) {
-                                            if PeerId(peerIdValue) == id.peerId && messageIdValue <= id.id {
-                                                removeIdentifiers.append(notification.request.identifier)
-                                            }
-                                        }
-                                    }
-
-                                    let completeRemoval: () -> Void = {
-                                        guard let strongSelf = self else {
-                                            return
-                                        }
-                                        let _ = (getCurrentRenderedTotalUnreadCount(
-                                            accountManager: strongSelf.accountManager,
-                                            postbox: stateManager.postbox
-                                        )
-                                        |> deliverOn(strongSelf.queue)).start(next: { value in
-                                            var content = NotificationContent(isLockedMessage: nil)
-                                            if isCurrentAccount {
-                                                content.badge = Int(value.0)
-                                            }
-
-                                            Logger.shared.log("NotificationService \(episode)", "Unread count: \(value.0), isCurrentAccount: \(isCurrentAccount)")
-                                            Logger.shared.log("NotificationService \(episode)", "Updating content to \(content)")
-
-                                            updateCurrentContent(content)
-
-                                            completed()
-                                        })
-                                    }
-
-                                    if !removeIdentifiers.isEmpty {
-                                        Logger.shared.log("NotificationService \(episode)", "Will try to remove \(removeIdentifiers.count) notifications")
-                                        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: removeIdentifiers)
-                                        queue.after(1.0, {
                                             completeRemoval()
-                                        })
-                                    } else {
-                                        completeRemoval()
-                                    }
+                                        }
+                                    })
                                 })
-                            })
+                            } else {
+                                completed()
+                            }
                         case let .readStories(peerId, maxId):
                             Logger.shared.log("NotificationService \(episode)", "Will read stories peerId: \(peerId) maxId: \(maxId)")
-                            let _ = (stateManager.postbox.transaction { transaction -> Void in
-                            }
-                            |> deliverOn(strongSelf.queue)).start(completed: {
-                                UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { notifications in
-                                    var removeIdentifiers: [String] = []
-                                    for notification in notifications {
-                                        if let peerIdString = notification.request.content.userInfo["peerId"] as? String, let peerIdValue = Int64(peerIdString), let messageIdString = notification.request.content.userInfo["story_id"] as? String, let messageIdValue = Int32(messageIdString) {
-                                            if PeerId(peerIdValue) == peerId && messageIdValue <= maxId {
-                                                removeIdentifiers.append(notification.request.identifier)
+                            if let stateManager = strongSelf.stateManager {
+                                let _ = (stateManager.postbox.transaction { transaction -> Void in
+                                }
+                                |> deliverOn(strongSelf.queue)).start(completed: {
+                                    UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { notifications in
+                                        var removeIdentifiers: [String] = []
+                                        for notification in notifications {
+                                            if let peerIdString = notification.request.content.userInfo["peerId"] as? String, let peerIdValue = Int64(peerIdString), let messageIdString = notification.request.content.userInfo["story_id"] as? String, let messageIdValue = Int32(messageIdString) {
+                                                if PeerId(peerIdValue) == peerId && messageIdValue <= maxId {
+                                                    removeIdentifiers.append(notification.request.identifier)
+                                                }
                                             }
                                         }
-                                    }
 
-                                    let completeRemoval: () -> Void = {
-                                        let content = NotificationContent(isLockedMessage: nil)
-                                        updateCurrentContent(content)
-                                        
-                                        completed()
-                                    }
+                                        let completeRemoval: () -> Void = {
+                                            let content = NotificationContent(isLockedMessage: nil)
+                                            updateCurrentContent(content)
+                                            
+                                            completed()
+                                        }
 
-                                    if !removeIdentifiers.isEmpty {
-                                        Logger.shared.log("NotificationService \(episode)", "Will try to remove \(removeIdentifiers.count) notifications")
-                                        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: removeIdentifiers)
-                                        queue.after(1.0, {
+                                        if !removeIdentifiers.isEmpty {
+                                            Logger.shared.log("NotificationService \(episode)", "Will try to remove \(removeIdentifiers.count) notifications")
+                                            UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: removeIdentifiers)
+                                            queue.after(1.0, {
+                                                completeRemoval()
+                                            })
+                                        } else {
                                             completeRemoval()
-                                        })
-                                    } else {
-                                        completeRemoval()
-                                    }
+                                        }
+                                    })
                                 })
-                            })
+                            } else {
+                                completed()
+                            }
                         }
                     } else {
                         let content = NotificationContent(isLockedMessage: nil)
@@ -2368,6 +2383,7 @@ private final class NotificationServiceHandler {
         self.pollDisposable.dispose()
         self.stateManager?.network.shouldKeepConnection.set(.single(false))
         self.notificationKeyDisposable.dispose()
+        self.fetchDisposable.dispose()
     }
 }
 
