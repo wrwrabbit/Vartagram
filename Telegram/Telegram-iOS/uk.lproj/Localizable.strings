@@ -17,8 +17,9 @@
 "PtgSettings.UseFullWidth" = "На всю ширину екрана";
 "PtgSettings.EnableLiveText" = "Текст наживо";
 "PtgSettings.EnableLiveTextHelp" = "Автоматично виконувати розпізнавання тексту і штрих-кодів (наприклад, QR-коду) на кожному зображенні, яке ви переглядаєте в повноекранному режимі. Вимкніть, щоб заощадити заряд батареї.";
-"PtgSettings.VoiceToTextPremiumAccountsImplmentation" = "Переклад голосу в текст";
-"PtgSettings.VoiceToTextHelp" = "Для акаунта з підпискою Telegram Premium ви можете вибрати, яку реалізацію використовувати для перетворення голосу в текст - Telegram або Apple. Акаунти без підписки Telegram Premium завжди використовують сервіси Apple.";
+"PtgSettings.VoiceToTextHeader" = "Переклад голосу в текст";
+"PtgSettings.VoiceToTextPreferredImplmentation" = "Переважна реалізація";
+"PtgSettings.VoiceToTextHelp" = "Сервери Telegram можуть перекласти необмежену кількість повідомлень для Premium акаунтів або до 2 повідомлень на тиждень для звичайних акаунтів. Розпізнавання мови Apple може використовуватися для всіх акаунтів. Ви можете вибрати, яку реалізацію використовувати, якщо доступні обидва варіанти.";
 "PtgSettings.DefaultCameraForVideos" = "Камера за умовчанням для відео";
 "PtgSettings.DefaultCameraForVideos.Front" = "Фронтальна";
 "PtgSettings.DefaultCameraForVideos.Rear" = "Задня";

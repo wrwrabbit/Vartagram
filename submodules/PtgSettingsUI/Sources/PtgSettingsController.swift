@@ -15,7 +15,7 @@ private final class PtgSettingsControllerArguments {
     let switchShowChannelCreationDate: (Bool) -> Void
     let switchSuppressForeignAgentNotice: (Bool) -> Void
     let switchEnableLiveText: (Bool) -> Void
-    let changeVoiceToTextPremiumAccountsImplementation: () -> Void
+    let changeVoiceToTextPreferredImplementation: () -> Void
     let changeDefaultCameraForVideos: () -> Void
     let switchEnableQuickReaction: (Bool) -> Void
     let switchHideReactionsInChannels: (Bool) -> Void
@@ -36,7 +36,7 @@ private final class PtgSettingsControllerArguments {
         switchShowChannelCreationDate: @escaping (Bool) -> Void,
         switchSuppressForeignAgentNotice: @escaping (Bool) -> Void,
         switchEnableLiveText: @escaping (Bool) -> Void,
-        changeVoiceToTextPremiumAccountsImplementation: @escaping () -> Void,
+        changeVoiceToTextPreferredImplementation: @escaping () -> Void,
         changeDefaultCameraForVideos: @escaping () -> Void,
         switchEnableQuickReaction: @escaping (Bool) -> Void,
         switchHideReactionsInChannels: @escaping (Bool) -> Void,
@@ -56,7 +56,7 @@ private final class PtgSettingsControllerArguments {
         self.switchShowChannelCreationDate = switchShowChannelCreationDate
         self.switchSuppressForeignAgentNotice = switchSuppressForeignAgentNotice
         self.switchEnableLiveText = switchEnableLiveText
-        self.changeVoiceToTextPremiumAccountsImplementation = changeVoiceToTextPremiumAccountsImplementation
+        self.changeVoiceToTextPreferredImplementation = changeVoiceToTextPreferredImplementation
         self.changeDefaultCameraForVideos = changeDefaultCameraForVideos
         self.switchEnableQuickReaction = switchEnableQuickReaction
         self.switchHideReactionsInChannels = switchHideReactionsInChannels
@@ -93,7 +93,8 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
     case enableLiveText(String, Bool)
     case enableLiveTextInfo(String)
     
-    case voiceToTextPremiumAccountsImplementation(String, String)
+    case voiceToTextHeader(String)
+    case voiceToTextPreferredImplementation(String, String)
     case voiceToTextInfo(String)
 
     case defaultCameraForVideos(String, String)
@@ -128,7 +129,7 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             return PtgSettingsSection.showProfileData.rawValue
         case .enableQuickReaction, .enableQuickReactionInfo, .enableLiveText, .enableLiveTextInfo, .enableSwipeActionsForChats, .enableSwipeActionsForChatsInfo, .enableSwipeToStoryCamera, .enableSwipeToStoryCameraInfo:
             return PtgSettingsSection.experimental.rawValue
-        case .voiceToTextPremiumAccountsImplementation, .voiceToTextInfo:
+        case .voiceToTextHeader, .voiceToTextPreferredImplementation, .voiceToTextInfo:
             return PtgSettingsSection.voiceToText.rawValue
         case .defaultCameraForVideos:
             return PtgSettingsSection.defaultCameraForVideos.rawValue
@@ -189,12 +190,14 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             return 21
         case .defaultCameraForVideos:
             return 22
-        case .voiceToTextPremiumAccountsImplementation:
-            return 23
         case .enableReactionNotifications:
+            return 23
+        case .voiceToTextHeader:
             return 24
-        case .voiceToTextInfo:
+        case .voiceToTextPreferredImplementation:
             return 25
+        case .voiceToTextInfo:
+            return 26
         }
     }
     
@@ -223,9 +226,9 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             })
         case let .enableQuickReactionInfo(text), let .enableLiveTextInfo(text), let .voiceToTextInfo(text), let .enableSwipeActionsForChatsInfo(text), let .enableSwipeToStoryCameraInfo(text):
             return ItemListTextItem(presentationData: presentationData, text: .markdown(text), sectionId: self.section)
-        case let .voiceToTextPremiumAccountsImplementation(title, value):
+        case let .voiceToTextPreferredImplementation(title, value):
             return ItemListDisclosureItem(presentationData: presentationData, title: title, label: value, sectionId: self.section, style: .blocks, action: {
-                arguments.changeVoiceToTextPremiumAccountsImplementation()
+                arguments.changeVoiceToTextPreferredImplementation()
             })
         case let .defaultCameraForVideos(title, value):
             return ItemListDisclosureItem(presentationData: presentationData, title: title, label: value, sectionId: self.section, style: .blocks, action: {
@@ -251,7 +254,7 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             return ItemListSwitchItem(presentationData: presentationData, title: title, value: value, sectionId: self.section, style: .blocks, updated: { updatedValue in
                 arguments.switchUseFullWidthInChannels(updatedValue)
             })
-        case let .channelAppearanceHeader(text), let .addContextMenuHeader(text):
+        case let .channelAppearanceHeader(text), let .addContextMenuHeader(text), let .voiceToTextHeader(text):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
         case let .addContextMenuSaveMessage(title, value):
             return ItemListSwitchItem(presentationData: presentationData, title: title, value: value, sectionId: self.section, style: .blocks, updated: { updatedValue in
@@ -297,7 +300,7 @@ private struct PtgSettingsState: Equatable {
     }
 }
 
-private func ptgSettingsControllerEntries(presentationData: PresentationData, settings: PtgSettings, experimentalSettings: ExperimentalUISettings, isPremiumAccount: Bool, ptgAccountSettings: PtgAccountSettings) -> [PtgSettingsEntry] {
+private func ptgSettingsControllerEntries(presentationData: PresentationData, settings: PtgSettings, experimentalSettings: ExperimentalUISettings, ptgAccountSettings: PtgAccountSettings) -> [PtgSettingsEntry] {
     var entries: [PtgSettingsEntry] = []
     
     entries.append(.showPeerId(presentationData.strings.PtgSettings_ShowPeerId, settings.showPeerId))
@@ -330,8 +333,9 @@ private func ptgSettingsControllerEntries(presentationData: PresentationData, se
     
     entries.append(.enableReactionNotifications(presentationData.strings.PtgSettings_EnableReactionNotifications, !settings.suppressReactionNotifications))
     
-    if experimentalSettings.localTranscription, isPremiumAccount {
-        entries.append(.voiceToTextPremiumAccountsImplementation(presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation, ptgAccountSettings.preferAppleVoiceToText ? presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Apple : presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Telegram))
+    if experimentalSettings.localTranscription {
+        entries.append(.voiceToTextHeader(presentationData.strings.PtgSettings_VoiceToTextHeader.uppercased()))
+        entries.append(.voiceToTextPreferredImplementation(presentationData.strings.PtgSettings_VoiceToTextPreferredImplmentation, settings.preferAppleVoiceToText ? presentationData.strings.PtgSettings_VoiceToTextPreferredImplmentation_Apple : presentationData.strings.PtgSettings_VoiceToTextPreferredImplmentation_Telegram))
         entries.append(.voiceToTextInfo(presentationData.strings.PtgSettings_VoiceToTextHelp))
     }
     
@@ -366,18 +370,18 @@ public func ptgSettingsController(context: AccountContext) -> ViewController {
                 return PreferencesEntry(settings)
             })
         }).start()
-    }, changeVoiceToTextPremiumAccountsImplementation: {
+    }, changeVoiceToTextPreferredImplementation: {
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         let actionSheet = ActionSheetController(presentationData: presentationData)
         var items: [ActionSheetItem] = []
         
         for value in [false, true] {
-            items.append(ActionSheetButtonItem(title: value ? presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Apple : presentationData.strings.PtgSettings_VoiceToTextPremiumAccountsImplmentation_Telegram, color: .accent, action: { [weak actionSheet] in
+            items.append(ActionSheetButtonItem(title: value ? presentationData.strings.PtgSettings_VoiceToTextPreferredImplmentation_Apple : presentationData.strings.PtgSettings_VoiceToTextPreferredImplmentation_Telegram, color: .accent, action: { [weak actionSheet] in
                 actionSheet?.dismissAnimated()
                 
-                let _ = updatePtgAccountSettings(engine: context.engine, { settings in
+                updateSettings(context, statePromise) { settings in
                     return settings.withUpdated(preferAppleVoiceToText: value)
-                }).start()
+                }
             }))
         }
         
@@ -493,7 +497,7 @@ public func ptgSettingsController(context: AccountContext) -> ViewController {
         let experimentalSettings: ExperimentalUISettings = sharedData.entries[ApplicationSpecificSharedDataKeys.experimentalUISettings]?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.PtgSettings_Title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back), animateChanges: false)
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: ptgSettingsControllerEntries(presentationData: presentationData, settings: state.settings, experimentalSettings: experimentalSettings, isPremiumAccount: context.isPremium, ptgAccountSettings: ptgAccountSettings), style: .blocks, animateChanges: false)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: ptgSettingsControllerEntries(presentationData: presentationData, settings: state.settings, experimentalSettings: experimentalSettings, ptgAccountSettings: ptgAccountSettings), style: .blocks, animateChanges: false)
         
         return (controllerState, (listState, arguments))
     }
@@ -533,85 +537,85 @@ private func updateSettings(_ context: AccountContext, _ statePromise: Promise<P
 
 extension PtgSettings {
     public func withUpdated(showPeerId: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(showChannelCreationDate: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(suppressForeignAgentNotice: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(useRearCameraByDefault: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(hideReactionsInChannels: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(hideCommentsInChannels: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(hideShareButtonInChannels: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(useFullWidthInChannels: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(addContextMenuSaveMessage: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(addContextMenuShare: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(jumpToNextUnreadChannel: JumpToNextUnreadChannel) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(hideSignatureInChannels: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(hideMuteUnmuteButtonInChannels: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(disableSwipeActionsForChats: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(disableSwipeToStoryCamera: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(suppressReactionNotifications: Bool) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: suppressReactionNotifications, testToolsEnabled: self.testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
+    }
+    
+    public func withUpdated(preferAppleVoiceToText: Bool) -> PtgSettings {
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: preferAppleVoiceToText, testToolsEnabled: self.testToolsEnabled)
     }
     
     public func withUpdated(testToolsEnabled: Bool?) -> PtgSettings {
-        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, testToolsEnabled: testToolsEnabled)
+        return PtgSettings(showPeerId: self.showPeerId, showChannelCreationDate: self.showChannelCreationDate, suppressForeignAgentNotice: self.suppressForeignAgentNotice, useRearCameraByDefault: self.useRearCameraByDefault, hideReactionsInChannels: self.hideReactionsInChannels, hideCommentsInChannels: self.hideCommentsInChannels, hideShareButtonInChannels: self.hideShareButtonInChannels, useFullWidthInChannels: self.useFullWidthInChannels, addContextMenuSaveMessage: self.addContextMenuSaveMessage, addContextMenuShare: self.addContextMenuShare, jumpToNextUnreadChannel: self.jumpToNextUnreadChannel, hideSignatureInChannels: self.hideSignatureInChannels, hideMuteUnmuteButtonInChannels: self.hideMuteUnmuteButtonInChannels, disableSwipeActionsForChats: self.disableSwipeActionsForChats, disableSwipeToStoryCamera: self.disableSwipeToStoryCamera, suppressReactionNotifications: self.suppressReactionNotifications, preferAppleVoiceToText: self.preferAppleVoiceToText, testToolsEnabled: testToolsEnabled)
     }
 }
 
 extension PtgAccountSettings {
     public func withUpdated(ignoreAllContentRestrictions: Bool) -> PtgAccountSettings {
-        return PtgAccountSettings(ignoreAllContentRestrictions: ignoreAllContentRestrictions, preferAppleVoiceToText: self.preferAppleVoiceToText, skipSetTyping: self.skipSetTyping)
-    }
-    
-    public func withUpdated(preferAppleVoiceToText: Bool) -> PtgAccountSettings {
-        return PtgAccountSettings(ignoreAllContentRestrictions: self.ignoreAllContentRestrictions, preferAppleVoiceToText: preferAppleVoiceToText, skipSetTyping: self.skipSetTyping)
+        return PtgAccountSettings(ignoreAllContentRestrictions: ignoreAllContentRestrictions, skipSetTyping: self.skipSetTyping)
     }
     
     public func withUpdated(skipSetTyping: Bool) -> PtgAccountSettings {
-        return PtgAccountSettings(ignoreAllContentRestrictions: self.ignoreAllContentRestrictions, preferAppleVoiceToText: self.preferAppleVoiceToText, skipSetTyping: skipSetTyping)
+        return PtgAccountSettings(ignoreAllContentRestrictions: self.ignoreAllContentRestrictions, skipSetTyping: skipSetTyping)
     }
 }
 

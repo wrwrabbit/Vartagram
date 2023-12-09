@@ -50,6 +50,29 @@ private func messageHasCompleteTransription(_ message: Message) -> Bool {
     }
 }
 
+private func shouldUseAppleImplementation(arguments: ChatMessageInteractiveFileNode.Arguments, premiumConfiguration: PremiumConfiguration, audioDuration: Int32) -> Bool {
+    if !arguments.context.sharedContext.immediateExperimentalUISettings.localTranscription {
+        return false
+    }
+    
+    let preferAppleVoiceToText = arguments.context.sharedContext.currentPtgSettings.with { $0.preferAppleVoiceToText }
+    
+    if arguments.associatedData.isPremium {
+        return preferAppleVoiceToText
+    }
+    
+    if premiumConfiguration.audioTransciptionTrialCount > 0 && arguments.incoming && audioDuration < premiumConfiguration.audioTransciptionTrialMaxDuration {
+        let currentTime = Int32(Date().timeIntervalSince1970)
+        if let cooldownUntilTime = arguments.associatedData.audioTranscriptionTrial.cooldownUntilTime, cooldownUntilTime > currentTime {
+            return true
+        } else {
+            return preferAppleVoiceToText
+        }
+    }
+    
+    return true
+}
+
 public final class ChatMessageInteractiveFileNode: ASDisplayNode {
     public final class Arguments {
         public let context: AccountContext
@@ -449,7 +472,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
         
         let transcriptionText = self.forcedAudioTranscriptionText ?? transcribedText(message: message)
         if transcriptionText == nil {
-            if premiumConfiguration.audioTransciptionTrialCount > 0 {
+            if premiumConfiguration.audioTransciptionTrialCount > 0, !context.sharedContext.immediateExperimentalUISettings.localTranscription {
                 if !arguments.associatedData.isPremium {
                     if self.presentAudioTranscriptionTooltip(finished: false) {
                         return
@@ -507,7 +530,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 self.audioTranscriptionState = .inProgress
                 self.requestUpdateLayout(true)
                 
-                if context.sharedContext.immediateExperimentalUISettings.localTranscription && (!arguments.associatedData.isPremium || arguments.context.currentPtgAccountSettings.with { ($0 ?? .default).preferAppleVoiceToText }) {
+                if shouldUseAppleImplementation(arguments: arguments, premiumConfiguration: premiumConfiguration, audioDuration: audioDuration) {
                     let appLocale = presentationData.strings.baseLanguageCode
                     
                     let signal: Signal<LocallyTranscribedAudio?, NoError> = context.engine.data.get(TelegramEngine.EngineData.Item.Messages.Message(id: message.id))
@@ -865,7 +888,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 var displayingTranscribeDueToLocalTranscription = false
                 if arguments.message.id.peerId.namespace != Namespaces.Peer.SecretChat {
                     let premiumConfiguration = PremiumConfiguration.with(appConfiguration: arguments.context.currentAppConfiguration.with { $0 })
-                    if arguments.context.sharedContext.immediateExperimentalUISettings.localTranscription && (!(arguments.associatedData.isPremium || (premiumConfiguration.audioTransciptionTrialCount > 0 && arguments.incoming && audioDuration < premiumConfiguration.audioTransciptionTrialMaxDuration)) || arguments.context.currentPtgAccountSettings.with { ($0 ?? .default).preferAppleVoiceToText }) {
+                    if shouldUseAppleImplementation(arguments: arguments, premiumConfiguration: premiumConfiguration, audioDuration: audioDuration) {
                         displayTranscribe = true
                         displayingTranscribeDueToLocalTranscription = true
                     } else if arguments.associatedData.isPremium {
@@ -897,7 +920,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 }
                 
                 let currentTime = Int32(Date().timeIntervalSince1970)
-                if transcribedText == nil, let cooldownUntilTime = arguments.associatedData.audioTranscriptionTrial.cooldownUntilTime, cooldownUntilTime > currentTime {
+                if transcribedText == nil, let cooldownUntilTime = arguments.associatedData.audioTranscriptionTrial.cooldownUntilTime, cooldownUntilTime > currentTime, !arguments.context.sharedContext.immediateExperimentalUISettings.localTranscription {
                     updatedAudioTranscriptionState = .locked
                 }
                 
