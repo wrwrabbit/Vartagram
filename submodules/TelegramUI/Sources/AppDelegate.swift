@@ -1451,6 +1451,11 @@ extension UserDefaults {
             SharedDisplayLinkDriver.shared.updateForegroundState(self.isActiveValue)
             
             self.runForegroundTasks()
+        } else if application.applicationState == .inactive {
+            self.isInForegroundValue = true
+            self.isInForegroundPromise.set(true)
+            
+            self.runForegroundTasks()
         }
         
         
