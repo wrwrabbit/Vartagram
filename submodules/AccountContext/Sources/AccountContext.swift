@@ -745,14 +745,12 @@ public enum CreateGroupMode {
 }
 
 public protocol AppLockContext: AnyObject {
-    var invalidAttempts: Signal<AccessChallengeAttempts?, NoError> { get }
     var autolockDeadline: Signal<Int32?, NoError> { get }
     
     var isScreenCovered: Bool { get }
     
     func lock()
     func unlock()
-    func failedUnlockAttempt()
     
     func secretPasscodesTimeoutCheck(completion: (() -> Void)?)
 }

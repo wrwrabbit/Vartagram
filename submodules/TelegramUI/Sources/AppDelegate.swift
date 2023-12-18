@@ -979,6 +979,8 @@ extension UserDefaults {
                 }
             }
             
+            appLockContext.sharedContext = sharedContext
+            
             let notificationManager = SharedNotificationManager(episodeId: self.episodeId, application: application, clearNotificationsManager: clearNotificationsManager, inForeground: applicationBindings.applicationInForeground, accounts: sharedContext.activeAccountContexts |> map { primary, accounts, _, _ in accounts.map({ ($0.1.account, $0.1.account.id == primary?.account.id) }) }, pollLiveLocationOnce: { accountId in
                 let _ = (self.context.get()
                 |> filter {

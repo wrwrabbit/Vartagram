@@ -648,21 +648,21 @@ private func privacySearchableItems(context: AccountContext, privacySettings: Ac
         SettingsSearchableItem(id: .privacy(6), title: strings.Privacy_GroupsAndChannels, alternate: synonyms(strings.SettingsSearch_Synonyms_Privacy_GroupsAndChannels), icon: icon, breadcrumbs: [strings.Settings_PrivacySettings], present: { context, _, present in
             presentSelectivePrivacySettings(context, .groupInvitations, present)
         }),
-        SettingsSearchableItem(id: .privacy(7), title: passcodeTitle, alternate: passcodeAlternate, icon: icon, breadcrumbs: [strings.Settings_PrivacySettings], present: { context, _, present in
-            let _ = passcodeOptionsAccessController(context: context, pushController: { c in 
-                present(.push, c)
+        SettingsSearchableItem(id: .privacy(7), title: passcodeTitle, alternate: passcodeAlternate, icon: icon, breadcrumbs: [strings.Settings_PrivacySettings], present: { context, navigationController, present in
+            var replaceTopControllerImpl: ((ViewController) -> Void)?
+            let _ = passcodeOptionsAccessController(context: context, pushController: { c in
+                replaceTopControllerImpl?(c)
             }, completion: { animated in
                 let controller = passcodeOptionsController(context: context)
-                if animated {
-                    present(.push, controller)
-                } else {
-                    present(.push, controller)
-                }
+                replaceTopControllerImpl?(controller)
             }).start(next: { controller in
                 if let controller = controller {
                     present(.push, controller)
                 }
             })
+            replaceTopControllerImpl = { [weak navigationController] c in
+                navigationController?.replaceTopController(c, animated: true)
+            }
         }),
         SettingsSearchableItem(id: .privacy(8), title: strings.PrivacySettings_TwoStepAuth, alternate: synonyms(strings.SettingsSearch_Synonyms_Privacy_TwoStepAuth), icon: icon, breadcrumbs: [strings.Settings_PrivacySettings], present: { context, _, present in
             present(.push, twoStepVerificationUnlockSettingsController(context: context, mode: .access(intro: true, data: nil)))

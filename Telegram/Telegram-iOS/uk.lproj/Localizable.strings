@@ -84,6 +84,7 @@
 "ContactsSyncHelpForHidableAccounts" = "Контакти не синхронізуються в приховуваних акаунтах.";
 
 "PasscodeAttempts.TryAgainIn" = "Захист від атак грубої сили. Спробуйте ще раз через %@.";
+"PasscodeAttempts.ShortTryAgainIn" = "Спробуйте ще раз через %@";
 
 "Share.LockedTitle" = "Розблокуйте Vartagram";
 "Share.LockedDescription" = "Відкрийте і розблокуйте Vartagram, щоб поділитися.";

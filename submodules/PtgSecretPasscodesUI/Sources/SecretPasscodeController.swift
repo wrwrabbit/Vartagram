@@ -998,11 +998,6 @@ extension PtgSecretPasscodes {
     }
 }
 
-public func passcodeAttemptWaitString(strings: PresentationStrings, waitTime: Int32) -> String {
-    let timeString = timeIntervalString(strings: strings, value: waitTime, usage: .afterTime)
-    return strings.PasscodeAttempts_TryAgainIn(timeString).string.replacingOccurrences(of: #"\.\.$"#, with: ".", options: .regularExpression)
-}
-
 public func hideAllSecrets(accountManager: AccountManager<TelegramAccountManagerTypes>) -> Signal<Void, NoError> {
     return updatePtgSecretPasscodes(accountManager, { current in
         let updated = current.secretPasscodes.map { $0.withUpdated(active: false) }

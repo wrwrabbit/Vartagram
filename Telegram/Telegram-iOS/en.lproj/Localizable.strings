@@ -86,6 +86,7 @@
 "ContactsSyncHelpForHidableAccounts" = "Contacts are not synced in hiding accounts.";
 
 "PasscodeAttempts.TryAgainIn" = "Protection against brute force attacks. Try again in %@.";
+"PasscodeAttempts.ShortTryAgainIn" = "Try again in %@";
 
 "Share.LockedTitle" = "Unlock Vartagram";
 "Share.LockedDescription" = "Open and unlock Vartagram to share.";

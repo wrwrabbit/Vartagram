@@ -1,3 +1,5 @@
+import UndoUI
+
 import Foundation
 import UIKit
 import Display
@@ -417,7 +419,17 @@ public func passcodeOptionsAccessController(context: AccountContext, animateIn: 
             return controller
         } else {
             let controller = PasscodeSetupController(context: context, mode: .entry(challenge))
-            controller.check = { passcode in
+            controller.check = { [weak controller] passcode in
+                guard let passcodeAttemptAccounter = context.sharedContext.passcodeAttemptAccounter else {
+                    return false
+                }
+                
+                if let waitTime = passcodeAttemptAccounter.preAttempt() {
+                    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                    controller?.present(UndoOverlayController(presentationData: presentationData, content: .banned(text: passcodeAttemptWaitString(strings: presentationData.strings, waitTime: waitTime)), elevatedLayout: false, action: { _ in return false }), in: .current)
+                    return false
+                }
+                
                 var succeed = false
                 switch challenge {
                     case .none:
@@ -429,6 +441,8 @@ public func passcodeOptionsAccessController(context: AccountContext, animateIn: 
                 }
                 if succeed {
                     completion(true)
+                } else {
+                    passcodeAttemptAccounter.attemptMissed()
                 }
                 return succeed
             }
