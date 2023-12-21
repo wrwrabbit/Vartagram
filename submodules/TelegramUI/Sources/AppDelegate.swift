@@ -1,7 +1,6 @@
 import ItemListUI
 import MonotonicTime
 import AppLockState
-import PtgSecretPasscodesUI
 import PtgForeignAgentNoticeRemoval
 
 import UIKit
@@ -2685,7 +2684,7 @@ extension UserDefaults {
                                 case .account:
                                     context.switchAccount()
                                 case .hideAllSecrets:
-                                let _ = hideAllSecrets(accountManager: context.context.sharedContext.accountManager).start()
+                                    context.context.sharedContext.hideAllSecrets()
                             }
                         }
                     }

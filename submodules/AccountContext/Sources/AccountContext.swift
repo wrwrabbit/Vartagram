@@ -986,6 +986,8 @@ public protocol SharedAccountContext: AnyObject {
     
     func calculateCoveringAccount(excludingId: AccountRecordId?) -> Signal<(db: AccountRecordId, cache: AccountRecordId)?, NoError>
     func maybeTriggerCoveringProtection(maybeCoveringAccountId: AccountRecordId, cleanCache: Bool) -> Signal<Never, NoError>
+    func activateSecretPasscode(_ sp: PtgSecretPasscode)
+    func hideAllSecrets()
 }
 
 public enum PremiumIntroSource {

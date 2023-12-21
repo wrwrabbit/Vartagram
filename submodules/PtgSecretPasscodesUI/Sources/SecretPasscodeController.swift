@@ -998,13 +998,6 @@ extension PtgSecretPasscodes {
     }
 }
 
-public func hideAllSecrets(accountManager: AccountManager<TelegramAccountManagerTypes>) -> Signal<Void, NoError> {
-    return updatePtgSecretPasscodes(accountManager, { current in
-        let updated = current.secretPasscodes.map { $0.withUpdated(active: false) }
-        return PtgSecretPasscodes(secretPasscodes: updated, dbCoveringAccounts: current.dbCoveringAccounts, cacheCoveringAccounts: current.cacheCoveringAccounts)
-    })
-}
-
 private func areThereAnyWidgetsContainingChatsFromAccount(id accountId: AccountRecordId) -> Signal<Bool, NoError> {
     if #available(iOSApplicationExtension 14.0, iOS 14.0, *) {
         return Signal { subscriber in

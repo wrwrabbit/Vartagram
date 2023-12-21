@@ -1,14 +1,10 @@
-import PtgSecretPasscodesUI
 import GalleryUI
 import ContextUI
 import LegacyComponents
 import ShareController
 import TelegramUniversalVideoContent
-import StorageUsageScreen
-import ItemListUI
 import TelegramBaseController
 import ChatSendMessageActionUI
-import OverlayStatusController
 
 import Foundation
 import UIKit
@@ -1156,10 +1152,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 self?.timeBasedCleanup.setup(cleanedAccounts: cleanedAccounts, general: settings.defaultCacheStorageTimeout, shortLived: 60 * 60, gigabytesLimit: settings.defaultCacheStorageLimitGigabytes)
             })
             
-            self.trackLastNonHidingAccountDisposable = combineLatest(self.activeAccountContexts, self.allHidableAccountIds).start(next: { activeAccountContexts, allHidableAccountIds in
+            self.trackLastNonHidingAccountDisposable = combineLatest(self.activeAccountContexts, self.allHidableAccountIds).start(next: { [weak self] activeAccountContexts, allHidableAccountIds in
                 if Set(activeAccountContexts.accounts.map({ $0.0 })).subtracting(allHidableAccountIds).isEmpty {
                     // If logged out from last non-hiding account, deactivate all hidable accounts (if any is active) since their use is not secure any more. Otherwise cache size may grow and this can reveal them.
-                    let _ = hideAllSecrets(accountManager: accountManager).start()
+                    self?.hideAllSecrets()
                 }
             })
         }
@@ -2592,6 +2588,86 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             }
         }
         |> ignoreValues
+    }
+    
+    public func activateSecretPasscode(_ sp: PtgSecretPasscode) {
+        let _ = (self.calculateCoveringAccount(excludingId: nil)
+        |> mapToSignal { coveringAccount in
+            return updatePtgSecretPasscodes(self.accountManager, { current in
+                var updated = current.secretPasscodes
+                if let ind = current.secretPasscodes.firstIndex(where: { $0.passcode == sp.passcode }) {
+                    updated[ind] = current.secretPasscodes[ind].withUpdated(active: true)
+                }
+                var dbCoveringAccounts = current.dbCoveringAccounts
+                var cacheCoveringAccounts = current.cacheCoveringAccounts
+                assert(coveringAccount != nil)
+                if let coveringAccount {
+                    for accountId in sp.accountIds {
+                        assert(accountId != coveringAccount.db)
+                        dbCoveringAccounts[accountId] = coveringAccount.db
+                        assert(accountId != coveringAccount.cache)
+                        cacheCoveringAccounts[accountId] = coveringAccount.cache
+                    }
+                }
+                return PtgSecretPasscodes(secretPasscodes: updated, dbCoveringAccounts: dbCoveringAccounts, cacheCoveringAccounts: cacheCoveringAccounts)
+            })
+            |> ignoreValues
+        }
+        |> then (
+            self.activeAccountContexts
+            |> take(1)
+            |> mapToSignal { activeAccountContexts in
+                if let onRevealNavigateTo = sp.onRevealNavigateTo {
+                    if onRevealNavigateTo.peerId != nil {
+                        // it is possible that account of this secret chat is currently hidden
+                        // then don't call navigateToChat which waits indefinitely and may navigate to this chat when it is no longer expected
+                        if let context = activeAccountContexts.accounts.first(where: { $0.0 == onRevealNavigateTo.accountId })?.1 {
+                            // secret chat may already be deleted
+                            let _ = (context.account.postbox.transaction { transaction in
+                                if transaction.getPeerChatListIndex(onRevealNavigateTo.peerId!) != nil {
+                                    Queue.mainQueue().async {
+                                        context.sharedContext.navigateToChat(accountId: onRevealNavigateTo.accountId, peerId: onRevealNavigateTo.peerId!, messageId: nil)
+                                    }
+                                }
+                            }).start()
+                        }
+                    } else {
+                        assert(sp.accountIds.contains(onRevealNavigateTo.accountId))
+                        // account can already be logged out
+                        if let context = (activeAccountContexts.accounts + activeAccountContexts.inactiveAccounts).first(where: { $0.0 == onRevealNavigateTo.accountId })?.1 {
+                            // wait for account to be activated before switching to it
+                            let _ = (context.sharedContext.activeAccountContexts
+                            |> filter { activeAccountContexts in
+                                return activeAccountContexts.accounts.contains(where: { $0.0 == onRevealNavigateTo.accountId })
+                            }
+                            |> take(1)
+                            |> deliverOnMainQueue).start(next: { _ in
+                                context.sharedContext.switchToAccount(id: onRevealNavigateTo.accountId, fromSettingsController: nil, withChatListController: nil)
+                            })
+                        }
+                    }
+                }
+                
+                var signals: [Signal<Never, NoError>] = []
+                for (_, context, _) in (activeAccountContexts.accounts + activeAccountContexts.inactiveAccounts) {
+                    if sp.accountIds.contains(context.account.id) {
+                        signals.append(
+                            context.account.cleanOldCloudMessages()
+                            |> then (context.account.optimizeAllStorages(minFreePagesFraction: 0.2))
+                        )
+                    }
+                }
+                return combineLatest(signals)
+                |> ignoreValues
+            }
+        )).start()
+    }
+    
+    public func hideAllSecrets() {
+        let _ = updatePtgSecretPasscodes(self.accountManager, { current in
+            let updated = current.secretPasscodes.map { $0.withUpdated(active: false) }
+            return PtgSecretPasscodes(secretPasscodes: updated, dbCoveringAccounts: current.dbCoveringAccounts, cacheCoveringAccounts: current.cacheCoveringAccounts)
+        }).start()
     }
     
     public func makeChannelStatsController(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?, peerId: EnginePeer.Id, boosts: Bool, boostStatus: ChannelBoostStatus?) -> ViewController {
