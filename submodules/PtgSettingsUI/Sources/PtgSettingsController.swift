@@ -85,6 +85,7 @@ private enum PtgSettingsSection: Int32 {
 }
 
 private enum PtgSettingsEntry: ItemListNodeEntry {
+    case showProfileInfoHeader(String)
     case showPeerId(String, Bool)
     case showChannelCreationDate(String, Bool)
     
@@ -125,7 +126,7 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
     
     var section: ItemListSectionId {
         switch self {
-        case .showPeerId, .showChannelCreationDate:
+        case .showProfileInfoHeader, .showPeerId, .showChannelCreationDate:
             return PtgSettingsSection.showProfileData.rawValue
         case .enableQuickReaction, .enableQuickReactionInfo, .enableLiveText, .enableLiveTextInfo, .enableSwipeActionsForChats, .enableSwipeActionsForChatsInfo, .enableSwipeToStoryCamera, .enableSwipeToStoryCameraInfo:
             return PtgSettingsSection.experimental.rawValue
@@ -144,6 +145,8 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
     
     var stableId: Int32 {
         switch self {
+        case .showProfileInfoHeader:
+            return -1
         case .showPeerId:
             return 0
         case .showChannelCreationDate:
@@ -254,7 +257,7 @@ private enum PtgSettingsEntry: ItemListNodeEntry {
             return ItemListSwitchItem(presentationData: presentationData, title: title, value: value, sectionId: self.section, style: .blocks, updated: { updatedValue in
                 arguments.switchUseFullWidthInChannels(updatedValue)
             })
-        case let .channelAppearanceHeader(text), let .addContextMenuHeader(text), let .voiceToTextHeader(text):
+        case let .showProfileInfoHeader(text), let .channelAppearanceHeader(text), let .addContextMenuHeader(text), let .voiceToTextHeader(text):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
         case let .addContextMenuSaveMessage(title, value):
             return ItemListSwitchItem(presentationData: presentationData, title: title, value: value, sectionId: self.section, style: .blocks, updated: { updatedValue in
@@ -303,6 +306,7 @@ private struct PtgSettingsState: Equatable {
 private func ptgSettingsControllerEntries(presentationData: PresentationData, settings: PtgSettings, experimentalSettings: ExperimentalUISettings, ptgAccountSettings: PtgAccountSettings) -> [PtgSettingsEntry] {
     var entries: [PtgSettingsEntry] = []
     
+    entries.append(.showProfileInfoHeader(presentationData.strings.PtgSettings_ShowProfileInfoHeader.uppercased()))
     entries.append(.showPeerId(presentationData.strings.PtgSettings_ShowPeerId, settings.showPeerId))
     entries.append(.showChannelCreationDate(presentationData.strings.PtgSettings_ShowChannelCreationDate, settings.showChannelCreationDate))
     

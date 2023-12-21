@@ -5,8 +5,9 @@
 "Settings.Version" = "Vartagram %1$@ (%2$@)\nНа основе оригинального Telegram %3$@";
 
 "PtgSettings.Title" = "Vartagram";
-"PtgSettings.ShowPeerId" = "Показывать ID профилей";
-"PtgSettings.ShowChannelCreationDate" = "Показывать дату создания каналов";
+"PtgSettings.ShowProfileInfoHeader" = "Показывать информацию о профиле";
+"PtgSettings.ShowPeerId" = "ID профиля";
+"PtgSettings.ShowChannelCreationDate" = "Дата создания каналов и групп";
 "PtgSettings.SuppressForeignAgentNotice" = "Скрывать метки иноагентов РФ";
 "PtgSettings.EnableQuickReaction" = "Быстрые реакции";
 "PtgSettings.EnableQuickReactionHelp" = "Включите, чтобы быстро отправлять реакции, дважды нажимая на сообщения или нажимая на существующие реакции. Выключите для предотвращения случайных реакций.";
