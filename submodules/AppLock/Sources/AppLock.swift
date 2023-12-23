@@ -672,7 +672,9 @@ public final class AppLockContextImpl: AppLockContext {
         }
         
         // deactivating all secret passcodes on manual app lock
-        self.secretPasscodesDeactivateOnCondition({ _ in return true })
+        if self.sharedContext?.currentPtgSettings.with({ $0.hideAllSecretsOnManualAppLock }) ?? false {
+            self.secretPasscodesDeactivateOnCondition({ _ in return true })
+        }
     }
     
     public func unlock() {

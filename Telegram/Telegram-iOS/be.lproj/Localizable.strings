@@ -38,6 +38,10 @@
 "PtgSettings.SwipeToOpenStoryCamera" = "Змахванне для запісу гісторый";
 "PtgSettings.SwipeToOpenStoryCameraHelp" = "Выключыце, каб прадухіліць выпадковае адкрыццё камеры для запісу гісторый падчас прагортвання спісу чатаў.";
 "PtgSettings.EnableReactionNotifications" = "Апавяшчэнні аб рэакцыях";
+"PtgSettings.HideAllSecrets.Header" = "Хаваць усе сакрэты калі";
+"PtgSettings.HideAllSecrets.OnManualAppLock" = "Праграма блакіруецца ўручную";
+"PtgSettings.HideAllSecrets.OnDeviceShake" = "Прылада трасецца";
+"PtgSettings.HideAllSecrets.OnDeviceShakeHelp" = "Гэтая праграма павінна быць актыўнай, каб рэагаваць на страсяніну.";
 
 "Conversation.ContextMenuSaveMessage" = "Захаваць паведамленне";
 

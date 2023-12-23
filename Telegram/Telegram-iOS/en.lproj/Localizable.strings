@@ -40,6 +40,10 @@
 "PtgSettings.SwipeToOpenStoryCamera" = "Swipe to Open Story Camera";
 "PtgSettings.SwipeToOpenStoryCameraHelp" = "Turn off to prevent accidentally opening the story camera when swiping through the chat list.";
 "PtgSettings.EnableReactionNotifications" = "Reaction Notifications";
+"PtgSettings.HideAllSecrets.Header" = "Hide All Secrets If";
+"PtgSettings.HideAllSecrets.OnManualAppLock" = "App is Manually Locked";
+"PtgSettings.HideAllSecrets.OnDeviceShake" = "Device is Shaken";
+"PtgSettings.HideAllSecrets.OnDeviceShakeHelp" = "This app must be active to react to the shake.";
 
 "Conversation.ContextMenuSaveMessage" = "Save Message";
 

@@ -252,6 +252,8 @@ private final class NativeWindow: UIWindow, WindowHost {
     var forEachControllerImpl: (((ContainableController) -> Void) -> Void)?
     var getAccessibilityElementsImpl: (() -> [Any]?)?
     
+    var motionShakeImpl: (() -> Void)?
+    
     override var frame: CGRect {
         get {
             return super.frame
@@ -361,6 +363,14 @@ private final class NativeWindow: UIWindow, WindowHost {
     func forEachController(_ f: (ContainableController) -> Void) {
         self.forEachControllerImpl?(f)
     }
+    
+    override func motionBegan(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        super.motionBegan(motion, with: event)
+        
+        if motion == .motionShake {
+            self.motionShakeImpl?()
+        }
+    }
 }
 
 public func nativeWindowHostView() -> (UIWindow & WindowHost, WindowHostView) {
@@ -447,6 +457,10 @@ public func nativeWindowHostView() -> (UIWindow & WindowHost, WindowHostView) {
     
     window.getAccessibilityElementsImpl = { [weak hostView] in
         return hostView?.getAccessibilityElements?()
+    }
+    
+    window.motionShakeImpl = { [weak hostView] in
+        hostView?.motionShakeImpl?()
     }
     
     rootViewController.presentController = { [weak hostView] controller, level, animated, completion in

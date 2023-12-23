@@ -29,6 +29,8 @@ public struct PtgSettings: Codable, Equatable {
     public let disableSwipeToStoryCamera: Bool
     public let suppressReactionNotifications: Bool
     public let preferAppleVoiceToText: Bool
+    public let hideAllSecretsOnManualAppLock: Bool
+    public let hideAllSecretsOnDeviceShake: Bool
     public let testToolsEnabled: Bool?
     
     public static var defaultSettings: PtgSettings {
@@ -50,6 +52,8 @@ public struct PtgSettings: Codable, Equatable {
             disableSwipeToStoryCamera: false,
             suppressReactionNotifications: false,
             preferAppleVoiceToText: false,
+            hideAllSecretsOnManualAppLock: true,
+            hideAllSecretsOnDeviceShake: true,
             testToolsEnabled: nil
         )
     }
@@ -72,6 +76,8 @@ public struct PtgSettings: Codable, Equatable {
         disableSwipeToStoryCamera: Bool,
         suppressReactionNotifications: Bool,
         preferAppleVoiceToText: Bool,
+        hideAllSecretsOnManualAppLock: Bool,
+        hideAllSecretsOnDeviceShake: Bool,
         testToolsEnabled: Bool?
     ) {
         self.showPeerId = showPeerId
@@ -91,6 +97,8 @@ public struct PtgSettings: Codable, Equatable {
         self.disableSwipeToStoryCamera = disableSwipeToStoryCamera
         self.suppressReactionNotifications = suppressReactionNotifications
         self.preferAppleVoiceToText = preferAppleVoiceToText
+        self.hideAllSecretsOnManualAppLock = hideAllSecretsOnManualAppLock
+        self.hideAllSecretsOnDeviceShake = hideAllSecretsOnDeviceShake
         self.testToolsEnabled = testToolsEnabled
     }
     
@@ -114,6 +122,8 @@ public struct PtgSettings: Codable, Equatable {
         self.disableSwipeToStoryCamera = (try container.decodeIfPresent(Int32.self, forKey: "dstsc") ?? 0) != 0
         self.suppressReactionNotifications = (try container.decodeIfPresent(Int32.self, forKey: "srn") ?? 0) != 0
         self.preferAppleVoiceToText = (try container.decodeIfPresent(Int32.self, forKey: "pavtt") ?? 0) != 0
+        self.hideAllSecretsOnManualAppLock = (try container.decodeIfPresent(Int32.self, forKey: "hasomal") ?? 1) != 0
+        self.hideAllSecretsOnDeviceShake = (try container.decodeIfPresent(Int32.self, forKey: "hasods") ?? 1) != 0
         self.testToolsEnabled = try container.decodeIfPresent(Int32.self, forKey: "test").flatMap({ $0 != 0 })
     }
     
@@ -137,6 +147,8 @@ public struct PtgSettings: Codable, Equatable {
         try container.encode((self.disableSwipeToStoryCamera ? 1 : 0) as Int32, forKey: "dstsc")
         try container.encode((self.suppressReactionNotifications ? 1 : 0) as Int32, forKey: "srn")
         try container.encode((self.preferAppleVoiceToText ? 1 : 0) as Int32, forKey: "pavtt")
+        try container.encode((self.hideAllSecretsOnManualAppLock ? 1 : 0) as Int32, forKey: "hasomal")
+        try container.encode((self.hideAllSecretsOnDeviceShake ? 1 : 0) as Int32, forKey: "hasods")
         try container.encodeIfPresent(self.testToolsEnabled.flatMap({ ($0 ? 1 : 0) as Int32 }), forKey: "test")
     }
     

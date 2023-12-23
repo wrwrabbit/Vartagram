@@ -1654,6 +1654,18 @@ extension UserDefaults {
             })
         })
         
+        self.mainWindow?.hostView.motionShakeImpl = { [weak self] in
+            guard let strongSelf = self else {
+                return
+            }
+            let _ = (strongSelf.sharedContextPromise.get()
+            |> take(1)).start(next: { sharedApplicationContext in
+                if sharedApplicationContext.sharedContext.currentPtgSettings.with({ $0.hideAllSecretsOnDeviceShake }) {
+                    sharedApplicationContext.sharedContext.hideAllSecrets()
+                }
+            })
+        }
+        
         setupForeignAgentNoticeRemovalCache()
         
         // exclude from backup folders that may reveal hidden secrets
