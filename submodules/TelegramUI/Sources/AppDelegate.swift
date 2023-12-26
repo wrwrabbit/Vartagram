@@ -1,7 +1,6 @@
 import ItemListUI
 import MonotonicTime
 import AppLockState
-import PtgSecretPasscodesUI
 import PtgForeignAgentNoticeRemoval
 
 import UIKit
@@ -979,6 +978,8 @@ extension UserDefaults {
                 }
             }
             
+            appLockContext.sharedContext = sharedContext
+            
             let notificationManager = SharedNotificationManager(episodeId: self.episodeId, application: application, clearNotificationsManager: clearNotificationsManager, inForeground: applicationBindings.applicationInForeground, accounts: sharedContext.activeAccountContexts |> map { primary, accounts, _, _ in accounts.map({ ($0.1.account, $0.1.account.id == primary?.account.id) }) }, pollLiveLocationOnce: { accountId in
                 let _ = (self.context.get()
                 |> filter {
@@ -1451,6 +1452,11 @@ extension UserDefaults {
             SharedDisplayLinkDriver.shared.updateForegroundState(self.isActiveValue)
             
             self.runForegroundTasks()
+        } else if application.applicationState == .inactive {
+            self.isInForegroundValue = true
+            self.isInForegroundPromise.set(true)
+            
+            self.runForegroundTasks()
         }
         
         
@@ -1647,6 +1653,18 @@ extension UserDefaults {
                 }
             })
         })
+        
+        self.mainWindow?.hostView.motionShakeImpl = { [weak self] in
+            guard let strongSelf = self else {
+                return
+            }
+            let _ = (strongSelf.sharedContextPromise.get()
+            |> take(1)).start(next: { sharedApplicationContext in
+                if sharedApplicationContext.sharedContext.currentPtgSettings.with({ $0.hideAllSecretsOnDeviceShake }) {
+                    sharedApplicationContext.sharedContext.hideAllSecrets()
+                }
+            })
+        }
         
         setupForeignAgentNoticeRemovalCache()
         
@@ -2678,7 +2696,7 @@ extension UserDefaults {
                                 case .account:
                                     context.switchAccount()
                                 case .hideAllSecrets:
-                                let _ = hideAllSecrets(accountManager: context.context.sharedContext.accountManager).start()
+                                    context.context.sharedContext.hideAllSecrets()
                             }
                         }
                     }

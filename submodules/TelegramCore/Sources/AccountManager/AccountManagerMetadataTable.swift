@@ -1,19 +1,5 @@
-import AppLockState
-
 import Foundation
 import Postbox
-
-public struct AccessChallengeAttempts: Equatable {
-    public let count: Int32
-    public var bootTimestamp: PreciseTime
-    public var uptime: Int32
-    
-    public init(count: Int32, bootTimestamp: PreciseTime, uptime: Int32) {
-        self.count = count
-        self.bootTimestamp = bootTimestamp
-        self.uptime = uptime
-    }
-}
 
 public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
     enum CodingKeys: String, CodingKey {
@@ -80,17 +66,6 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
             return false
         } else {
             return true
-        }
-    }
-    
-    public var lockId: String? {
-        switch self {
-        case .none:
-            return nil
-        case let .numericalPassword(value):
-            return "numericalPassword:\(value)"
-        case let .plaintextPassword(value):
-            return "plaintextPassword:\(value)"
         }
     }
 }

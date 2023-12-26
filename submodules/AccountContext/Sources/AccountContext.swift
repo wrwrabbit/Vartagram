@@ -745,14 +745,12 @@ public enum CreateGroupMode {
 }
 
 public protocol AppLockContext: AnyObject {
-    var invalidAttempts: Signal<AccessChallengeAttempts?, NoError> { get }
     var autolockDeadline: Signal<Int32?, NoError> { get }
     
     var isScreenCovered: Bool { get }
     
     func lock()
     func unlock()
-    func failedUnlockAttempt()
     
     func secretPasscodesTimeoutCheck(completion: (() -> Void)?)
 }
@@ -988,6 +986,8 @@ public protocol SharedAccountContext: AnyObject {
     
     func calculateCoveringAccount(excludingId: AccountRecordId?) -> Signal<(db: AccountRecordId, cache: AccountRecordId)?, NoError>
     func maybeTriggerCoveringProtection(maybeCoveringAccountId: AccountRecordId, cleanCache: Bool) -> Signal<Never, NoError>
+    func activateSecretPasscode(_ sp: PtgSecretPasscode)
+    func hideAllSecrets()
 }
 
 public enum PremiumIntroSource {

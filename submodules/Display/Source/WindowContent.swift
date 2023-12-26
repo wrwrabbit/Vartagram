@@ -178,6 +178,8 @@ public final class WindowHostView {
     var forEachController: (((ContainableController) -> Void) -> Void)?
     var getAccessibilityElements: (() -> [Any]?)?
     
+    public var motionShakeImpl: (() -> Void)?
+    
     init(containerView: UIView, eventView: UIView, isRotating: @escaping () -> Bool, systemUserInterfaceStyle:  Signal<WindowUserInterfaceStyle, NoError>, updateSupportedInterfaceOrientations: @escaping (UIInterfaceOrientationMask) -> Void, updateDeferScreenEdgeGestures: @escaping (UIRectEdge) -> Void, updatePrefersOnScreenNavigationHidden: @escaping (Bool) -> Void) {
         self.containerView = containerView
         self.eventView = eventView

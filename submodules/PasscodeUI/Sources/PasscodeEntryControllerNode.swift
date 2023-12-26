@@ -1,4 +1,4 @@
-import AppLockState
+import TelegramStringFormatting
 
 import Foundation
 import UIKit
@@ -52,7 +52,6 @@ public final class PasscodeEntryControllerNode: ASDisplayNode {
     private let biometricButtonNode: HighlightableButtonNode
     private let effectView: UIVisualEffectView
     
-    private var invalidAttempts: AccessChallengeAttempts?
     private var timer: SwiftSignalKit.Timer?
     
     private let hapticFeedback = HapticFeedback()
@@ -130,11 +129,7 @@ public final class PasscodeEntryControllerNode: ASDisplayNode {
             guard let strongSelf = self else {
                 return
             }
-            if strongSelf.shouldWaitBeforeNextAttempt() {
-                strongSelf.animateError()
-            } else {
-                strongSelf.checkPasscode?(passcode)
-            }
+            strongSelf.checkPasscode?(passcode)
         }
         
         self.cancelButtonNode.setTitle(strings.Common_Cancel, with: buttonFont, with: .white, for: .normal)
@@ -322,56 +317,21 @@ public final class PasscodeEntryControllerNode: ASDisplayNode {
         }
     }
     
-    private let waitInterval: Int32 = 60
-    private func shouldWaitBeforeNextAttempt() -> Bool {
-        if let attempts = self.invalidAttempts {
-            if attempts.count >= 6 {
-                let timestamp = MonotonicTimestamp()
-                
-                if attempts.bootTimestamp.absDiff(with: timestamp.bootTimestamp) > 0.1 {
-                    return true
-                }
-                if timestamp.uptime < attempts.uptime {
-                    return true
-                }
-                
-                if timestamp.uptime - attempts.uptime < waitInterval {
-                    return true
-                } else {
-                    return false
-                }
-            } else {
-                return false
-            }
-        } else {
-            return false
+    func updateAttemptWaitText(_ passcodeAttemptAccounter: PasscodeAttemptAccounter) {
+        var text = NSAttributedString(string: "")
+        if let waitTime = passcodeAttemptAccounter.preAttempt() {
+            let waitString = passcodeAttemptShortWaitString(strings: self.strings, waitTime: waitTime)
+            text = NSAttributedString(string: waitString, font: subtitleFont, textColor: .white)
+            
+            self.timer?.invalidate()
+            let timer = SwiftSignalKit.Timer(timeout: 1.0, repeat: false, completion: { [weak self] in
+                self?.updateAttemptWaitText(passcodeAttemptAccounter)
+            }, queue: Queue.mainQueue())
+            self.timer = timer
+            timer.start()
         }
-    }
-    
-    func updateInvalidAttempts(_ attempts: AccessChallengeAttempts?, animated: Bool = false) {
-        self.invalidAttempts = attempts
-        if let attempts = attempts {
-            var text = NSAttributedString(string: "")
-            if attempts.count >= 6 && self.shouldWaitBeforeNextAttempt() {
-                text = NSAttributedString(string: self.strings.PasscodeSettings_TryAgainIn1Minute, font: subtitleFont, textColor: .white)
-                
-                self.timer?.invalidate()
-                let timer = SwiftSignalKit.Timer(timeout: 1.0, repeat: true, completion: { [weak self] in
-                    if let strongSelf = self {
-                        if !strongSelf.shouldWaitBeforeNextAttempt() {
-                            strongSelf.updateInvalidAttempts(strongSelf.invalidAttempts, animated: true)
-                            strongSelf.timer?.invalidate()
-                            strongSelf.timer = nil
-                        }
-                    }
-                }, queue: Queue.mainQueue())
-                self.timer = timer
-                timer.start()
-            }
-            self.subtitleNode.setAttributedText(text, animation: animated ? .crossFade : .none, completion: {})
-        } else {
-            self.subtitleNode.setAttributedText(NSAttributedString(string: ""), animation: animated ? .crossFade : .none, completion: {})
-        }
+        let animated = text.string.isEmpty
+        self.subtitleNode.setAttributedText(text, animation: animated ? .crossFade : .none, completion: {})
     }
     
     func hideBiometrics() {

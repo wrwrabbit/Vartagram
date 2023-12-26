@@ -1499,7 +1499,7 @@ private final class NotificationServiceHandler {
                                         }
 
                                         var updatedContentBody: Signal<String?, NoError> = .single(nil)
-                                        if let messageId, let body = content.body, let ptgSettings {
+                                        if let messageId, let body = content.body, let ptgSettings, content.category != "t" {
                                             if (ptgSettings.suppressForeignAgentNotice && body.count >= ForeignAgentNoticeMinLen) || (ptgSettings.hideSignatureInChannels && peerId.namespace == Namespaces.Peer.CloudChannel) {
                                                 updatedContentBody = stateManager.postbox.transaction { transaction -> String? in
                                                     guard var message = transaction.getMessage(messageId) else {

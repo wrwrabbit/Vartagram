@@ -291,12 +291,12 @@ final class AccountManagerImpl<Types: AccountManagerTypes> {
     fileprivate func transaction<T>(ignoreDisabled: Bool, _ f: @escaping (AccountManagerModifier<Types>) -> T) -> Signal<T, NoError> {
         return Signal { subscriber in
             self.queue.justDispatch {
-//                self.beginInternalTransaction(ignoreDisabled: ignoreDisabled, {
+                self.beginInternalTransaction(ignoreDisabled: ignoreDisabled, {
                     let result = self.transactionSync(ignoreDisabled: ignoreDisabled, f)
                     
                     subscriber.putNext(result)
                     subscriber.putCompletion()
-//                })
+                })
             }
             return EmptyDisposable
         }

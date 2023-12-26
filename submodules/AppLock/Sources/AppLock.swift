@@ -89,6 +89,7 @@ public final class AppLockContextImpl: AppLockContext {
     private var ptgSecretPasscodesDisposable: Disposable?
     
     public var canBeginTransactions: () -> Bool = { return true }
+    public weak var sharedContext: SharedAccountContext?
     
     public init(rootPath: String, window: Window1?, rootController: UIViewController?, applicationBindings: TelegramApplicationBindings, accountManager: AccountManager<TelegramAccountManagerTypes>, presentationDataSignal: Signal<PresentationData, NoError>, lockIconInitialFrame: @escaping () -> CGRect?, appContextIsReady: Signal<Bool, NoError>? = nil, initialPtgSecretPasscodes: PtgSecretPasscodes? = nil) {
         assert(Queue.mainQueue().isCurrent())
@@ -252,13 +253,14 @@ public final class AppLockContextImpl: AppLockContext {
                         }
                         passcodeController.ensureInputFocused()
                     } else if let window = strongSelf.window {
+                        precondition(strongSelf.sharedContext != nil)
                         let passcodeController = PasscodeEntryController(applicationBindings: strongSelf.applicationBindings, accountManager: strongSelf.accountManager, appLockContext: strongSelf, presentationData: presentationData, presentationDataSignal: strongSelf.presentationDataSignal, statusBarHost: window.statusBarHost, challengeData: accessChallengeData.data, biometrics: biometrics, arguments: PasscodeEntryControllerPresentationArguments(animated: strongSelf.rootController?.presentedViewController == nil, lockIconInitialFrame: {
                             if let lockViewFrame = lockIconInitialFrame() {
                                 return lockViewFrame
                             } else {
                                 return CGRect()
                             }
-                        }))
+                        }), sharedContext: strongSelf.sharedContext)
                         if becameActiveRecently, appInForeground {
                             passcodeController.presentationCompleted = { [weak passcodeController] in
                                 if case .enabled = biometrics {
@@ -650,15 +652,6 @@ public final class AppLockContextImpl: AppLockContext {
         }
     }
     
-    public var invalidAttempts: Signal<AccessChallengeAttempts?, NoError> {
-        return self.currentState.get()
-        |> map { state in
-            return state.unlockAttempts.flatMap { unlockAttempts in
-                return AccessChallengeAttempts(count: unlockAttempts.count, bootTimestamp: unlockAttempts.timestamp.bootTimestamp, uptime: unlockAttempts.timestamp.uptime)
-            }
-        }
-    }
-    
     public var autolockDeadline: Signal<Int32?, NoError> {
         return self.autolockReportTimeout.get()
         |> distinctUntilChanged
@@ -679,7 +672,9 @@ public final class AppLockContextImpl: AppLockContext {
         }
         
         // deactivating all secret passcodes on manual app lock
-        self.secretPasscodesDeactivateOnCondition({ _ in return true })
+        if self.sharedContext?.currentPtgSettings.with({ $0.hideAllSecretsOnManualAppLock }) ?? false {
+            self.secretPasscodesDeactivateOnCondition({ _ in return true })
+        }
     }
     
     public func unlock() {
@@ -693,8 +688,6 @@ public final class AppLockContextImpl: AppLockContext {
                 self.updateLockState { state in
                     var state = state
                     
-                    state.unlockAttempts = nil
-                    
                     state.isLocked = false
                     
                     state.applicationActivityTimestamp = MonotonicTimestamp()
@@ -703,19 +696,6 @@ public final class AppLockContextImpl: AppLockContext {
                 }
             })
         })
-    }
-    
-    public func failedUnlockAttempt() {
-        self.updateLockState { state in
-            var state = state
-            var unlockAttempts = state.unlockAttempts ?? UnlockAttempts(count: 0, timestamp: MonotonicTimestamp())
-            
-            unlockAttempts.count += 1
-            
-            unlockAttempts.timestamp = MonotonicTimestamp()
-            state.unlockAttempts = unlockAttempts
-            return state
-        }
     }
     
     private func secretPasscodesDeactivateOnCondition(_ f: @escaping (PtgSecretPasscode) -> Bool, completion: (() -> Void)? = nil) {

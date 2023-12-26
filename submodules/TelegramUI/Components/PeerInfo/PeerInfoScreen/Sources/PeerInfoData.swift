@@ -653,6 +653,17 @@ func peerInfoScreenSettingsData(context: AccountContext, peerId: EnginePeer.Id, 
     }
 }
 
+private func getFirstMessage(context: AccountContext, peerId: PeerId) -> Signal<Message?, NoError> {
+    return context.engine.messages.getMessagesLoadIfNecessary([MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: 1)])
+    |> mapToSignal { result -> Signal<[Message], NoError> in
+        guard case let .result(result) = result else {
+            return .complete()
+        }
+        return .single(result)
+    }
+    |> map { $0.first }
+}
+
 func peerInfoScreenData(context: AccountContext, peerId: PeerId, strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, isSettings: Bool, hintGroupInCommon: PeerId?, existingRequestsContext: PeerInvitationImportersContext?, chatLocation: ChatLocation, chatLocationContextHolder: Atomic<ChatLocationContextHolder?>) -> Signal<PeerInfoScreenData, NoError> {
     return peerInfoScreenInputData(context: context, peerId: peerId, isSettings: isSettings)
     |> mapToSignal { inputData -> Signal<PeerInfoScreenData, NoError> in
@@ -907,14 +918,7 @@ func peerInfoScreenData(context: AccountContext, peerId: PeerId, strings: Presen
                 context.engine.peers.recommendedChannels(peerId: peerId),
                 Signal<Message?, NoError>.single(nil)
                 |> then (
-                    context.engine.messages.getMessagesLoadIfNecessary([MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: 1)])
-                    |> mapToSignal { result -> Signal<[Message], NoError> in
-                        guard case let .result(result) = result else {
-                            return .complete()
-                        }
-                        return .single(result)
-                    }
-                    |> map { $0.first }
+                    getFirstMessage(context: context, peerId: peerId)
                 )
             )
             |> map { peerView, availablePanes, globalNotificationSettings, status, currentInvitationsContext, invitations, currentRequestsContext, requests, hasStories, accountIsPremium, recommendedChannels, firstMessage -> PeerInfoScreenData in
@@ -1115,9 +1119,13 @@ func peerInfoScreenData(context: AccountContext, peerId: PeerId, strings: Presen
                 requestsStatePromise.get(),
                 threadData,
                 context.account.postbox.preferencesView(keys: [PreferencesKeys.appConfiguration]),
-                accountIsPremium
+                accountIsPremium,
+                Signal<Message?, NoError>.single(nil)
+                |> then (
+                    getFirstMessage(context: context, peerId: peerId)
+                )
             )
-            |> mapToSignal { peerView, availablePanes, globalNotificationSettings, status, membersData, currentInvitationsContext, invitations, currentRequestsContext, requests, threadData, preferencesView, accountIsPremium -> Signal<PeerInfoScreenData, NoError> in
+            |> mapToSignal { peerView, availablePanes, globalNotificationSettings, status, membersData, currentInvitationsContext, invitations, currentRequestsContext, requests, threadData, preferencesView, accountIsPremium, firstMessage -> Signal<PeerInfoScreenData, NoError> in
                 var discussionPeer: Peer?
                 if case let .known(maybeLinkedDiscussionPeerId) = (peerView.cachedData as? CachedChannelData)?.linkedDiscussionPeerId, let linkedDiscussionPeerId = maybeLinkedDiscussionPeerId, let peer = peerView.peers[linkedDiscussionPeerId] {
                     discussionPeer = peer
@@ -1168,6 +1176,21 @@ func peerInfoScreenData(context: AccountContext, peerId: PeerId, strings: Presen
                 
                 let appConfiguration: AppConfiguration = preferencesView.values[PreferencesKeys.appConfiguration]?.get(AppConfiguration.self) ?? .defaultValue
               
+                var channelCreationTimestamp = firstMessage?.timestamp
+                if groupId.namespace == Namespaces.Peer.CloudChannel, let firstMessage {
+                    for media in firstMessage.media {
+                        if let action = media as? TelegramMediaAction {
+                            if case let .channelMigratedFromGroup(_, legacyGroupId) = action.action {
+                                if let legacyGroup = firstMessage.peers[legacyGroupId] as? TelegramGroup {
+                                    if legacyGroup.creationDate != 0 {
+                                        channelCreationTimestamp = legacyGroup.creationDate
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 return .single(PeerInfoScreenData(
                     peer: peerView.peers[groupId],
                     chatPeer: peerView.peers[groupId],
@@ -1187,7 +1210,7 @@ func peerInfoScreenData(context: AccountContext, peerId: PeerId, strings: Presen
                     invitations: invitations,
                     requests: requests,
                     requestsContext: currentRequestsContext,
-                    channelCreationTimestamp: nil,
+                    channelCreationTimestamp: channelCreationTimestamp,
                     threadData: threadData,
                     appConfiguration: appConfiguration,
                     isPowerSavingEnabled: nil,

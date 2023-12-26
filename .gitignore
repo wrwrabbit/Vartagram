@@ -57,6 +57,8 @@ bazel-out
 bazel-out/*
 bazel-Partisan-Telegram-iOS
 bazel-Partisan-Telegram-iOS/*
+bazel-Vartagram
+bazel-Vartagram/*
 bazel-testlogs
 bazel-testlogs/*
 xcodeproj.bazelrc

@@ -26,26 +26,14 @@ public struct MonotonicTimestamp: Codable, Equatable {
     }
 }
 
-public struct UnlockAttempts: Codable, Equatable {
-    public var count: Int32
-    public var timestamp: MonotonicTimestamp
-
-    public init(count: Int32, timestamp: MonotonicTimestamp) {
-        self.count = count
-        self.timestamp = timestamp
-    }
-}
-
 public struct LockState: Codable, Equatable {
     public var isLocked: Bool
     public var autolockTimeout: Int32?
-    public var unlockAttempts: UnlockAttempts?
     public var applicationActivityTimestamp: MonotonicTimestamp?
 
-    public init(isLocked: Bool = false, autolockTimeout: Int32? = nil, unlockAttemts: UnlockAttempts? = nil, applicationActivityTimestamp: MonotonicTimestamp? = nil) {
+    public init(isLocked: Bool = false, autolockTimeout: Int32? = nil, applicationActivityTimestamp: MonotonicTimestamp? = nil) {
         self.isLocked = isLocked
         self.autolockTimeout = autolockTimeout
-        self.unlockAttempts = unlockAttemts
         self.applicationActivityTimestamp = applicationActivityTimestamp
     }
 }

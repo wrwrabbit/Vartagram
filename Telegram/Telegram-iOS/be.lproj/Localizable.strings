@@ -5,8 +5,9 @@
 "Settings.Version" = "Vartagram %1$@ (%2$@)\nНа аснове арыгінальнага Telegram %3$@";
 
 "PtgSettings.Title" = "Vartagram";
-"PtgSettings.ShowPeerId" = "Паказваць ID профіляў";
-"PtgSettings.ShowChannelCreationDate" = "Паказваць дату стварэння каналаў";
+"PtgSettings.ShowProfileInfoHeader" = "Паказваць інфармацыю аб профілі";
+"PtgSettings.ShowPeerId" = "ID профілю";
+"PtgSettings.ShowChannelCreationDate" = "Дата стварэння каналаў і суполак";
 "PtgSettings.SuppressForeignAgentNotice" = "Хаваць меткі іншаагентаў РФ";
 "PtgSettings.EnableQuickReaction" = "Хуткія рэакцыі";
 "PtgSettings.EnableQuickReactionHelp" = "Уключыце, каб хутка адпраўляць рэакцыі, двойчы націскаючы на паведамленні ці націскаючы на існуючыя рэакцыі. Выключыце, каб пазбегнуць выпадковых рэакцый.";
@@ -37,6 +38,10 @@
 "PtgSettings.SwipeToOpenStoryCamera" = "Змахванне для запісу гісторый";
 "PtgSettings.SwipeToOpenStoryCameraHelp" = "Выключыце, каб прадухіліць выпадковае адкрыццё камеры для запісу гісторый падчас прагортвання спісу чатаў.";
 "PtgSettings.EnableReactionNotifications" = "Апавяшчэнні аб рэакцыях";
+"PtgSettings.HideAllSecrets.Header" = "Хаваць усе сакрэты калі";
+"PtgSettings.HideAllSecrets.OnManualAppLock" = "Праграма блакіруецца ўручную";
+"PtgSettings.HideAllSecrets.OnDeviceShake" = "Прылада трасецца";
+"PtgSettings.HideAllSecrets.OnDeviceShakeHelp" = "Гэтая праграма павінна быць актыўнай, каб рэагаваць на страсяніну.";
 
 "Conversation.ContextMenuSaveMessage" = "Захаваць паведамленне";
 
@@ -84,6 +89,7 @@
 "ContactsSyncHelpForHidableAccounts" = "Кантакты не сінхранізуюцца ў хаваемых акаўнтах.";
 
 "PasscodeAttempts.TryAgainIn" = "Абарона ад атак грубай сілай. Паспрабуйце зноў праз %@.";
+"PasscodeAttempts.ShortTryAgainIn" = "Паспрабуйце зноў праз %@";
 
 "Share.LockedTitle" = "Разблакіруйце Vartagram";
 "Share.LockedDescription" = "Адкрыйце і разблакіруйце Vartagram, каб абагуліць.";
