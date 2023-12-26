@@ -80,8 +80,8 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     case skipReadHistory(PresentationTheme, Bool)
     case skipSetTyping(Bool)
     case unidirectionalSwipeToReply(Bool)
-    case dustEffect(Bool)
-    case callUIV2(Bool)
+    case callV2(Bool)
+    case alternativeStoryMedia(Bool)
     #if TEST_BUILD
     case crashOnSlowQueries(PresentationTheme, Bool)
     case crashOnMemoryPressure(PresentationTheme, Bool)
@@ -150,7 +150,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
         #endif
         case .webViewInspection, .resetWebViewCache:
             return DebugControllerSection.web.rawValue
-        case .keepChatNavigationStack, .skipReadHistory, .skipSetTyping, .unidirectionalSwipeToReply, .dustEffect, .callUIV2:
+        case .keepChatNavigationStack, .skipReadHistory, .skipSetTyping, .unidirectionalSwipeToReply, .callV2, .alternativeStoryMedia:
             return DebugControllerSection.experiments.rawValue
         case .clearTips, .resetNotifications, .resetHoles, .reindexUnread, .reindexCache, .resetBiometricsData, .photoPreview, .knockoutWallpaper, .storiesExperiment, .storiesJpegExperiment, .playlistPlayback, .enableQuickReactionSwitch, .voiceConference, .experimentalCompatibility, .enableDebugDataDisplay, .acceleratedStickers, .inlineForums, .localTranscription, .enableReactionOverrides, .restorePurchases:
             return DebugControllerSection.experiments.rawValue
@@ -221,9 +221,9 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 16.5
         case .unidirectionalSwipeToReply:
             return 17
-        case .dustEffect:
+        case .callV2:
             return 18
-        case .callUIV2:
+        case .alternativeStoryMedia:
             return 19
         #if TEST_BUILD
         case .crashOnSlowQueries:
@@ -1125,19 +1125,19 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     return settings
                 }).start()
             })
-        case let .dustEffect(value):
-            return ItemListSwitchItem(presentationData: presentationData, title: "Dust Effect", value: value, sectionId: self.section, style: .blocks, updated: { value in
+        case let .callV2(value):
+            return ItemListSwitchItem(presentationData: presentationData, title: "CallV2", value: value, sectionId: self.section, style: .blocks, updated: { value in
                 let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
                     var settings = settings
-                    settings.dustEffect = value
+                    settings.callV2 = value
                     return settings
                 }).start()
             })
-        case let .callUIV2(value):
-            return ItemListSwitchItem(presentationData: presentationData, title: "Call UI V2", value: value, sectionId: self.section, style: .blocks, updated: { value in
+        case let .alternativeStoryMedia(value):
+            return ItemListSwitchItem(presentationData: presentationData, title: "Story Data Saver", value: value, sectionId: self.section, style: .blocks, updated: { value in
                 let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
                     var settings = settings
-                    settings.callUIV2 = value
+                    settings.alternativeStoryMedia = value
                     return settings
                 }).start()
             })
@@ -1631,8 +1631,8 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
         }
         #endif
         entries.append(.unidirectionalSwipeToReply(experimentalSettings.unidirectionalSwipeToReply))
-        entries.append(.dustEffect(experimentalSettings.dustEffect))
-        entries.append(.callUIV2(experimentalSettings.callUIV2))
+        entries.append(.callV2(experimentalSettings.callV2))
+        entries.append(.alternativeStoryMedia(experimentalSettings.alternativeStoryMedia))
     }
     #if TEST_BUILD
     entries.append(.crashOnSlowQueries(presentationData.theme, experimentalSettings.crashOnLongQueries))

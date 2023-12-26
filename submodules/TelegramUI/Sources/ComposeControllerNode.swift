@@ -54,7 +54,7 @@ final class ComposeControllerNode: ASDisplayNode {
             openCreateNewChannelImpl?()
         }))
         
-        self.contactListNode = ContactListNode(context: context, presentation: .single(.natural(options: options, includeChatList: false)), displayPermissionPlaceholder: false)
+        self.contactListNode = ContactListNode(context: context, presentation: .single(.natural(options: options, includeChatList: false, topPeers: false)), displayPermissionPlaceholder: false)
         
         super.init()
         
