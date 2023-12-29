@@ -430,6 +430,12 @@ def clean(bazel, arguments):
 
 
 def resolve_codesigning(arguments, base_path, build_configuration, provisioning_profiles_path, additional_codesigning_output_path) -> ResolvedCodesigningData:
+    if arguments.disableProvisioningProfiles is not None:
+        return ResolvedCodesigningData(
+            aps_environment="",
+            use_xcode_managed_codesigning=False
+        )
+    
     profile_source = None
     if arguments.gitCodesigningRepository is not None:
         password = os.getenv('TELEGRAM_CODESIGNING_GIT_PASSWORD')
@@ -694,7 +700,7 @@ def add_codesigning_common_arguments(current_parser: argparse.ArgumentParser):
         metavar='path'
     )
 
-    codesigning_group = current_parser.add_mutually_exclusive_group(required=True)
+    codesigning_group = current_parser.add_mutually_exclusive_group(required=False)
     codesigning_group.add_argument(
         '--gitCodesigningRepository',
         help='''

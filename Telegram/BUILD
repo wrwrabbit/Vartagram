@@ -2146,7 +2146,7 @@ xcodeproj(
         labels = [
             ":Telegram",
         ],
-        target_environments = ["device", "simulator"],
+        target_environments = ["simulator"] if telegram_aps_environment == "" and not telegram_use_xcode_managed_codesigning else ["device", "simulator"],
     ),
     xcode_configurations = {
         "Debug": {
