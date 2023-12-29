@@ -88,7 +88,6 @@ public final class AppLockContextImpl: AppLockContext {
     private var currentPtgSecretPasscodes: PtgSecretPasscodes!
     private var ptgSecretPasscodesDisposable: Disposable?
     
-    public var canBeginTransactions: () -> Bool = { return true }
     public weak var sharedContext: SharedAccountContext?
     
     public init(rootPath: String, window: Window1?, rootController: UIViewController?, applicationBindings: TelegramApplicationBindings, accountManager: AccountManager<TelegramAccountManagerTypes>, presentationDataSignal: Signal<PresentationData, NoError>, lockIconInitialFrame: @escaping () -> CGRect?, appContextIsReady: Signal<Bool, NoError>? = nil, initialPtgSecretPasscodes: PtgSecretPasscodes? = nil) {
@@ -602,15 +601,11 @@ public final class AppLockContextImpl: AppLockContext {
                             
                             let secretPasscodesTimeoutCheckTimer = SwiftSignalKit.Timer(timeout: Double(nextTimeout), repeat: false, completion: {
                                 if let strongSelf = weakSelf {
-                                    if strongSelf.canBeginTransactions() {
-                                        strongSelf.secretPasscodesTimeoutCheck(completion: {
-                                            Queue.mainQueue().async {
-                                                resetTimer()
-                                            }
-                                        })
-                                    } else {
-                                        resetTimer()
-                                    }
+                                    strongSelf.secretPasscodesTimeoutCheck(completion: {
+                                        Queue.mainQueue().async {
+                                            resetTimer()
+                                        }
+                                    })
                                 }
                             }, queue: .mainQueue())
                             

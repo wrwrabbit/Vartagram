@@ -1052,16 +1052,12 @@ extension UserDefaults {
             }, activeAccounts: sharedContext.activeAccountContexts |> map { ($0.0?.account, $0.1.map { ($0.0, $0.1.account) } + $0.inactiveAccounts.map { ($0.0, $0.1.account) }) }, liveLocationPolling: liveLocationPolling, watchTasks: .single(nil), inForeground: applicationBindings.applicationInForeground, hasActiveAudioSession: self.hasActiveAudioSession.get(), notificationManager: notificationManager, mediaManager: sharedContext.mediaManager, callManager: sharedContext.callManager, accountUserInterfaceInUse: { id in
                 return sharedContext.accountUserInterfaceInUse(id)
             }, accountManager: accountManager)
-            appLockContext.canBeginTransactions = {
-                assert(Queue.mainQueue().isCurrent())
-                return wakeupManager.canBeginTransactions
-            }
             let sharedApplicationContext = SharedApplicationContext(sharedContext: sharedContext, notificationManager: notificationManager, wakeupManager: wakeupManager)
             sharedApplicationContext.sharedContext.mediaManager.overlayMediaManager.attachOverlayMediaController(sharedApplicationContext.overlayMediaController)
             
-            return accountManager.transaction { transaction -> (SharedApplicationContext, LoggingSettings) in
+            return accountManager.transaction(ignoreDisabled: true, { transaction -> (SharedApplicationContext, LoggingSettings) in
                 return (sharedApplicationContext, transaction.getSharedData(SharedDataKeys.loggingSettings)?.get(LoggingSettings.self) ?? LoggingSettings.defaultSettings)
-            }
+            })
         }
         self.sharedContextPromise.set(sharedContextSignal
         |> mapToSignal { sharedApplicationContext, loggingSettings -> Signal<SharedApplicationContext, NoError> in
@@ -2291,6 +2287,15 @@ extension UserDefaults {
             return
         }
         
+        let _ = (self.sharedContextPromise.get()
+        |> take(1)
+        |> deliverOnMainQueue).start(next: { sharedApplicationContext in
+            sharedApplicationContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0)
+            
+            // take a chance to deactivate secret passcodes if app was waken up to process push-notification
+            sharedApplicationContext.sharedContext.appLockContext.secretPasscodesTimeoutCheck(completion: nil)
+        })
+        
         let useCallKitIntegration: Signal<Bool, NoError>
         if #available(iOS 13.0, *) {
             useCallKitIntegration = .single(true)
@@ -2389,11 +2394,6 @@ extension UserDefaults {
                         callKitIntegration.dropCall(uuid: CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId))
                     }
                 })
-                
-                sharedApplicationContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0)
-                
-                // take a chance to deactivate secret passcodes if app was waken up to process push-notification
-                sharedApplicationContext.sharedContext.appLockContext.secretPasscodesTimeoutCheck(completion: nil)
                 
                 if case PKPushType.voIP = type {
                     Logger.shared.log("App \(self.episodeId) PushRegistry", "pushRegistry payload: \(payload.dictionaryPayload)")
@@ -2785,6 +2785,14 @@ extension UserDefaults {
     }
     
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        if response.actionIdentifier == "reply" {
+            let _ = (self.sharedContextPromise.get()
+            |> take(1)
+            |> deliverOnMainQueue).start(next: { sharedApplicationContext in
+                sharedApplicationContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0, extendNow: true)
+            })
+        }
+        
         let _ = (accountIdFromNotification(response.notification, sharedContext: self.sharedContextPromise.get())
         |> deliverOnMainQueue).start(next: { accountId in
             if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
@@ -2811,7 +2819,6 @@ extension UserDefaults {
                 |> take(1)
                 |> deliverOnMainQueue
                 |> mapToSignal { sharedContext -> Signal<Void, NoError> in
-                    sharedContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0, extendNow: true)
                     return sharedContext.sharedContext.activeAccountContexts
                     |> mapToSignal { _, contexts, _, _ -> Signal<Account, NoError> in
                         for context in contexts {
