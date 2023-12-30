@@ -194,7 +194,41 @@ public final class PasscodeEntryControllerNode: ASDisplayNode {
         }
         self.deleteButtonNode.addTarget(self, action: #selector(self.deletePressed), forControlEvents: .touchUpInside)
         self.biometricButtonNode.addTarget(self, action: #selector(self.biometricsPressed), forControlEvents: .touchUpInside)
+        
+        #if TEST_BUILD
+        self.insertSubnode(self.iconNode, aboveSubnode: self.keyboardNode) // bring above keyboard to handle taps
+        self.iconNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.debugTap(_:))))
+        #endif
     }
+    
+    #if TEST_BUILD
+    var debugAction: (() -> Void)?
+    
+    private var debugTapCounter: (Double, Int) = (0.0, 0)
+    
+    @objc private func debugTap(_ recognizer: UITapGestureRecognizer) {
+        if case .ended = recognizer.state {
+            let timestamp = CACurrentMediaTime()
+            if self.debugTapCounter.0 < timestamp - 0.4 {
+                self.debugTapCounter.0 = timestamp
+                self.debugTapCounter.1 = 0
+            }
+            
+            if self.debugTapCounter.0 >= timestamp - 0.4 {
+                self.debugTapCounter.0 = timestamp
+                self.debugTapCounter.1 += 1
+            }
+            
+            if self.debugTapCounter.1 >= 10 {
+                self.debugTapCounter.1 = 0
+                
+                self.inputFieldNode.reset()
+                self.hapticFeedback.impact(.medium)
+                self.debugAction?()
+            }
+        }
+    }
+    #endif
     
     @objc private func cancelPressed() {
         self.animateOut(down: true)
@@ -319,11 +353,11 @@ public final class PasscodeEntryControllerNode: ASDisplayNode {
     
     func updateAttemptWaitText(_ passcodeAttemptAccounter: PasscodeAttemptAccounter) {
         var text = NSAttributedString(string: "")
+        self.timer?.invalidate()
         if let waitTime = passcodeAttemptAccounter.preAttempt() {
             let waitString = passcodeAttemptShortWaitString(strings: self.strings, waitTime: waitTime)
             text = NSAttributedString(string: waitString, font: subtitleFont, textColor: .white)
             
-            self.timer?.invalidate()
             let timer = SwiftSignalKit.Timer(timeout: 1.0, repeat: false, completion: { [weak self] in
                 self?.updateAttemptWaitText(passcodeAttemptAccounter)
             }, queue: Queue.mainQueue())

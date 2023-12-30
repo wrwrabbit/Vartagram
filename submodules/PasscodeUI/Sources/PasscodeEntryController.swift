@@ -221,6 +221,15 @@ public final class PasscodeEntryController: ViewController {
                 strongSelf.requestBiometrics(force: true)
             }
         }
+        
+        #if TEST_BUILD
+        self.controllerNode.debugAction = { [weak self] in
+            if let strongSelf = self, let passcodeAttemptAccounter = strongSelf.sharedContext?.passcodeAttemptAccounter {
+                passcodeAttemptAccounter.debugResetAllCounters()
+                strongSelf.controllerNode.updateAttemptWaitText(passcodeAttemptAccounter)
+            }
+        }
+        #endif
     }
     
     override public func viewDidAppear(_ animated: Bool) {
