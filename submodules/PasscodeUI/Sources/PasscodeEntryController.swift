@@ -182,9 +182,16 @@ public final class PasscodeEntryController: ViewController {
                 if !succeed {
                     // check secret codes only if passcode is not matched
                     // otherwise it may be used to brute-force secret codes by endlessly changing passcode and entering it on lock screen
-                    if let sp = ptgSecretPasscodes.secretPasscodes.first(where: { $0.passcode == passcode }) {
-                        strongSelf.sharedContext?.activateSecretPasscode(sp)
-                        succeed = true
+                    // you can't call secretCodeAttemptAccounter.attemptMissed() to prevent it, because this will lock out secretCodeAttemptAccounter when only passcode is matched
+                    if let secretCodeAttemptAccounter = strongSelf.sharedContext?.secretCodeAttemptAccounter {
+                        if secretCodeAttemptAccounter.preAttempt() == nil {
+                            if let sp = ptgSecretPasscodes.secretPasscodes.first(where: { $0.passcode == passcode }) {
+                                strongSelf.sharedContext?.activateSecretPasscode(sp)
+                                succeed = true
+                            } else {
+                                secretCodeAttemptAccounter.attemptMissed()
+                            }
+                        }
                     }
                 }
                 

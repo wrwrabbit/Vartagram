@@ -861,6 +861,7 @@ public protocol SharedAccountContext: AnyObject {
     var ptgSecretPasscodes: Signal<PtgSecretPasscodes, NoError> { get }
     var currentPtgSecretPasscodes: Atomic<PtgSecretPasscodes> { get }
     var passcodeAttemptAccounter: PasscodeAttemptAccounter? { get }
+    var secretCodeAttemptAccounter: PasscodeAttemptAccounter? { get }
     var inactiveAccountIds: Signal<Set<AccountRecordId>, NoError> { get }
     var allHidableAccountIds: Signal<Set<AccountRecordId>, NoError> { get }
     

@@ -46,6 +46,7 @@ private enum ApplicationSpecificSharedDataKeyValues: Int32 {
     // ptgSettings = 102
     // ptgSecretPasscodes = 103
     // ptgPasscodeAttempts = 104
+    // ptgSecretCodeAttempts = 105
 }
 
 extension ApplicationSpecificSharedDataKeys {

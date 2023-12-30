@@ -5,6 +5,7 @@ import MonotonicTime
 
 extension ApplicationSpecificSharedDataKeys {
     public static let ptgPasscodeAttempts = applicationSpecificPreferencesKey(104)
+    public static let ptgSecretCodeAttempts = applicationSpecificPreferencesKey(105)
 }
 
 // How it works:
@@ -152,6 +153,7 @@ private class PasscodeAttemptAccounterItem {
 }
 
 public class PasscodeAttemptAccounter {
+    private let preferenceKey: ValueBoxKey
     private let accountManager: AccountManager<TelegramAccountManagerTypes>
     private let trustedTimestamp: () -> TimeInterval?
     
@@ -162,14 +164,15 @@ public class PasscodeAttemptAccounter {
         .init(threshold: 20, duration: 60 * 60 * 24),   // 20 attempts per 24 hours
     ]
     
-    public init(accountManager: AccountManager<TelegramAccountManagerTypes>, trustedTimestamp: @escaping () -> TimeInterval?) {
+    public init(preferenceKey: ValueBoxKey, accountManager: AccountManager<TelegramAccountManagerTypes>, trustedTimestamp: @escaping () -> TimeInterval?) {
+        self.preferenceKey = preferenceKey
         self.accountManager = accountManager
         self.trustedTimestamp = trustedTimestamp
         
-        let _ = (accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.ptgPasscodeAttempts])
+        let _ = (accountManager.sharedData(keys: [preferenceKey])
         |> take(1)
         |> deliverOnMainQueue).start(next: { [weak self] sharedData in
-            if let strongSelf = self, let ptgPasscodeAttempts = sharedData.entries[ApplicationSpecificSharedDataKeys.ptgPasscodeAttempts]?.get(PtgPasscodeAttempts.self) {
+            if let strongSelf = self, let ptgPasscodeAttempts = sharedData.entries[preferenceKey]?.get(PtgPasscodeAttempts.self) {
                 for item in strongSelf.items {
                     if let loadedItem = ptgPasscodeAttempts.items.first(where: { $0.threshold == item.data.threshold && $0.duration == item.data.duration }) {
                         item.restore(loadedItem)
@@ -180,9 +183,10 @@ public class PasscodeAttemptAccounter {
     }
     
     private func save() {
+        let preferenceKey = self.preferenceKey
         let ptgPasscodeAttempts = PtgPasscodeAttempts(items: self.items.map { $0.data })
         let _ = self.accountManager.transaction({ transaction in
-            transaction.updateSharedData(ApplicationSpecificSharedDataKeys.ptgPasscodeAttempts, { _ in
+            transaction.updateSharedData(preferenceKey, { _ in
                 return PreferencesEntry(ptgPasscodeAttempts)
             })
         }).start()

@@ -8952,11 +8952,11 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                         return false
                     }
                     
-                    guard let passcodeAttemptAccounter = strongSelf.context.sharedContext.passcodeAttemptAccounter else {
+                    guard let secretCodeAttemptAccounter = strongSelf.context.sharedContext.secretCodeAttemptAccounter else {
                         return false
                     }
                     
-                    if let waitTime = passcodeAttemptAccounter.preAttempt() {
+                    if let waitTime = secretCodeAttemptAccounter.preAttempt() {
                         controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .banned(text: passcodeAttemptWaitString(strings: strongSelf.presentationData.strings, waitTime: waitTime)), elevatedLayout: false, action: { _ in return false }), in: .current)
                         return false
                     }
@@ -8971,7 +8971,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                         return true
                     }
                     
-                    passcodeAttemptAccounter.attemptMissed()
+                    secretCodeAttemptAccounter.attemptMissed()
                     
                     return false
                 }
@@ -9004,11 +9004,11 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                 return ""
                             }
                             
-                            guard let passcodeAttemptAccounter = strongSelf.context.sharedContext.passcodeAttemptAccounter else {
+                            guard let secretCodeAttemptAccounter = strongSelf.context.sharedContext.secretCodeAttemptAccounter else {
                                 return ""
                             }
                             
-                            if let waitTime = passcodeAttemptAccounter.preAttempt() {
+                            if let waitTime = secretCodeAttemptAccounter.preAttempt() {
                                 controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .banned(text: passcodeAttemptWaitString(strings: strongSelf.presentationData.strings, waitTime: waitTime)), elevatedLayout: false, action: { _ in return false }), in: .current)
                                 return ""
                             }
@@ -9017,7 +9017,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                 return strongSelf.presentationData.strings.PasscodeSettings_PasscodeInUse
                             }
                             
-                            passcodeAttemptAccounter.attemptMissed()
+                            secretCodeAttemptAccounter.attemptMissed()
                             
                             return nil
                         }
@@ -9066,11 +9066,11 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                 return false
                             }
                             
-                            guard let passcodeAttemptAccounter = strongSelf.context.sharedContext.passcodeAttemptAccounter else {
+                            guard let secretCodeAttemptAccounter = strongSelf.context.sharedContext.secretCodeAttemptAccounter else {
                                 return false
                             }
                             
-                            if let waitTime = passcodeAttemptAccounter.preAttempt() {
+                            if let waitTime = secretCodeAttemptAccounter.preAttempt() {
                                 controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .banned(text: passcodeAttemptWaitString(strings: strongSelf.presentationData.strings, waitTime: waitTime)), elevatedLayout: false, action: { _ in return false }), in: .current)
                                 return false
                             }
@@ -9082,7 +9082,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                 return true
                             }
                             
-                            passcodeAttemptAccounter.attemptMissed()
+                            secretCodeAttemptAccounter.attemptMissed()
                             
                             return false
                         }
