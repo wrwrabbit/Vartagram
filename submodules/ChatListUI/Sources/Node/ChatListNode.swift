@@ -1826,7 +1826,7 @@ public final class ChatListNode: ListView {
                         return .single(.setupPassword)
                     }
                 }
-                if suggestions.contains(.xmasPremiumGift) {
+                if suggestions.contains(.xmasPremiumGift) && false {
                     return .single(.xmasPremiumGift)
                 } else if suggestions.contains(.annualPremium) || suggestions.contains(.upgradePremium) || suggestions.contains(.restorePremium), let inAppPurchaseManager = context.inAppPurchaseManager {
                     return inAppPurchaseManager.availableProducts
