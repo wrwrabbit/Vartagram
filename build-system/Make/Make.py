@@ -430,7 +430,7 @@ def clean(bazel, arguments):
 
 
 def resolve_codesigning(arguments, base_path, build_configuration, provisioning_profiles_path, additional_codesigning_output_path) -> ResolvedCodesigningData:
-    if arguments.disableProvisioningProfiles is not None:
+    if hasattr(arguments, 'disableProvisioningProfiles') and arguments.disableProvisioningProfiles is not None:
         return ResolvedCodesigningData(
             aps_environment="",
             use_xcode_managed_codesigning=False
