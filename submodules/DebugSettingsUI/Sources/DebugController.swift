@@ -132,6 +132,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     case versionInfo(PresentationTheme)
     #if TEST_BUILD
     case ptgResetPasscodeAttempts
+    case ptgResetSecretCodeAttempts
     #endif
     
     var section: ItemListSectionId {
@@ -169,7 +170,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
         case .hostInfo, .versionInfo:
             return DebugControllerSection.info.rawValue
         #if TEST_BUILD
-        case .ptgResetPasscodeAttempts:
+        case .ptgResetPasscodeAttempts, .ptgResetSecretCodeAttempts:
             return DebugControllerSection.ptg.rawValue
         #endif
         }
@@ -310,6 +311,8 @@ private enum DebugControllerEntry: ItemListNodeEntry {
         #if TEST_BUILD
         case .ptgResetPasscodeAttempts:
             return 1001
+        case .ptgResetSecretCodeAttempts:
+            return 1002
         #endif
         }
     }
@@ -1577,11 +1580,12 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return ItemListTextItem(presentationData: presentationData, text: .plain("\(bundleId)\n\(bundleVersion) (\(bundleBuild))"), sectionId: self.section)
         #if TEST_BUILD
         case .ptgResetPasscodeAttempts:
+            return ItemListActionItem(presentationData: presentationData, title: "Reset Passcode Attempts", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                arguments.context?.sharedContext.passcodeAttemptAccounter?.debugResetAllCounters()
+            })
+        case .ptgResetSecretCodeAttempts:
             return ItemListActionItem(presentationData: presentationData, title: "Reset Secret Code Attempts", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
-                guard let passcodeAttemptAccounter = arguments.context?.sharedContext.passcodeAttemptAccounter else {
-                    return
-                }
-                passcodeAttemptAccounter.debugResetAllCounters()
+                arguments.context?.sharedContext.secretCodeAttemptAccounter?.debugResetAllCounters()
             })
         #endif
         }
@@ -1718,6 +1722,7 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
     #if TEST_BUILD
     if testToolsEnabled {
         entries.append(.ptgResetPasscodeAttempts)
+        entries.append(.ptgResetSecretCodeAttempts)
     }
     #endif
     

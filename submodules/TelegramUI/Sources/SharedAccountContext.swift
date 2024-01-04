@@ -227,6 +227,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     private var applicationInForegroundDisposable: Disposable?
     
     public private(set) var passcodeAttemptAccounter: PasscodeAttemptAccounter?
+    public private(set) var secretCodeAttemptAccounter: PasscodeAttemptAccounter?
     
     public var inactiveAccountIds: Signal<Set<AccountRecordId>, NoError> {
         return self.ptgSecretPasscodes
@@ -599,9 +600,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             |> deliverOnMainQueue).start(next: { [weak self] _ in
                 // make sure passcode attempts counters are cleared periodically for privacy
                 let _ = self?.passcodeAttemptAccounter?.preAttempt()
+                let _ = self?.secretCodeAttemptAccounter?.preAttempt()
             })
             
-            self.passcodeAttemptAccounter = PasscodeAttemptAccounter(accountManager: accountManager, trustedTimestamp: { [weak self] in
+            let trustedTimestamp: () -> TimeInterval? = { [weak self] in
                 assert(Queue.mainQueue().isCurrent())
                 if let accounts = self?.activeAccountsValue?.accounts {
                     for (_, context, _) in accounts {
@@ -611,7 +613,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                     }
                 }
                 return nil
-            })
+            }
+            
+            self.passcodeAttemptAccounter = PasscodeAttemptAccounter(preferenceKey: ApplicationSpecificSharedDataKeys.ptgPasscodeAttempts, accountManager: accountManager, trustedTimestamp: trustedTimestamp)
+            self.secretCodeAttemptAccounter = PasscodeAttemptAccounter(preferenceKey: ApplicationSpecificSharedDataKeys.ptgSecretCodeAttempts, accountManager: accountManager, trustedTimestamp: trustedTimestamp)
         }
 
         let startTime = CFAbsoluteTimeGetCurrent()

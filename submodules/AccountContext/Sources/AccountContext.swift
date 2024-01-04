@@ -861,6 +861,7 @@ public protocol SharedAccountContext: AnyObject {
     var ptgSecretPasscodes: Signal<PtgSecretPasscodes, NoError> { get }
     var currentPtgSecretPasscodes: Atomic<PtgSecretPasscodes> { get }
     var passcodeAttemptAccounter: PasscodeAttemptAccounter? { get }
+    var secretCodeAttemptAccounter: PasscodeAttemptAccounter? { get }
     var inactiveAccountIds: Signal<Set<AccountRecordId>, NoError> { get }
     var allHidableAccountIds: Signal<Set<AccountRecordId>, NoError> { get }
     
@@ -1207,9 +1208,9 @@ public struct PremiumConfiguration {
             }
             return PremiumConfiguration(
                 isPremiumDisabled: data["premium_purchase_blocked"] as? Bool ?? defaultValue.isPremiumDisabled,
-                showPremiumGiftInAttachMenu: data["premium_gift_attach_menu_icon"] as? Bool ?? defaultValue.showPremiumGiftInAttachMenu,
-                showPremiumGiftInTextField: data["premium_gift_text_field_icon"] as? Bool ?? defaultValue.showPremiumGiftInTextField,
-                giveawayGiftsPurchaseAvailable: data["giveaway_gifts_purchase_available"] as? Bool ?? defaultValue.giveawayGiftsPurchaseAvailable,
+                showPremiumGiftInAttachMenu: false/*data["premium_gift_attach_menu_icon"] as? Bool ?? defaultValue.showPremiumGiftInAttachMenu*/,
+                showPremiumGiftInTextField: false/*data["premium_gift_text_field_icon"] as? Bool ?? defaultValue.showPremiumGiftInTextField*/,
+                giveawayGiftsPurchaseAvailable: false/*data["giveaway_gifts_purchase_available"] as? Bool ?? defaultValue.giveawayGiftsPurchaseAvailable*/,
                 boostsPerGiftCount: get(data["boosts_per_sent_gift"]) ?? defaultValue.boostsPerGiftCount,
                 audioTransciptionTrialMaxDuration: get(data["transcribe_audio_trial_duration_max"]) ?? defaultValue.audioTransciptionTrialMaxDuration,
                 audioTransciptionTrialCount: get(data["transcribe_audio_trial_weekly_number"]) ?? defaultValue.audioTransciptionTrialCount,

@@ -400,11 +400,11 @@ public func secretPasscodeController(context: AccountContext, passcode: String, 
             let controller = PasscodeSetupController(context: context, mode: .secretSetup(.digits6))
             
             controller.validate = { [weak controller] newPasscode in
-                guard let passcodeAttemptAccounter = context.sharedContext.passcodeAttemptAccounter else {
+                guard let secretCodeAttemptAccounter = context.sharedContext.secretCodeAttemptAccounter else {
                     return ""
                 }
                 
-                if let waitTime = passcodeAttemptAccounter.preAttempt() {
+                if let waitTime = secretCodeAttemptAccounter.preAttempt() {
                     let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                     controller?.present(UndoOverlayController(presentationData: presentationData, content: .banned(text: passcodeAttemptWaitString(strings: presentationData.strings, waitTime: waitTime)), elevatedLayout: false, action: { _ in return false }), in: .current)
                     return ""
@@ -416,7 +416,7 @@ public func secretPasscodeController(context: AccountContext, passcode: String, 
                 }
                 
                 if newPasscode != state.settings.passcode {
-                    passcodeAttemptAccounter.attemptMissed()
+                    secretCodeAttemptAccounter.attemptMissed()
                 }
                 
                 return nil
