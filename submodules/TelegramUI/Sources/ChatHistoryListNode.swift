@@ -383,7 +383,7 @@ private func extractAssociatedData(
             }
         }
     } else if case let .replyThread(message) = chatLocation, message.isForumPost {
-        automaticDownloadPeerId = message.messageId.peerId
+        automaticDownloadPeerId = message.peerId
     }
     
     return ChatMessageItemAssociatedData(automaticDownloadPeerType: automaticMediaDownloadPeerType, automaticDownloadPeerId: automaticDownloadPeerId, automaticDownloadNetworkType: automaticDownloadNetworkType, isRecentActions: false, subject: subject, contactsPeerIds: contactsPeerIds, channelDiscussionGroup: channelDiscussionGroup, animatedEmojiStickers: animatedEmojiStickers, additionalAnimatedEmojiStickers: additionalAnimatedEmojiStickers, currentlyPlayingMessageId: currentlyPlayingMessageId, isCopyProtectionEnabled: isCopyProtectionEnabled, availableReactions: availableReactions, defaultReaction: defaultReaction, isPremium: isPremium, accountPeer: accountPeer, alwaysDisplayTranscribeButton: alwaysDisplayTranscribeButton, topicAuthorId: topicAuthorId, hasBots: hasBots, translateToLanguage: translateToLanguage, maxReadStoryId: maxReadStoryId, recommendedChannels: recommendedChannels, audioTranscriptionTrial: audioTranscriptionTrial, chatThemes: chatThemes)
@@ -616,9 +616,13 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
     
     public private(set) var loadState: ChatHistoryNodeLoadState?
     private var loadStateUpdated: ((ChatHistoryNodeLoadState, Bool) -> Void)?
+    private var additionalLoadStateUpdated: [(ChatHistoryNodeLoadState, Bool) -> Void] = []
     
     public private(set) var hasPlentyOfMessages: Bool = false
     public var hasPlentyOfMessagesUpdated: ((Bool) -> Void)?
+    
+    public private(set) var hasLotsOfMessages: Bool = false
+    public var hasLotsOfMessagesUpdated: ((Bool) -> Void)?
     
     private var loadedMessagesFromCachedDataDisposable: Disposable?
     
@@ -682,7 +686,7 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
     private var allowDustEffect: Bool = true
     private var dustEffectLayer: DustEffectLayer?
     
-    public init(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>), chatLocation: ChatLocation, chatLocationContextHolder: Atomic<ChatLocationContextHolder?>, tagMask: MessageTags?, source: ChatHistoryListSource, subject: ChatControllerSubject?, controllerInteraction: ChatControllerInteraction, selectedMessages: Signal<Set<MessageId>?, NoError>, mode: ChatHistoryListMode = .bubbles, messageTransitionNode: @escaping () -> ChatMessageTransitionNodeImpl?) {
+    public init(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>), chatLocation: ChatLocation, chatLocationContextHolder: Atomic<ChatLocationContextHolder?>, tagMask: MessageTags?, source: ChatHistoryListSource, subject: ChatControllerSubject?, controllerInteraction: ChatControllerInteraction, selectedMessages: Signal<Set<MessageId>?, NoError>, mode: ChatHistoryListMode = .bubbles, rotated: Bool = false, messageTransitionNode: @escaping () -> ChatMessageTransitionNodeImpl?) {
         var tagMask = tagMask
         if case .pinnedMessages = subject {
             tagMask = .pinned
@@ -737,6 +741,11 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
         nextClientId += 1
         
         super.init()
+        
+        self.rotated = rotated
+        if rotated {
+            self.transform = CATransform3DMakeRotation(CGFloat(Double.pi), 0.0, 0.0, 1.0)
+        }
 
         self.clipsToBounds = false
         
@@ -808,12 +817,6 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
         }
         
         self.preloadPages = false
-        switch self.mode {
-            case .bubbles:
-                self.transform = CATransform3DMakeRotation(CGFloat(Double.pi), 0.0, 0.0, 1.0)
-            case .list:
-                break
-        }
         
         self.beginChatHistoryTransitions(
             selectedMessages: selectedMessages,
@@ -1145,11 +1148,11 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
             additionalData.append(.totalUnreadState)
         }
         if case let .replyThread(replyThreadMessage) = self.chatLocation {
-            additionalData.append(.cachedPeerData(replyThreadMessage.messageId.peerId))
-            additionalData.append(.peerNotificationSettings(replyThreadMessage.messageId.peerId))
-            if replyThreadMessage.messageId.peerId.namespace == Namespaces.Peer.CloudChannel {
-                additionalData.append(.cacheEntry(cachedChannelAdminRanksEntryId(peerId: replyThreadMessage.messageId.peerId)))
-                additionalData.append(.peer(replyThreadMessage.messageId.peerId))
+            additionalData.append(.cachedPeerData(replyThreadMessage.peerId))
+            additionalData.append(.peerNotificationSettings(replyThreadMessage.peerId))
+            if replyThreadMessage.peerId.namespace == Namespaces.Peer.CloudChannel {
+                additionalData.append(.cacheEntry(cachedChannelAdminRanksEntryId(peerId: replyThreadMessage.peerId)))
+                additionalData.append(.peer(replyThreadMessage.peerId))
             }
             
             additionalData.append(.message(replyThreadMessage.effectiveTopId))
@@ -1507,6 +1510,9 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                         if strongSelf.loadState != loadState {
                             strongSelf.loadState = loadState
                             strongSelf.loadStateUpdated?(loadState, false)
+                            for f in strongSelf.additionalLoadStateUpdated {
+                                f(loadState, false)
+                            }
                         }
                         
                         let historyState: ChatHistoryNodeHistoryState = .loading
@@ -1947,6 +1953,10 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
     
     public func setLoadStateUpdated(_ f: @escaping (ChatHistoryNodeLoadState, Bool) -> Void) {
         self.loadStateUpdated = f
+    }
+    
+    public func addSetLoadStateUpdated(_ f: @escaping (ChatHistoryNodeLoadState, Bool) -> Void) {
+        self.additionalLoadStateUpdated.append(f)
     }
 
     private func maybeUpdateOverscrollAction(offset: CGFloat?) {
@@ -2966,6 +2976,9 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
             if self.loadState != loadState {
                 self.loadState = loadState
                 self.loadStateUpdated?(loadState, transition.options.contains(.AnimateInsertion))
+                for f in self.additionalLoadStateUpdated {
+                    f(loadState, transition.options.contains(.AnimateInsertion))
+                }
             }
             
             let isEmpty = transition.historyView.originalView.entries.isEmpty || loadState == .empty(.botInfo)
@@ -3000,6 +3013,7 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                 }
             }
             let currentTimestamp = Int32(CFAbsoluteTimeGetCurrent())
+            var maybeRemovedInteractivelyMessageIds: [(UInt32, EngineMessage.Id)] = []
             for entry in previousHistoryView.filteredEntries {
                 switch entry {
                 case let .MessageEntry(message, _, _, _, _, _):
@@ -3010,7 +3024,7 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                                 expiredMessageStableIds.insert(message.stableId)
                             }
                         } else {
-                            //expiredMessageStableIds.insert(message.stableId)
+                            maybeRemovedInteractivelyMessageIds.append((message.stableId, message.id))
                         }
                     }
                 case let .MessageGroupEntry(_, messages, _):
@@ -3028,11 +3042,26 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                                 expiredMessageStableIds.insert(message.stableId)
                             }
                         } else {
-                            //expiredMessageStableIds.insert(message.stableId)
+                            maybeRemovedInteractivelyMessageIds.append((message.stableId, message.id))
                         }
                     }
                 default:
                     break
+                }
+            }
+            
+            var testIds: [MessageId] = []
+            if !maybeRemovedInteractivelyMessageIds.isEmpty {
+                for (_, id) in maybeRemovedInteractivelyMessageIds {
+                    testIds.append(id)
+                }
+            }
+            for id in self.context.engine.messages.synchronouslyIsMessageDeletedInteractively(ids: testIds) {
+                inner: for (stableId, listId) in maybeRemovedInteractivelyMessageIds {
+                    if listId == id {
+                        expiredMessageStableIds.insert(stableId)
+                        break inner
+                    }
                 }
             }
         }
@@ -3065,7 +3094,9 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                     dustEffectLayer.bounds = CGRect(origin: CGPoint(), size: self.bounds.size)
                     self.dustEffectLayer = dustEffectLayer
                     dustEffectLayer.zPosition = 10.0
-                    dustEffectLayer.transform = CATransform3DMakeRotation(CGFloat(Double.pi), 0.0, 0.0, 1.0)
+                    if self.rotated {
+                        dustEffectLayer.transform = CATransform3DMakeRotation(CGFloat(Double.pi), 0.0, 0.0, 1.0)
+                    }
                     self.layer.addSublayer(dustEffectLayer)
                     dustEffectLayer.becameEmpty = { [weak self] in
                         guard let self else {
@@ -3275,16 +3306,25 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                         }
                     }
                     strongSelf.loadState = loadState
-                    strongSelf.loadStateUpdated?(loadState, animated || transition.animateIn || animateIn)
+                    let isAnimated = animated || transition.animateIn || animateIn
+                    strongSelf.loadStateUpdated?(loadState, isAnimated)
+                    for f in strongSelf.additionalLoadStateUpdated {
+                        f(loadState, isAnimated)
+                    }
                 }
                 
                 var hasPlentyOfMessages = false
+                var hasLotsOfMessages = false
                 if let historyView = strongSelf.historyView {
                     if historyView.originalView.holeEarlier || historyView.originalView.holeLater {
                         hasPlentyOfMessages = true
+                        hasLotsOfMessages = true
                     } else if !historyView.originalView.holeEarlier && !historyView.originalView.holeLater {
                         if historyView.filteredEntries.count >= 10 {
                             hasPlentyOfMessages = true
+                        }
+                        if historyView.filteredEntries.count >= 40 {
+                            hasLotsOfMessages = true
                         }
                     }
                 }
@@ -3292,6 +3332,10 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                 if strongSelf.hasPlentyOfMessages != hasPlentyOfMessages {
                     strongSelf.hasPlentyOfMessages = hasPlentyOfMessages
                     strongSelf.hasPlentyOfMessagesUpdated?(hasPlentyOfMessages)
+                }
+                if strongSelf.hasLotsOfMessages != hasLotsOfMessages {
+                    strongSelf.hasLotsOfMessages = hasLotsOfMessages
+                    strongSelf.hasLotsOfMessagesUpdated?(hasLotsOfMessages)
                 }
                 
                 if let _ = visibleRange.loadedRange {
@@ -4139,7 +4183,9 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
             overscrollView.frame = overscrollView.convert(overscrollView.bounds, to: self.view)
             snapshotView.addSubview(overscrollView)
 
-            overscrollView.layer.sublayerTransform = CATransform3DMakeRotation(CGFloat.pi, 0.0, 0.0, 1.0)
+            if self.rotated {
+                overscrollView.layer.sublayerTransform = CATransform3DMakeRotation(CGFloat.pi, 0.0, 0.0, 1.0)
+            }
         }
 
         return SnapshotState(
@@ -4164,13 +4210,17 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
 
         let snapshotParentView = UIView()
         snapshotParentView.addSubview(snapshotState.snapshotView)
-        snapshotParentView.layer.sublayerTransform = CATransform3DMakeRotation(CGFloat(Double.pi), 0.0, 0.0, 1.0)
+        if self.rotated {
+            snapshotParentView.layer.sublayerTransform = CATransform3DMakeRotation(CGFloat(Double.pi), 0.0, 0.0, 1.0)
+        }
         snapshotParentView.frame = self.view.frame
 
         snapshotState.snapshotView.frame = snapshotParentView.bounds
         
         snapshotState.snapshotView.clipsToBounds = true
-        snapshotState.snapshotView.layer.sublayerTransform = CATransform3DMakeRotation(CGFloat.pi, 0.0, 0.0, 1.0)
+        if self.rotated {
+            snapshotState.snapshotView.layer.sublayerTransform = CATransform3DMakeRotation(CGFloat.pi, 0.0, 0.0, 1.0)
+        }
         
         self.view.superview?.insertSubview(snapshotParentView, belowSubview: self.view)
 

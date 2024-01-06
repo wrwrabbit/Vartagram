@@ -79,7 +79,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     case keepChatNavigationStack(PresentationTheme, Bool)
     case skipReadHistory(PresentationTheme, Bool)
     case skipSetTyping(Bool)
-    case unidirectionalSwipeToReply(Bool)
+    case dustEffect(Bool)
     case callV2(Bool)
     case alternativeStoryMedia(Bool)
     #if TEST_BUILD
@@ -90,7 +90,9 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     case resetNotifications
     #if TEST_BUILD
     case crash(PresentationTheme)
-    case resetData(PresentationTheme)
+    #endif
+    case fillLocalSavedMessageCache
+    #if TEST_BUILD
     case resetDatabase(PresentationTheme)
     case resetDatabaseAndCache(PresentationTheme)
     #endif
@@ -151,12 +153,12 @@ private enum DebugControllerEntry: ItemListNodeEntry {
         #endif
         case .webViewInspection, .resetWebViewCache:
             return DebugControllerSection.web.rawValue
-        case .keepChatNavigationStack, .skipReadHistory, .skipSetTyping, .unidirectionalSwipeToReply, .callV2, .alternativeStoryMedia:
+        case .keepChatNavigationStack, .skipReadHistory, .skipSetTyping, .dustEffect, .callV2, .alternativeStoryMedia:
             return DebugControllerSection.experiments.rawValue
-        case .clearTips, .resetNotifications, .resetHoles, .reindexUnread, .reindexCache, .resetBiometricsData, .photoPreview, .knockoutWallpaper, .storiesExperiment, .storiesJpegExperiment, .playlistPlayback, .enableQuickReactionSwitch, .voiceConference, .experimentalCompatibility, .enableDebugDataDisplay, .acceleratedStickers, .inlineForums, .localTranscription, .enableReactionOverrides, .restorePurchases:
+        case .clearTips, .resetNotifications, .fillLocalSavedMessageCache, .resetHoles, .reindexUnread, .reindexCache, .resetBiometricsData, .photoPreview, .knockoutWallpaper, .storiesExperiment, .storiesJpegExperiment, .playlistPlayback, .enableQuickReactionSwitch, .voiceConference, .experimentalCompatibility, .enableDebugDataDisplay, .acceleratedStickers, .inlineForums, .localTranscription, .enableReactionOverrides, .restorePurchases:
             return DebugControllerSection.experiments.rawValue
         #if TEST_BUILD
-        case .crashOnSlowQueries, .crashOnMemoryPressure, .crash, .resetData, .resetDatabase, .resetDatabaseAndCache, .resetCacheIndex, .optimizeDatabase:
+        case .crashOnSlowQueries, .crashOnMemoryPressure, .crash, .resetDatabase, .resetDatabaseAndCache, .resetCacheIndex, .optimizeDatabase:
             return DebugControllerSection.experiments.rawValue
         case .logTranslationRecognition:
             return DebugControllerSection.translation.rawValue
@@ -220,7 +222,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 16
         case .skipSetTyping:
             return 16.5
-        case .unidirectionalSwipeToReply:
+        case .dustEffect:
             return 17
         case .callV2:
             return 18
@@ -239,8 +241,10 @@ private enum DebugControllerEntry: ItemListNodeEntry {
         #if TEST_BUILD
         case .crash:
             return 24
-        case .resetData:
+        #endif
+        case .fillLocalSavedMessageCache:
             return 25
+        #if TEST_BUILD
         case .resetDatabase:
             return 26
         case .resetDatabaseAndCache:
@@ -1120,11 +1124,11 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     }).start()
                 }
             })
-        case let .unidirectionalSwipeToReply(value):
-            return ItemListSwitchItem(presentationData: presentationData, title: "Legacy swipe to reply", value: value, sectionId: self.section, style: .blocks, updated: { value in
+        case let .dustEffect(value):
+            return ItemListSwitchItem(presentationData: presentationData, title: "Dust Debug", value: value, sectionId: self.section, style: .blocks, updated: { value in
                 let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
                     var settings = settings
-                    settings.unidirectionalSwipeToReply = value
+                    settings.dustEffect = value
                     return settings
                 }).start()
             })
@@ -1208,25 +1212,21 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return ItemListActionItem(presentationData: presentationData, title: "Crash", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
                 preconditionFailure()
             })
-        case .resetData:
-            return ItemListActionItem(presentationData: presentationData, title: "Reset Data", kind: .destructive, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+        #endif
+        case .fillLocalSavedMessageCache:
+            return ItemListActionItem(presentationData: presentationData, title: "Reload Saved Messages", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                guard let context = arguments.context else {
+                    return
+                }
                 let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
-                let actionSheet = ActionSheetController(presentationData: presentationData)
-                actionSheet.setItemGroups([ActionSheetItemGroup(items: [
-                    ActionSheetTextItem(title: "All data will be lost."),
-                    ActionSheetButtonItem(title: "Reset Data", color: .destructive, action: { [weak actionSheet] in
-                        actionSheet?.dismissAnimated()
-                        let databasePath = arguments.sharedContext.accountManager.basePath + "/db"
-                        let _ = try? FileManager.default.removeItem(atPath: databasePath)
-                        preconditionFailure()
-                    }),
-                    ]), ActionSheetItemGroup(items: [
-                        ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-                        })
-                        ])])
-                arguments.presentController(actionSheet, nil)
+                let controller = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: nil))
+                arguments.presentController(controller, nil)
+                let _ = (_internal_fillSavedMessageHistory(accountPeerId: context.account.peerId, postbox: context.account.postbox, network: context.account.network)
+                |> deliverOnMainQueue).start(completed: {
+                    controller.dismiss()
+                })
             })
+        #if TEST_BUILD
         case .resetDatabase:
             return ItemListActionItem(presentationData: presentationData, title: "Clear Database", kind: .destructive, alignment: .natural, sectionId: self.section, style: .blocks, action: {
                 guard let context = arguments.context else {
@@ -1634,7 +1634,7 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
             entries.append(.skipSetTyping(ptgAccountSettings.skipSetTyping))
         }
         #endif
-        entries.append(.unidirectionalSwipeToReply(experimentalSettings.unidirectionalSwipeToReply))
+        entries.append(.dustEffect(experimentalSettings.dustEffect))
         entries.append(.callV2(experimentalSettings.callV2))
         entries.append(.alternativeStoryMedia(experimentalSettings.alternativeStoryMedia))
     }
@@ -1649,7 +1649,11 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
     #if TEST_BUILD
     if testToolsEnabled {
         entries.append(.crash(presentationData.theme))
-        entries.append(.resetData(presentationData.theme))
+    }
+    #endif
+    entries.append(.fillLocalSavedMessageCache)
+    #if TEST_BUILD
+    if testToolsEnabled {
         entries.append(.resetDatabase(presentationData.theme))
         entries.append(.resetDatabaseAndCache(presentationData.theme))
     }

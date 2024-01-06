@@ -9,7 +9,7 @@ import subprocess
 import shutil
 import glob
 
-from BuildEnvironment import resolve_executable, call_executable, run_executable_with_output, BuildEnvironment
+from BuildEnvironment import resolve_executable, call_executable, run_executable_with_output, BuildEnvironmentVersions, BuildEnvironment
 from ProjectGeneration import generate
 from BazelLocation import locate_bazel
 from BuildConfiguration import CodesigningSource, GitCodesigningSource, DirectoryCodesigningSource, XcodeManagedCodesigningSource, BuildConfiguration, build_configuration_from_json
@@ -430,7 +430,7 @@ def clean(bazel, arguments):
 
 
 def resolve_codesigning(arguments, base_path, build_configuration, provisioning_profiles_path, additional_codesigning_output_path) -> ResolvedCodesigningData:
-    if hasattr(arguments, 'disableProvisioningProfiles') and arguments.disableProvisioningProfiles is not None:
+    if hasattr(arguments, 'disableProvisioningProfiles') and arguments.disableProvisioningProfiles is not None and arguments.disableProvisioningProfiles == True:
         return ResolvedCodesigningData(
             aps_environment="",
             use_xcode_managed_codesigning=False
@@ -1086,6 +1086,8 @@ if __name__ == '__main__':
             os.makedirs(remote_input_path + '/certs')
             os.makedirs(remote_input_path + '/profiles')
 
+            versions = BuildEnvironmentVersions(base_path=os.getcwd())
+
             resolve_configuration(
                 base_path=os.getcwd(),
                 bazel_command_line=None,
@@ -1098,6 +1100,7 @@ if __name__ == '__main__':
             RemoteBuild.remote_build(
                 darwin_containers_path=args.darwinContainers,
                 darwin_containers_host=args.darwinContainersHost,
+                macos_version=versions.macos_version,
                 bazel_cache_host=args.cacheHost,
                 configuration=args.configuration,
                 build_input_data_path=remote_input_path
@@ -1132,18 +1135,24 @@ if __name__ == '__main__':
                 print('APPSTORE_CONNECT_PASSWORD environment variable is not set')
                 sys.exit(1)
 
+            versions = BuildEnvironmentVersions(base_path=os.getcwd())
+
             RemoteBuild.remote_deploy_testflight(
                 darwin_containers_path=args.darwinContainers,
                 darwin_containers_host=args.darwinContainersHost,
+                macos_version=versions.macos_version,
                 ipa_path=args.ipa,
                 dsyms_path=args.dsyms,
                 username=env['APPSTORE_CONNECT_USERNAME'],
                 password=env['APPSTORE_CONNECT_PASSWORD']
             )
         elif args.commandName == 'remote-ipa-diff':
+            versions = BuildEnvironmentVersions(base_path=os.getcwd())
+
             RemoteBuild.remote_ipa_diff(
                 darwin_containers_path=args.darwinContainers,
                 darwin_containers_host=args.darwinContainersHost,
+                macos_version=versions.macos_version,
                 ipa1_path=args.ipa1,
                 ipa2_path=args.ipa2
             )

@@ -259,7 +259,7 @@ final class StoryItemSetContainerSendMessage {
                 fontSize: presentationData.chatFontSize,
                 bubbleCorners: presentationData.chatBubbleCorners,
                 accountPeerId: context.account.peerId,
-                mode: .standard(previewing: false),
+                mode: .standard(.default),
                 chatLocation: .peer(id: context.account.peerId),
                 subject: nil,
                 peerNearbyData: nil,
@@ -1041,13 +1041,11 @@ final class StoryItemSetContainerSendMessage {
                 immediateExternalShare: false,
                 forceTheme: defaultDarkColorPresentationTheme
             )
-            if !component.slice.peer.isService {
-                shareController.shareStory = { [weak view] in
-                    guard let view else {
-                        return
-                    }
-                    view.openStoryEditing(repost: true)
+            shareController.shareStory = { [weak view] in
+                guard let view else {
+                    return
                 }
+                view.openStoryEditing(repost: true)
             }
             shareController.completed = { [weak view] peerIds in
                 guard let view, let component = view.component else {
@@ -1092,13 +1090,28 @@ final class StoryItemSetContainerSendMessage {
                     }
                     
                     if let controller = component.controller() {
+                        let context = component.context
                         let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
                         controller.present(UndoOverlayController(
                             presentationData: presentationData,
                             content: .forward(savedMessages: savedMessages, text: text),
                             elevatedLayout: false,
                             animateInAsReplacement: false,
-                            action: { _ in return false }
+                            action: { [weak controller] _ in
+                                if savedMessages {
+                                    let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId))
+                                    |> deliverOnMainQueue).start(next: { peer in
+                                        guard let controller, let peer else {
+                                            return
+                                        }
+                                        guard let navigationController = controller.navigationController as? NavigationController else {
+                                            return
+                                        }
+                                        context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer)))
+                                    })
+                                }
+                                return false
+                            }
                         ), in: .current)
                     }
                 })

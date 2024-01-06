@@ -132,14 +132,6 @@ class BuildEnvironmentVersions:
                 raise Exception('Missing app version in {}'.format(configuration_path))
             else:
                 self.app_version = configuration_dict['app']
-            if configuration_dict['bazel'] is None:
-                raise Exception('Missing bazel version in {}'.format(configuration_path))
-            else:
-                self.bazel_version = configuration_dict['bazel']
-            if configuration_dict['xcode'] is None:
-                raise Exception('Missing xcode version in {}'.format(configuration_path))
-            else:
-                self.xcode_version = configuration_dict['xcode']
             if configuration_dict['original'] is None:
                 raise Exception('Missing original version in {}'.format(configuration_path))
             else:
@@ -148,6 +140,18 @@ class BuildEnvironmentVersions:
                 raise Exception('Missing original_build in {}'.format(configuration_path))
             else:
                 self.original_build = configuration_dict['original_build']
+            if configuration_dict['bazel'] is None:
+                raise Exception('Missing bazel version in {}'.format(configuration_path))
+            else:
+                self.bazel_version = configuration_dict['bazel']
+            if configuration_dict['xcode'] is None:
+                raise Exception('Missing xcode version in {}'.format(configuration_path))
+            else:
+                self.xcode_version = configuration_dict['xcode']
+            if configuration_dict['macos'] is None:
+                raise Exception('Missing macos version in {}'.format(configuration_path))
+            else:
+                self.macos_version = configuration_dict['macos']
 
 class BuildEnvironment:
     def __init__(
@@ -185,7 +189,8 @@ class BuildEnvironment:
                 exit(1)
 
         self.app_version = versions.app_version
-        self.xcode_version = versions.xcode_version
-        self.bazel_version = versions.bazel_version
         self.original_version = versions.original_version
         self.original_build = versions.original_build
+        self.xcode_version = versions.xcode_version
+        self.bazel_version = versions.bazel_version
+        self.macos_version = versions.macos_version
