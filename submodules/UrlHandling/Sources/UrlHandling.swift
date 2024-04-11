@@ -730,6 +730,24 @@ private func resolveInternalUrl(context: AccountContext, url: ParsedInternalUrl)
                                             }
                                         }
                                     }
+                                } else if case let .channel(channel) = peer {
+                                    // channel/supergroup messages with id less than 1M before latest cannot be obtained with messages.getHistory
+                                    // if id is between 2M and 1M before latest, message can be obtained with channels.getMessages
+                                    // channel/supergroup messages with id less than 2M before latest cannot be obtained at all
+                                    // this code allows to load those messages in range 2M-1M before latest using a direct link
+                                    let messageId = MessageId(peerId: channel.id, namespace: Namespaces.Message.Cloud, id: id)
+                                    return context.engine.messages.getMessagesLoadIfNecessary([messageId], strategy: .cloud(skipLocal: false))
+                                    |> `catch` { _ in
+                                        return .single(.result([]))
+                                    }
+                                    |> mapToSignal { result -> Signal<ResolveInternalUrlResult, NoError> in
+                                        switch result {
+                                        case .progress:
+                                            return .single(.progress)
+                                        case .result:
+                                            return .single(.result(.channelMessage(peer: peer._asPeer(), messageId: MessageId(peerId: peer.id, namespace: Namespaces.Message.Cloud, id: id), timecode: timecode)))
+                                        }
+                                    }
                                 } else {
                                     return .single(.result(.channelMessage(peer: peer._asPeer(), messageId: MessageId(peerId: peer.id, namespace: Namespaces.Message.Cloud, id: id), timecode: timecode)))
                                 }
