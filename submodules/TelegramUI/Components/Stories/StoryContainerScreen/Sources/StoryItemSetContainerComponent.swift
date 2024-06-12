@@ -646,7 +646,7 @@ public final class StoryItemSetContainerComponent: Component {
                         })
                     }
                     
-                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                 }
             })
             
@@ -689,7 +689,7 @@ public final class StoryItemSetContainerComponent: Component {
                                 return
                             }
                             self.sendMessageContext.hasRecordedVideoPreview = true
-                            self.state?.updated(transition: Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                            self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                         }
                         self.component?.controller()?.present(videoRecorder, in: .window(.root))
                         
@@ -702,7 +702,7 @@ public final class StoryItemSetContainerComponent: Component {
                         let _ = previousVideoRecorderValue.dismissVideo()
                     }
                     
-                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                 }
             })
         }
@@ -924,7 +924,7 @@ public final class StoryItemSetContainerComponent: Component {
                         self.endEditing(true)
                     }
                     
-                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.25, curve: .easeInOut)))
+                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)))
                     self.updateIsProgressPaused()
                 } else if self.hasActiveDeactivateableInput() {
                     Queue.mainQueue().justDispatch {
@@ -936,7 +936,7 @@ public final class StoryItemSetContainerComponent: Component {
                     for (id, visibleItem) in self.visibleItems {
                         if visibleItem.contentContainerView.convert(visibleItem.contentContainerView.bounds, to: self).contains(point) {
                             if id == component.slice.item.storyItem.id {
-                                let transition = Transition(animation: .curve(duration: 0.4, curve: .spring))
+                                let transition = ComponentTransition(animation: .curve(duration: 0.4, curve: .spring))
                                 
                                 self.viewListDisplayState = .hidden
                                 self.isSearchActive = false
@@ -955,7 +955,7 @@ public final class StoryItemSetContainerComponent: Component {
                         if captionItem.externalState.isSelectingText {
                             captionItemView.cancelTextSelection()
                         } else {
-                            captionItemView.collapse(transition: Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                            captionItemView.collapse(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                         }
                     }
                 } else {
@@ -1049,7 +1049,7 @@ public final class StoryItemSetContainerComponent: Component {
                     }
                     
                     if !consumed {
-                        let transition = Transition(animation: .curve(duration: 0.4, curve: .spring))
+                        let transition = ComponentTransition(animation: .curve(duration: 0.4, curve: .spring))
                         self.viewListPanState = nil
                         self.isCompletingViewListPan = true
                         transition.attachAnimation(view: self, id: "isCompletingViewListPan", completion: { [weak self] completed in
@@ -1195,16 +1195,16 @@ public final class StoryItemSetContainerComponent: Component {
                                     }
                                 }
                                 
-                                self.state?.updated(transition: Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                                self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                             } else if verticalPanState.accumulatedOffset < 0.0 && self.targetViewListDisplayStateIsFull {
                                 if verticalPanState.fraction <= -0.05 || velocity.y <= -80.0 {
                                     self.viewListDisplayState = .full
                                 } else {
                                     self.viewListDisplayState = .half
                                 }
-                                self.state?.updated(transition: verticalPanState.accumulatedOffset == 0.0 ? .immediate : Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                                self.state?.updated(transition: verticalPanState.accumulatedOffset == 0.0 ? .immediate : ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                             } else {
-                                self.state?.updated(transition: verticalPanState.accumulatedOffset == 0.0 ? .immediate : Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                                self.state?.updated(transition: verticalPanState.accumulatedOffset == 0.0 ? .immediate : ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                             }
                         } else {
                             if verticalPanState.fraction >= 0.3 || (verticalPanState.fraction >= 0.05 && velocity.y >= 150.0) {
@@ -1219,14 +1219,14 @@ public final class StoryItemSetContainerComponent: Component {
                                 self.dismissAllTooltips()
                             }
                             
-                            self.state?.updated(transition: Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                            self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                         }
                     } else {
                         if let visibleItemView = self.visibleItems[component.slice.item.storyItem.id]?.view.view as? StoryItemContentComponent.View  {
                             visibleItemView.seekEnded()
                         }
                         if translation.y > 200.0 || (translation.y > 5.0 && velocity.y > 200.0) {
-                            self.state?.updated(transition: Transition(animation: .curve(duration: 0.3, curve: .spring)))
+                            self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.3, curve: .spring)))
                             self.component?.controller()?.dismiss()
                         } else if translation.y < -200.0 || (translation.y < -100.0 && velocity.y < -100.0) {
                             var displayViewLists = false
@@ -1238,17 +1238,17 @@ public final class StoryItemSetContainerComponent: Component {
                             
                             if displayViewLists {
                                 self.viewListDisplayState = self.targetViewListDisplayStateIsFull ? .full : .half
-                                self.state?.updated(transition: Transition(animation: .curve(duration: 0.3, curve: .spring)))
+                                self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.3, curve: .spring)))
                                 self.dismissAllTooltips()
                             } else {
-                                self.state?.updated(transition: Transition(animation: .curve(duration: 0.3, curve: .spring)))
+                                self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.3, curve: .spring)))
                                 
                                 if let activate = self.activateInputWhileDragging() {
                                     activate()
                                 }
                             }
                         } else {
-                            self.state?.updated(transition: Transition(animation: .curve(duration: 0.3, curve: .spring)))
+                            self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.3, curve: .spring)))
                         }
                     }
                 }
@@ -1265,7 +1265,7 @@ public final class StoryItemSetContainerComponent: Component {
             if self.viewListDisplayState != .hidden {
                 self.viewListDisplayState = .hidden
                 self.isSearchActive = false
-                self.state?.updated(transition: Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
             } else {
                 component.close()
             }
@@ -1418,7 +1418,7 @@ public final class StoryItemSetContainerComponent: Component {
             return .play
         }
         
-        private func updateScrolling(transition: Transition) {
+        private func updateScrolling(transition: ComponentTransition) {
             guard let component = self.component, let itemLayout = self.itemLayout else {
                 return
             }
@@ -1753,7 +1753,7 @@ public final class StoryItemSetContainerComponent: Component {
                                             self.updateScrolling(transition: .immediate)
                                             self.preparingToDisplayViewList = false
                                             
-                                            self.state?.updated(transition: Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                                            self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                                             
                                             self.dismissAllTooltips()
                                         }
@@ -1923,7 +1923,7 @@ public final class StoryItemSetContainerComponent: Component {
             
             if displayViewLists {
                 self.viewListDisplayState = .half
-                self.state?.updated(transition: Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                 
                 self.dismissAllTooltips()
                 
@@ -1979,7 +1979,7 @@ public final class StoryItemSetContainerComponent: Component {
                         
                         if self.displayLikeReactions {
                             self.displayLikeReactions = false
-                            self.state?.updated(transition: Transition(animation: .curve(duration: 0.25, curve: .easeInOut)))
+                            self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)))
                         }
                         
                         inputPanelView.activateInput()
@@ -2299,7 +2299,7 @@ public final class StoryItemSetContainerComponent: Component {
                                 ), .immediate)
                             }
                             
-                            let transition = Transition(animation: .curve(duration: 0.3, curve: .spring))
+                            let transition = ComponentTransition(animation: .curve(duration: 0.3, curve: .spring))
                             
                             for transitionViewImpl in transitionViewsImpl {
                                 transitionViewImpl.alpha = 1.0
@@ -2422,7 +2422,7 @@ public final class StoryItemSetContainerComponent: Component {
                             ), .immediate)
                         }
                         
-                        let transition = Transition(animation: .curve(duration: 0.3, curve: .spring))
+                        let transition = ComponentTransition(animation: .curve(duration: 0.3, curve: .spring))
                         
                         for transitionViewImpl in transitionViewsImpl {
                             transitionViewImpl.alpha = 1.0
@@ -2547,7 +2547,7 @@ public final class StoryItemSetContainerComponent: Component {
             }
         }
         
-        func update(component: StoryItemSetContainerComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+        func update(component: StoryItemSetContainerComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.isUpdatingComponent = true
             defer {
                 self.isUpdatingComponent = false
@@ -2612,7 +2612,7 @@ public final class StoryItemSetContainerComponent: Component {
                 if let reactionContextNode = self.reactionContextNode {
                     self.reactionContextNode = nil
                     
-                    let reactionTransition = Transition.immediate
+                    let reactionTransition = ComponentTransition.immediate
                     reactionTransition.setAlpha(view: reactionContextNode.view, alpha: 0.0, completion: { [weak reactionContextNode] _ in
                         reactionContextNode?.view.removeFromSuperview()
                     })
@@ -2882,7 +2882,7 @@ public final class StoryItemSetContainerComponent: Component {
                                 return
                             }
                             self.sendMessageContext.lockMediaRecording()
-                            self.state?.updated(transition: Transition(animation: .curve(duration: 0.3, curve: .spring)))
+                            self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.3, curve: .spring)))
                         },
                         stopAndPreviewMediaRecording: { [weak self] in
                             guard let self else {
@@ -2975,7 +2975,7 @@ public final class StoryItemSetContainerComponent: Component {
                             controller.dismissed = { [weak self] _ in
                                 if let self {
                                     self.voiceMessagesRestrictedTooltipController = nil
-                                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.2, curve: .easeInOut)))
+                                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.2, curve: .easeInOut)))
                                 }
                             }
                             component.presentController(controller, TooltipControllerPresentationArguments(sourceViewAndRect: { [weak self] in
@@ -2985,7 +2985,7 @@ public final class StoryItemSetContainerComponent: Component {
                                 return nil
                             }))
                             self.voiceMessagesRestrictedTooltipController = controller
-                            self.state?.updated(transition: Transition(animation: .curve(duration: 0.2, curve: .easeInOut)))
+                            self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.2, curve: .easeInOut)))
                         },
                         presentTextLengthLimitTooltip: nil,
                         presentTextFormattingTooltip: nil,
@@ -3281,7 +3281,7 @@ public final class StoryItemSetContainerComponent: Component {
                                 }
                                 self.viewListDisplayState = .hidden
                                 self.isSearchActive = false
-                                self.state?.updated(transition: Transition(animation: .curve(duration: 0.4, curve: .spring)))
+                                self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                             },
                             expandViewStats: {
                             },
@@ -3543,7 +3543,7 @@ public final class StoryItemSetContainerComponent: Component {
                                         self.viewListDisplayState = .half
                                     }
                                     
-                                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.5, curve: .spring)))
+                                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.5, curve: .spring)))
                                 }
                             },
                             controller: { [weak self] in
@@ -3868,7 +3868,7 @@ public final class StoryItemSetContainerComponent: Component {
             
             if let storyPrivacyIcon {
                 let privacyIcon: ComponentView<Empty>
-                var privacyIconTransition: Transition = itemChanged ? .immediate : .easeInOut(duration: 0.2)
+                var privacyIconTransition: ComponentTransition = itemChanged ? .immediate : .easeInOut(duration: 0.2)
                 if let current = self.privacyIcon {
                     privacyIcon = current
                 } else {
@@ -4404,19 +4404,19 @@ public final class StoryItemSetContainerComponent: Component {
                             guard let self else {
                                 return
                             }
-                            self.state?.updated(transition: Transition(transition))
+                            self.state?.updated(transition: ComponentTransition(transition))
                         },
                         requestLayout: { [weak self] transition in
                             guard let self else {
                                 return
                             }
-                            self.state?.updated(transition: Transition(transition))
+                            self.state?.updated(transition: ComponentTransition(transition))
                         },
                         requestUpdateOverlayWantsToBeBelowKeyboard: { [weak self] transition in
                             guard let self else {
                                 return
                             }
-                            self.state?.updated(transition: Transition(transition))
+                            self.state?.updated(transition: ComponentTransition(transition))
                         }
                     )
                     reactionContextNode.displayTail = self.displayLikeReactions
@@ -4457,13 +4457,13 @@ public final class StoryItemSetContainerComponent: Component {
                                 if component.slice.item.storyItem.myReaction == updateReaction.reaction {
                                     let _ = component.context.engine.messages.setStoryReaction(peerId: component.slice.peer.id, id: component.slice.item.storyItem.id, reaction: nil).startStandalone()
                                     self.displayLikeReactions = false
-                                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.25, curve: .easeInOut)))
+                                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)))
                                 } else {
                                     if hasFirstResponder(self) {
                                         self.sendMessageContext.currentInputMode = .text
                                         self.endEditing(true)
                                     }
-                                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.25, curve: .easeInOut)))
+                                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)))
                                     
                                     self.waitingForReactionAnimateOutToLike = updateReaction.reaction
                                     let _ = component.context.engine.messages.setStoryReaction(peerId: component.slice.peer.id, id: component.slice.item.storyItem.id, reaction: updateReaction.reaction).startStandalone()
@@ -4517,7 +4517,7 @@ public final class StoryItemSetContainerComponent: Component {
                                         self.sendMessageContext.currentInputMode = .text
                                         self.endEditing(true)
                                     }
-                                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.25, curve: .easeInOut)))
+                                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)))
                                                                 
                                     var text = ""
                                     var messageAttributes: [MessageAttribute] = []
@@ -4701,7 +4701,7 @@ public final class StoryItemSetContainerComponent: Component {
                             return
                         }
                         self.displayLikeReactions = false
-                        self.state?.updated(transition: Transition(animation: .curve(duration: 0.25, curve: .easeInOut)))
+                        self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)))
                     }
                 }
             } else {
@@ -4717,7 +4717,7 @@ public final class StoryItemSetContainerComponent: Component {
                             reactionContextNode.animateOut(to: reactionsAnchorRect, animatingOutToReaction: true)
                         }
                     } else {
-                        let reactionTransition = Transition.easeInOut(duration: 0.25)
+                        let reactionTransition = ComponentTransition.easeInOut(duration: 0.25)
                         reactionTransition.setAlpha(view: reactionContextNode.view, alpha: 0.0, completion: { [weak reactionContextNode] _ in
                             reactionContextNode?.view.removeFromSuperview()
                         })
@@ -4756,13 +4756,13 @@ public final class StoryItemSetContainerComponent: Component {
             transition.setFrame(view: self.contentDimView, frame: CGRect(origin: CGPoint(), size: contentFrame.size))
             
             if transition.animation.isImmediate && forceDimAnimation && self.topContentGradientView.alpha != topGradientAlpha {
-                Transition(animation: .curve(duration: 0.25, curve: .easeInOut)).setAlpha(view: self.topContentGradientView, alpha: topGradientAlpha)
+                ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)).setAlpha(view: self.topContentGradientView, alpha: topGradientAlpha)
             } else {
                 transition.setAlpha(view: self.topContentGradientView, alpha: topGradientAlpha)
             }
             
             if transition.animation.isImmediate && forceDimAnimation && self.contentDimView.alpha != dimAlpha {
-                Transition(animation: .curve(duration: 0.25, curve: .easeInOut)).setAlpha(view: self.contentDimView, alpha: dimAlpha)
+                ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)).setAlpha(view: self.contentDimView, alpha: dimAlpha)
             } else {
                 transition.setAlpha(view: self.contentDimView, alpha: dimAlpha)
             }
@@ -5840,7 +5840,7 @@ public final class StoryItemSetContainerComponent: Component {
             
             self.displayLikeReactions = true
             self.tempReactionsGesture = gesture
-            self.state?.updated(transition: Transition(animation: .curve(duration: 0.25, curve: .easeInOut)))
+            self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)))
             self.updateIsProgressPaused()
             self.tempReactionsGesture = nil
         }
@@ -6821,7 +6821,7 @@ public final class StoryItemSetContainerComponent: Component {
         return View(frame: CGRect())
     }
     
-    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }
@@ -6866,7 +6866,7 @@ final class ListContextExtractedContentSource: ContextExtractedContentSource {
 }
 
 
-private func generateParabollicMotionKeyframes(from sourcePoint: CGPoint, to targetPosition: CGPoint, elevation: CGFloat, duration: Double, curve: Transition.Animation.Curve, reverse: Bool) -> [CGPoint] {
+private func generateParabollicMotionKeyframes(from sourcePoint: CGPoint, to targetPosition: CGPoint, elevation: CGFloat, duration: Double, curve: ComponentTransition.Animation.Curve, reverse: Bool) -> [CGPoint] {
     let midPoint = CGPoint(x: (sourcePoint.x + targetPosition.x) / 2.0, y: sourcePoint.y - elevation)
     
     let x1 = sourcePoint.x

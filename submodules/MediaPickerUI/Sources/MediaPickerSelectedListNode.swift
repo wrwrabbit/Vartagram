@@ -419,7 +419,7 @@ private class MediaPickerSelectedItemNode: ASDisplayNode {
             dustNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25)
             
             dustNode.layer.animatePosition(from: CGPoint(x: frame.width / 2.0, y: frame.height / 2.0), to: dustNode.position, duration: 0.25, timingFunction: kCAMediaTimingFunctionSpring)
-            
+
             self.spoilerNode?.dustNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25, removeOnCompletion: false)
         }
         
@@ -621,25 +621,25 @@ final class MediaPickerSelectedListNode: ASDisplayNode, UIScrollViewDelegate, UI
     func animateOut(completion: @escaping () -> Void = {}) {
         self.wallpaperBackgroundNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25, removeOnCompletion: false, completion: { [weak self] _ in
             completion()
-            
+
             if let strongSelf = self {
                 Queue.mainQueue().after(0.01) {
                     for (_, backgroundNode) in strongSelf.backgroundNodes {
                         backgroundNode.layer.removeAllAnimations()
                     }
-                    
+
                     for (_, itemNode) in strongSelf.itemNodes {
                         itemNode.layer.removeAllAnimations()
                     }
-                    
+
                     strongSelf.messageNodes?.first?.layer.removeAllAnimations()
                     strongSelf.messageNodes?.last?.layer.removeAllAnimations()
-                    
+
                     strongSelf.wallpaperBackgroundNode.layer.removeAllAnimations()
                 }
             }
         })
-        
+
         self.wallpaperBackgroundNode.layer.animateScale(from: 1.0, to: 1.2, duration: 0.33, timingFunction: kCAMediaTimingFunctionSpring)
         
         for (_, backgroundNode) in self.backgroundNodes {
@@ -855,17 +855,17 @@ final class MediaPickerSelectedListNode: ASDisplayNode, UIScrollViewDelegate, UI
         let peerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(1))
         var peers = SimpleDictionary<PeerId, Peer>()
         peers[peerId] = TelegramUser(id: peerId, accessHash: nil, firstName: "", lastName: "", username: nil, phone: nil, photo: [], botInfo: nil, restrictionInfo: nil, flags: [], emojiStatus: nil, usernames: [], storiesHidden: nil, nameColor: nil, backgroundEmojiId: nil, profileColor: nil, profileBackgroundEmojiId: nil)
-        
+
         let previewText = groupLayouts.count > 1 ? presentationData.strings.Attachment_MessagesPreview : presentationData.strings.Attachment_MessagePreview
-        
+
         let previewMessage = Message(stableId: 0, stableVersion: 0, id: MessageId(peerId: peerId, namespace: 0, id: 0), globallyUniqueId: nil, groupingKey: nil, groupInfo: nil, threadId: nil, timestamp: 0, flags: [], tags: [], globalTags: [], localTags: [], forwardInfo: nil, author: peers[peerId], text: "", attributes: [], media: [TelegramMediaAction(action: .customText(text: previewText, entities: [], additionalAttributes: nil))], peers: peers, associatedMessages: SimpleDictionary(), associatedMessageIds: [], associatedMedia: [:], associatedThreadInfo: nil, associatedStories: [:])
         let previewItem = self.context.sharedContext.makeChatMessagePreviewItem(context: context, messages: [previewMessage], theme: theme, strings: presentationData.strings, wallpaper: wallpaper, fontSize: presentationData.chatFontSize, chatBubbleCorners: bubbleCorners, dateTimeFormat: presentationData.dateTimeFormat, nameOrder: presentationData.nameDisplayOrder, forcedResourceStatus: nil, tapMessage: nil, clickThroughMessage: nil, backgroundNode: self.wallpaperBackgroundNode, availableReactions: nil, accountPeer: nil, isCentered: true, isPreview: true)
-        
+
         let dragMessage = Message(stableId: 0, stableVersion: 0, id: MessageId(peerId: peerId, namespace: 0, id: 0), globallyUniqueId: nil, groupingKey: nil, groupInfo: nil, threadId: nil, timestamp: 0, flags: [], tags: [], globalTags: [], localTags: [], forwardInfo: nil, author: peers[peerId], text: "", attributes: [], media: [TelegramMediaAction(action: .customText(text: presentationData.strings.Attachment_DragToReorder, entities: [], additionalAttributes: nil))], peers: peers, associatedMessages: SimpleDictionary(), associatedMessageIds: [], associatedMedia: [:], associatedThreadInfo: nil, associatedStories: [:])
         let dragItem = self.context.sharedContext.makeChatMessagePreviewItem(context: context, messages: [dragMessage], theme: theme, strings: presentationData.strings, wallpaper: wallpaper, fontSize: presentationData.chatFontSize, chatBubbleCorners: bubbleCorners, dateTimeFormat: presentationData.dateTimeFormat, nameOrder: presentationData.nameDisplayOrder, forcedResourceStatus: nil, tapMessage: nil, clickThroughMessage: nil, backgroundNode: self.wallpaperBackgroundNode, availableReactions: nil, accountPeer: nil, isCentered: true, isPreview: true)
-        
+
         let headerItems: [ListViewItem] = [previewItem, dragItem]
-        
+
         let params = ListViewItemLayoutParams(width: size.width, leftInset: insets.left, rightInset: insets.right, availableHeight: size.height)
         if let messageNodes = self.messageNodes {
             for i in 0 ..< headerItems.count {
@@ -874,12 +874,12 @@ final class MediaPickerSelectedListNode: ASDisplayNode, UIScrollViewDelegate, UI
                     return itemNode
                 }, params: params, previousItem: nil, nextItem: nil, animation: .None, completion: { (layout, apply) in
                     let nodeFrame = CGRect(origin: itemNode.frame.origin, size: CGSize(width: size.width, height: layout.size.height))
-                    
+
                     itemNode.contentSize = layout.contentSize
                     itemNode.insets = layout.insets
                     itemNode.frame = nodeFrame
                     itemNode.isUserInteractionEnabled = false
-                    
+
                     apply(ListViewItemApply(isOnScreen: true))
                 })
             }
@@ -926,7 +926,7 @@ final class MediaPickerSelectedListNode: ASDisplayNode, UIScrollViewDelegate, UI
                 self.backgroundNodes[groupIndex] = groupBackgroundNode
                 self.scrollNode.insertSubnode(groupBackgroundNode, at: 0)
             }
-            
+
             var itemTransition = transition
             if groupBackgroundNode.frame.width.isZero {
                 itemTransition = .immediate
@@ -1046,7 +1046,7 @@ final class MediaPickerSelectedListNode: ASDisplayNode, UIScrollViewDelegate, UI
             itemNode.updateHiddenMedia()
         }
     }
-    
+
     func updateLayout(size: CGSize, insets: UIEdgeInsets, items: [TGMediaSelectableItem], grouped: Bool, theme: PresentationTheme, wallpaper: TelegramWallpaper, bubbleCorners: PresentationChatBubbleCorners, transition: ContainedViewLayoutTransition) {
         let previous = self.validLayout
         self.validLayout = (size, insets, items, grouped, theme, wallpaper, bubbleCorners)

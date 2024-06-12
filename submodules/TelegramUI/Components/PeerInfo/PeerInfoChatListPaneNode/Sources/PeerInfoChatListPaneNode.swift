@@ -57,7 +57,7 @@ public final class PeerInfoChatListPaneNode: ASDisplayNode, PeerInfoPaneNode, UI
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.presentationData = presentationData
         let strings = presentationData.strings
-        
+
         self.chatListNode = ChatListNode(
             context: self.context,
             location: .savedMessagesChats,
@@ -81,9 +81,9 @@ public final class PeerInfoChatListPaneNode: ASDisplayNode, PeerInfoPaneNode, UI
         )
         
         super.init()
-        
+
         self.addSubnode(self.chatListNode)
-        
+
         self.presentationDataDisposable = (self.context.sharedContext.presentationData
         |> deliverOnMainQueue).start(next: { [weak self] presentationData in
             guard let self else {

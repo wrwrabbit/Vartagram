@@ -155,7 +155,7 @@ public final class AvatarStoryIndicatorComponent: Component {
             self.uploadProgressLayer.path = nil
         }
         
-        func updateAnimations(transition: Transition) {
+        func updateAnimations(transition: ComponentTransition) {
             guard let params = self.currentParams else {
                 return
             }
@@ -211,7 +211,7 @@ public final class AvatarStoryIndicatorComponent: Component {
             }
         }
         
-        func update(size: CGSize, radius: CGFloat, lineWidth: CGFloat, value: Value, transition: Transition) {
+        func update(size: CGSize, radius: CGFloat, lineWidth: CGFloat, value: Value, transition: ComponentTransition) {
             let params = Params(
                 size: size,
                 lineWidth: lineWidth,
@@ -265,7 +265,7 @@ public final class AvatarStoryIndicatorComponent: Component {
             fatalError("init(coder:) has not been implemented")
         }
         
-        func update(component: AvatarStoryIndicatorComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+        func update(component: AvatarStoryIndicatorComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.state = state
             
@@ -340,7 +340,7 @@ public final class AvatarStoryIndicatorComponent: Component {
                             
                             let colorSpace = CGColorSpaceCreateDeviceRGB()
                             let gradient = CGGradient(colorsSpace: colorSpace, colors: colors as CFArray, locations: &locations)!
-                            
+
                             context.drawLinearGradient(gradient, start: CGPoint(x: 0.0, y: 0.0), end: CGPoint(x: 0.0, y: size.height), options: CGGradientDrawingOptions())
                         }
                     }
@@ -368,7 +368,7 @@ public final class AvatarStoryIndicatorComponent: Component {
             let indicatorFrame = CGRect(origin: CGPoint(x: (availableSize.width - imageDiameter) * 0.5, y: (availableSize.height - imageDiameter) * 0.5), size: CGSize(width: imageDiameter, height: imageDiameter))
             transition.setFrame(view: self.indicatorView, frame: indicatorFrame)
             
-            let progressTransition = Transition(animation: .curve(duration: 0.3, curve: .easeInOut))
+            let progressTransition = ComponentTransition(animation: .curve(duration: 0.3, curve: .easeInOut))
             if let progress = component.progress {
                 let colorLayer: SimpleGradientLayer
                 if let current = self.colorLayer {
@@ -437,7 +437,7 @@ public final class AvatarStoryIndicatorComponent: Component {
         return View(frame: CGRect())
     }
     
-    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

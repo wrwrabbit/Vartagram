@@ -70,7 +70,7 @@ final class ShareControllerNode: ViewControllerTracingNode, UIScrollViewDelegate
     
     let ready = Promise<Bool>()
     private var didSetReady = false
-    
+
     private var controllerInteraction: ShareControllerInteraction?
     
     private var peersContentNode: SharePeersContainerNode?
@@ -151,7 +151,7 @@ final class ShareControllerNode: ViewControllerTracingNode, UIScrollViewDelegate
         self.contentBackgroundNode.displaysAsynchronously = false
         self.contentBackgroundNode.displayWithoutProcessing = true
         self.contentBackgroundNode.image = roundedBackground
-        
+
         self.actionsBackgroundNode = ASImageNode()
         self.actionsBackgroundNode.isLayerBacked = true
         self.actionsBackgroundNode.displayWithoutProcessing = true
@@ -344,7 +344,7 @@ final class ShareControllerNode: ViewControllerTracingNode, UIScrollViewDelegate
         self.actionButtonNode.addTarget(self, action: #selector(self.actionButtonPressed), forControlEvents: .touchUpInside)
         
         self.wrappingScrollNode.addSubnode(self.contentBackgroundNode)
-        
+
         self.wrappingScrollNode.addSubnode(self.contentContainerNode)
         self.contentContainerNode.addSubnode(self.actionSeparatorNode)
         self.contentContainerNode.addSubnode(self.actionsBackgroundNode)
@@ -434,7 +434,7 @@ final class ShareControllerNode: ViewControllerTracingNode, UIScrollViewDelegate
                     topicsContentNode.animateIn(sourceFrame: sourceFrame, scrollDelta: scrollDelta)
                 }
             }
-            
+
             topicsContentNode.setContentOffsetUpdated({ [weak self] contentOffset, transition in
                 self?.contentNodeOffsetUpdated(contentOffset, transition: transition)
             })
@@ -595,7 +595,7 @@ final class ShareControllerNode: ViewControllerTracingNode, UIScrollViewDelegate
                 if let contentNode = contentNode, let previous = previous {
                     contentNode.frame = previous.frame
                     contentNode.updateLayout(size: previous.bounds.size, isLandscape: layout.size.width > layout.size.height, bottomInset: bottomGridInset, transition: .immediate)
-                    
+
                     contentNode.setContentOffsetUpdated({ [weak self] contentOffset, transition in
                         self?.contentNodeOffsetUpdated(contentOffset, transition: transition)
                     })
@@ -742,7 +742,7 @@ final class ShareControllerNode: ViewControllerTracingNode, UIScrollViewDelegate
                 backgroundFrame.size.height = buttonHeight + 32.0
             }
             transition.updateFrame(node: self.contentBackgroundNode, frame: backgroundFrame)
-            
+
             if let animateContentNodeOffsetFromBackgroundOffset = self.animateContentNodeOffsetFromBackgroundOffset {
                 self.animateContentNodeOffsetFromBackgroundOffset = nil
                 let offset = backgroundFrame.minY - animateContentNodeOffsetFromBackgroundOffset
@@ -990,7 +990,7 @@ final class ShareControllerNode: ViewControllerTracingNode, UIScrollViewDelegate
             return
         }
         self.animatingOut = true
-        
+
         if self.contentNode != nil {
             var dimCompleted = false
             var offsetCompleted = false

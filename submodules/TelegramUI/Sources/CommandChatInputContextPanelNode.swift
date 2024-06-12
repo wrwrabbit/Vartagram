@@ -26,7 +26,7 @@ private struct CommandChatInputContextPanelEntry: Comparable, Identifiable {
     var stableId: CommandChatInputContextPanelEntryStableId {
         return CommandChatInputContextPanelEntryStableId(command: self.command)
     }
-    
+
     func withUpdatedTheme(_ theme: PresentationTheme) -> CommandChatInputContextPanelEntry {
         return CommandChatInputContextPanelEntry(index: self.index, command: self.command, theme: theme)
     }
@@ -77,12 +77,12 @@ final class CommandChatInputContextPanelNode: ChatInputContextPanelNode {
         self.listView.accessibilityPageScrolledString = { row, count in
             return strings.VoiceOver_ScrollStatus(row, count).string
         }
-        
+
         super.init(context: context, theme: theme, strings: strings, fontSize: fontSize, chatPresentationContext: chatPresentationContext)
         
         self.isOpaque = false
         self.clipsToBounds = true
-        
+
         self.addSubnode(self.listView)
     }
     
@@ -207,9 +207,9 @@ final class CommandChatInputContextPanelNode: ChatInputContextPanelNode {
         
         let (duration, curve) = listViewAnimationDurationAndCurve(transition: transition)
         let updateSizeAndInsets = ListViewUpdateSizeAndInsets(size: size, insets: insets, duration: duration, curve: curve)
-        
+
         self.listView.transaction(deleteIndices: [], insertIndicesAndItems: [], updateIndicesAndItems: [], options: [.Synchronous, .LowLatency], scrollToItem: nil, updateSizeAndInsets: updateSizeAndInsets, stationaryItemRange: nil, updateOpaqueState: nil, completion: { _ in })
-        
+
         if !hadValidLayout {
             while !self.enqueuedTransitions.isEmpty {
                 self.dequeueTransition()

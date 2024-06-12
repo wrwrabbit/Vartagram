@@ -57,7 +57,7 @@ public enum BoostSubject: Equatable {
     case emojiStatus
     case wallpaper
     case customWallpaper
-    
+
     public func requiredLevel(context: AccountContext, configuration: PremiumConfiguration) -> Int32 {
         return requiredBoostSubjectLevel(subject: self, context: context, configuration: configuration)
     }
@@ -466,11 +466,11 @@ private final class LimitSheetContent: CombinedComponent {
             if let nextLevelBoosts = component.status.nextLevelBoosts {
                 remaining = nextLevelBoosts - component.status.boosts
             }
-            
+
             var textString = ""
             let actionButtonText = strings.ChannelBoost_CopyLink
             let buttonIconName = "Premium/CopyLink"
-            
+
             if let remaining {
                 var needsSecondParagraph = true
                 let storiesString = strings.ChannelBoost_StoriesPerDay(Int32(component.status.level) + 1)
@@ -488,7 +488,7 @@ private final class LimitSheetContent: CombinedComponent {
                     needsSecondParagraph = false
                 case .nameColors:
                     let colorLevel = component.subject.requiredLevel(context: context.component.context, configuration: premiumConfiguration)
-                    
+
                     textString = strings.ChannelBoost_EnableNameColorLevelText("\(colorLevel)").string
                 case .nameIcon:
                     textString = strings.ChannelBoost_EnableNameIconLevelText("\(premiumConfiguration.minChannelNameIconLevel)").string
@@ -503,7 +503,7 @@ private final class LimitSheetContent: CombinedComponent {
                 case .customWallpaper:
                     textString = strings.ChannelBoost_EnableCustomWallpaperLevelText("\(premiumConfiguration.minChannelCustomWallpaperLevel)").string
                 }
-                
+
                 if needsSecondParagraph {
                     textString += "\n\n\(strings.ChannelBoost_AskToBoost)"
                 }
@@ -544,7 +544,7 @@ private final class LimitSheetContent: CombinedComponent {
                 availableSize: CGSize(width: context.availableSize.width - textSideInset * 2.0, height: context.availableSize.height),
                 transition: .immediate
             )
-            
+
             let gradientColors = [
                 UIColor(rgb: 0x0077ff),
                 UIColor(rgb: 0x6b93ff),
@@ -555,8 +555,8 @@ private final class LimitSheetContent: CombinedComponent {
                 UIColor(rgb: 0x007afe),
                 UIColor(rgb: 0x5494ff)
             ]
-        
-            let limitTransition: Transition = .immediate
+
+            let limitTransition: ComponentTransition = .immediate
 
             let button = button.update(
                 component: SolidRoundedButtonComponent(
@@ -582,10 +582,10 @@ private final class LimitSheetContent: CombinedComponent {
                 availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0, height: 50.0),
                 transition: context.transition
             )
-            
+
             var buttonOffset: CGFloat = 0.0
             var textOffset: CGFloat = 184.0
-            
+
             let linkButton = linkButton.update(
                 component: SolidRoundedButtonComponent(
                     title: component.status.url.replacingOccurrences(of: "https://", with: ""),
@@ -607,19 +607,19 @@ private final class LimitSheetContent: CombinedComponent {
                 transition: context.transition
             )
             buttonOffset += 66.0
-            
+
             let linkFrame = CGRect(origin: CGPoint(x: sideInset, y: textOffset + textChild.size.height + 24.0), size: linkButton.size)
             context.add(linkButton
                 .position(CGPoint(x: linkFrame.midX, y: linkFrame.midY))
             )
-            
+
             let textSize = textChild.size
             textOffset += textSize.height / 2.0
-            
+
             context.add(textChild
                 .position(CGPoint(x: context.availableSize.width / 2.0, y: textOffset))
             )
-            
+
             let limit = limit.update(
                 component: PremiumLimitDisplayComponent(
                     inactiveColor: theme.list.itemBlocksSeparatorColor.withAlphaComponent(0.3),
@@ -643,14 +643,14 @@ private final class LimitSheetContent: CombinedComponent {
             context.add(limit
                 .position(CGPoint(x: context.availableSize.width / 2.0, y: limit.size.height / 2.0 + 44.0))
             )
-            
+
             let buttonFrame = CGRect(origin: CGPoint(x: sideInset, y: textOffset + ceil(textSize.height / 2.0) + buttonOffset + 24.0), size: button.size)
             context.add(button
                 .position(CGPoint(x: buttonFrame.midX, y: buttonFrame.midY))
             )
-            
+
             var additionalContentHeight: CGFloat = 0.0
-          
+
             if premiumConfiguration.giveawayGiftsPurchaseAvailable {
                 let orText = orText.update(
                     component: MultilineTextComponent(text: .plain(NSAttributedString(string: strings.ChannelBoost_Or, font: Font.regular(15.0), textColor: textColor.withAlphaComponent(0.8), paragraphAlignment: .center))),
@@ -660,7 +660,7 @@ private final class LimitSheetContent: CombinedComponent {
                 context.add(orText
                     .position(CGPoint(x: context.availableSize.width / 2.0, y: buttonFrame.maxY + 27.0))
                 )
-                
+
                 let orLeftLine = orLeftLine.update(
                     component: Rectangle(color: theme.list.itemBlocksSeparatorColor.withAlphaComponent(0.3)),
                     availableSize: CGSize(width: 90.0, height: 1.0 - UIScreenPixel),
@@ -669,7 +669,7 @@ private final class LimitSheetContent: CombinedComponent {
                 context.add(orLeftLine
                     .position(CGPoint(x: context.availableSize.width / 2.0 - orText.size.width / 2.0 - 11.0 - 45.0, y: buttonFrame.maxY + 27.0))
                 )
-                
+
                 let orRightLine = orRightLine.update(
                     component: Rectangle(color: theme.list.itemBlocksSeparatorColor.withAlphaComponent(0.3)),
                     availableSize: CGSize(width: 90.0, height: 1.0 - UIScreenPixel),
@@ -678,15 +678,15 @@ private final class LimitSheetContent: CombinedComponent {
                 context.add(orRightLine
                     .position(CGPoint(x: context.availableSize.width / 2.0 + orText.size.width / 2.0 + 11.0 + 45.0, y: buttonFrame.maxY + 27.0))
                 )
-                
+
                 if state.cachedChevronImage == nil || state.cachedChevronImage?.1 !== theme {
                     state.cachedChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Settings/TextArrowRight"), color: linkColor)!, theme)
                 }
-                
-                
+
+
                 let giftString = strings.Premium_BoostByGiftDescription2
                 let giftAttributedString = parseMarkdownIntoAttributedString(giftString, attributes: markdownAttributes).mutableCopy() as! NSMutableAttributedString
-                
+
                 if let range = giftAttributedString.string.range(of: ">"), let chevronImage = state.cachedChevronImage?.0 {
                     giftAttributedString.addAttribute(.attachment, value: chevronImage, range: NSRange(range, in: giftAttributedString.string))
                 }
@@ -710,16 +710,16 @@ private final class LimitSheetContent: CombinedComponent {
                 context.add(giftText
                     .position(CGPoint(x: context.availableSize.width / 2.0, y: buttonFrame.maxY + 50.0 + giftText.size.height / 2.0))
                 )
-                
+
                 additionalContentHeight += giftText.size.height + 50.0
             }
-        
-            
+
+
             var nextLevels: ClosedRange<Int32>?
             if component.status.level < 10 {
                 nextLevels = Int32(component.status.level) + 1 ... 10
             }
-            
+
             var levelsHeight: CGFloat = 0.0
             var levelItems: [AnyComponentWithIdentity<Empty>] = []
             
@@ -743,7 +743,7 @@ private final class LimitSheetContent: CombinedComponent {
                     var perks: [LevelSectionComponent.Perk] = []
                     perks.append(.story(level))
                     perks.append(.reaction(level))
-                                 
+
                     var nameColorsCount: Int32 = 0
                     for (colorLevel, count) in nameColorsAtLevel {
                         if level >= colorLevel && colorLevel == 1 {
@@ -753,7 +753,7 @@ private final class LimitSheetContent: CombinedComponent {
                     if nameColorsCount > 0 {
                         perks.append(.nameColor(nameColorsCount))
                     }
-                    
+
                     if level >= premiumConfiguration.minChannelProfileColorLevel {
                         let delta = min(level - premiumConfiguration.minChannelProfileColorLevel + 1, 2)
                         perks.append(.profileColor(8 * delta))
@@ -761,7 +761,7 @@ private final class LimitSheetContent: CombinedComponent {
                     if level >= premiumConfiguration.minChannelProfileIconLevel {
                         perks.append(.profileIcon)
                     }
-                    
+
                     var linkColorsCount: Int32 = 0
                     for (colorLevel, count) in nameColorsAtLevel {
                         if level >= colorLevel {
@@ -771,7 +771,7 @@ private final class LimitSheetContent: CombinedComponent {
                     if linkColorsCount > 0 {
                         perks.append(.linkColor(linkColorsCount))
                     }
-                                        
+
                     if level >= premiumConfiguration.minChannelNameIconLevel {
                         perks.append(.linkIcon)
                     }
@@ -784,7 +784,7 @@ private final class LimitSheetContent: CombinedComponent {
                     if level >= premiumConfiguration.minChannelCustomWallpaperLevel {
                         perks.append(.customWallpaper)
                     }
-                    
+
                     levelItems.append(
                         AnyComponentWithIdentity(
                             id: level, component: AnyComponent(
@@ -812,10 +812,10 @@ private final class LimitSheetContent: CombinedComponent {
                 )
                 levelsHeight = levels.size.height + 40.0
             }
-            
+
             let bottomInset: CGFloat = 0.0
             contentSize = CGSize(width: context.availableSize.width, height: buttonFrame.maxY + additionalContentHeight + 5.0 + bottomInset + levelsHeight)
-            
+
             return contentSize
         }
     }
@@ -827,7 +827,7 @@ private final class BoostLevelsContainerComponent: CombinedComponent {
     let context: AccountContext
     let theme: PresentationTheme
     let strings: PresentationStrings
-    
+
     let peer: EnginePeer
     let subject: BoostSubject
     let status: ChannelBoostStatus
@@ -897,7 +897,7 @@ private final class BoostLevelsContainerComponent: CombinedComponent {
         let title = Child(MultilineTextComponent.self)
         let statsButton = Child(Button.self)
         let closeButton = Child(Button.self)
-        
+
         return { context in
             let state = context.state
             
@@ -937,7 +937,7 @@ private final class BoostLevelsContainerComponent: CombinedComponent {
                 availableSize: context.availableSize,
                 transition: context.transition
             )
-                        
+
             let background = background.update(
                 component: Rectangle(color: theme.overallDarkAppearance ? theme.list.blocksBackgroundColor : theme.list.plainBackgroundColor),
                 availableSize: scroll.size,
@@ -946,7 +946,7 @@ private final class BoostLevelsContainerComponent: CombinedComponent {
             context.add(background
                 .position(CGPoint(x: context.availableSize.width / 2.0, y: background.size.height / 2.0))
             )
-     
+
             context.add(scroll
                 .position(CGPoint(x: context.availableSize.width / 2.0, y: scroll.size.height / 2.0))
             )
@@ -996,7 +996,7 @@ private final class BoostLevelsContainerComponent: CombinedComponent {
             } else {
                 titleString = strings.ChannelBoost_MaxLevelReached
             }
-            
+
             let title = title.update(
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(string: titleString, font: Font.semibold(17.0), textColor: theme.rootController.navigationBar.primaryTextColor)),
@@ -1079,17 +1079,17 @@ public class PremiumBoostLevelsScreen: ViewController {
         let containerView: UIView
         
         let contentView: ComponentHostView<Empty>
-                
+
         private(set) var isExpanded = false
         private var panGestureRecognizer: UIPanGestureRecognizer?
         private var panGestureArguments: (topInset: CGFloat, offset: CGFloat, scrollView: UIScrollView?, listNode: ListView?)?
         
         private var currentIsVisible: Bool = false
         private var currentLayout: ContainerViewLayout?
-                
+
         var isPremium: Bool?
         var disposable: Disposable?
-                
+
         init(context: AccountContext, controller: PremiumBoostLevelsScreen) {
             self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
             if controller.forceDark {
@@ -1106,7 +1106,7 @@ public class PremiumBoostLevelsScreen: ViewController {
             self.wrappingView = UIView()
             self.containerView = UIView()
             self.contentView = ComponentHostView()
-            
+
             super.init()
                         
             self.containerView.clipsToBounds = true
@@ -1118,7 +1118,7 @@ public class PremiumBoostLevelsScreen: ViewController {
             self.wrappingView.addSubview(self.containerView)
             self.containerView.addSubview(self.contentView)
         }
-        
+
         deinit {
             self.disposable?.dispose()
         }
@@ -1193,16 +1193,16 @@ public class PremiumBoostLevelsScreen: ViewController {
         }
                 
         private var dismissOffset: CGFloat?
-        func containerLayoutUpdated(layout: ContainerViewLayout, transition: Transition) {
+        func containerLayoutUpdated(layout: ContainerViewLayout, transition: ComponentTransition) {
             self.currentLayout = layout
             
             self.dim.frame = CGRect(origin: CGPoint(x: 0.0, y: -layout.size.height), size: CGSize(width: layout.size.width, height: layout.size.height * 3.0))
-                        
+
             var effectiveExpanded = self.isExpanded
             if case .regular = layout.metrics.widthClass {
                 effectiveExpanded = true
             }
-            
+
             let isLandscape = layout.orientation == .landscape
             let edgeTopInset = isLandscape ? 0.0 : self.defaultTopInset
             let topInset: CGFloat
@@ -1218,10 +1218,10 @@ public class PremiumBoostLevelsScreen: ViewController {
                 topInset = effectiveExpanded ? 0.0 : edgeTopInset
             }
             transition.setFrame(view: self.wrappingView, frame: CGRect(origin: CGPoint(x: 0.0, y: topInset), size: layout.size), completion: nil)
-            
+
             let modalProgress = isLandscape ? 0.0 : (1.0 - topInset / self.defaultTopInset)
             self.controller?.updateModalStyleOverlayTransitionFactor(modalProgress, transition: transition.containedViewLayoutTransition)
-            
+
             let clipFrame: CGRect
             if layout.metrics.widthClass == .compact {
                 self.dim.backgroundColor = UIColor(rgb: 0x000000, alpha: 0.25)
@@ -1274,12 +1274,12 @@ public class PremiumBoostLevelsScreen: ViewController {
             self.updated(transition: transition)
         }
         
-        func updated(transition: Transition) {
+        func updated(transition: ComponentTransition) {
             guard let controller = self.controller else {
                 return
             }
             let containerSize = self.containerView.bounds.size
-            
+
 
             let contentSize = self.contentView.update(
                 transition: .immediate,
@@ -1331,7 +1331,7 @@ public class PremiumBoostLevelsScreen: ViewController {
                 self.animateIn()
             }
         }
-        
+
         private var defaultTopInset: CGFloat {
             guard let layout = self.currentLayout else {
                 return 210.0
@@ -1393,7 +1393,7 @@ public class PremiumBoostLevelsScreen: ViewController {
                     }
                     let visibleContentOffset = listNode?.visibleContentOffset()
                     let contentOffset = scrollView?.contentOffset.y ?? 0.0
-                
+
                     var translation = recognizer.translation(in: self.view).y
 
                     var currentOffset = topInset + translation
@@ -1491,11 +1491,11 @@ public class PremiumBoostLevelsScreen: ViewController {
                             let initialVelocity: CGFloat = distance.isZero ? 0.0 : abs(velocity.y / distance)
                             let transition = ContainedViewLayoutTransition.animated(duration: 0.45, curve: .customSpring(damping: 124.0, initialVelocity: initialVelocity))
 
-                            self.containerLayoutUpdated(layout: layout, transition: Transition(transition))
+                            self.containerLayoutUpdated(layout: layout, transition: ComponentTransition(transition))
                         } else {
                             self.isExpanded = true
                             
-                            self.containerLayoutUpdated(layout: layout, transition: Transition(.animated(duration: 0.3, curve: .easeInOut)))
+                            self.containerLayoutUpdated(layout: layout, transition: ComponentTransition(.animated(duration: 0.3, curve: .easeInOut)))
                         }
                     } else if scrollView != nil, (velocity.y < -300.0 || offset < topInset / 2.0) {
                         if velocity.y > -2200.0 && velocity.y < -300.0, let listNode = listNode {
@@ -1503,12 +1503,12 @@ public class PremiumBoostLevelsScreen: ViewController {
                                 listNode.transaction(deleteIndices: [], insertIndicesAndItems: [], updateIndicesAndItems: [], options: [.Synchronous, .LowLatency], scrollToItem: ListViewScrollToItem(index: 0, position: .top(0.0), animated: true, curve: .Default(duration: nil), directionHint: .Up), updateSizeAndInsets: nil, stationaryItemRange: nil, updateOpaqueState: nil, completion: { _ in })
                             }
                         }
-                                                    
+
                         let initialVelocity: CGFloat = offset.isZero ? 0.0 : abs(velocity.y / offset)
                         let transition = ContainedViewLayoutTransition.animated(duration: 0.45, curve: .customSpring(damping: 124.0, initialVelocity: initialVelocity))
                         self.isExpanded = true
                        
-                        self.containerLayoutUpdated(layout: layout, transition: Transition(transition))
+                        self.containerLayoutUpdated(layout: layout, transition: ComponentTransition(transition))
                     } else {
                         if let listNode = listNode {
                             listNode.scroller.setContentOffset(CGPoint(), animated: false)
@@ -1516,7 +1516,7 @@ public class PremiumBoostLevelsScreen: ViewController {
                             scrollView.setContentOffset(CGPoint(x: 0.0, y: -scrollView.contentInset.top), animated: false)
                         }
                         
-                        self.containerLayoutUpdated(layout: layout, transition: Transition(.animated(duration: 0.3, curve: .easeInOut)))
+                        self.containerLayoutUpdated(layout: layout, transition: ComponentTransition(.animated(duration: 0.3, curve: .easeInOut)))
                     }
                     
                     if !dismissing {
@@ -1529,7 +1529,7 @@ public class PremiumBoostLevelsScreen: ViewController {
                 case .cancelled:
                     self.panGestureArguments = nil
                     
-                    self.containerLayoutUpdated(layout: layout, transition: Transition(.animated(duration: 0.3, curve: .easeInOut)))
+                    self.containerLayoutUpdated(layout: layout, transition: ComponentTransition(.animated(duration: 0.3, curve: .easeInOut)))
                 default:
                     break
             }
@@ -1554,7 +1554,7 @@ public class PremiumBoostLevelsScreen: ViewController {
             guard let layout = self.currentLayout else {
                 return
             }
-            self.containerLayoutUpdated(layout: layout, transition: Transition(transition))
+            self.containerLayoutUpdated(layout: layout, transition: ComponentTransition(transition))
         }
     }
     
@@ -1571,7 +1571,7 @@ public class PremiumBoostLevelsScreen: ViewController {
     private let forceDark: Bool
     
     private var currentLayout: ContainerViewLayout?
-        
+
     public var disposed: () -> Void = {}
     
     public init(
@@ -1597,8 +1597,8 @@ public class PremiumBoostLevelsScreen: ViewController {
         self.statusBar.statusBarStyle = .Ignore
         
         self.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .all, compactSize: .portrait)
-        
-        
+
+
 //        UIPasteboard.general.string = link
 //        let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
 //        self.environment?.controller()?.present(UndoOverlayController(presentationData: presentationData, content: .linkCopied(text: presentationData.strings.ChannelBoost_BoostLinkCopied), elevatedLayout: false, position: .bottom, animateInAsReplacement: false, action: { _ in return false }), in: .current)
@@ -1611,11 +1611,11 @@ public class PremiumBoostLevelsScreen: ViewController {
     deinit {
         self.disposed()
     }
-    
+
     @objc private func cancelPressed() {
         self.dismiss(animated: true, completion: nil)
     }
-    
+
     override open func loadDisplayNode() {
         self.displayNode = Node(context: self.context, controller: self)
         self.displayNodeDidLoad()
@@ -1644,7 +1644,7 @@ public class PremiumBoostLevelsScreen: ViewController {
     
     override open func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        
+
         self.node.updateIsVisible(isVisible: false)
     }
         
@@ -1652,6 +1652,6 @@ public class PremiumBoostLevelsScreen: ViewController {
         self.currentLayout = layout
         super.containerLayoutUpdated(layout, transition: transition)
                 
-        self.node.containerLayoutUpdated(layout: layout, transition: Transition(transition))
+        self.node.containerLayoutUpdated(layout: layout, transition: ComponentTransition(transition))
     }
 }

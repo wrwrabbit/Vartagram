@@ -285,7 +285,7 @@ public final class InlineStickerItemLayer: MultiAnimationRenderTarget {
     private let unique: Bool
     private let placeholderColor: UIColor
     private let loopCount: Int?
-    
+
     private let pointSize: CGSize
     private let pixelSize: CGSize
     
@@ -334,7 +334,7 @@ public final class InlineStickerItemLayer: MultiAnimationRenderTarget {
             }
         }
     }
-    
+
     public convenience init(context: AccountContext, userLocation: MediaResourceUserLocation, attemptSynchronousLoad: Bool, emoji: ChatTextInputTextCustomEmojiAttribute, file: TelegramMediaFile?, cache: AnimationCache, renderer: MultiAnimationRenderer, unique: Bool = false, placeholderColor: UIColor, pointSize: CGSize, dynamicColor: UIColor? = nil, loopCount: Int? = nil) {
         self.init(
             context: .account(context),
@@ -362,11 +362,11 @@ public final class InlineStickerItemLayer: MultiAnimationRenderTarget {
         self.placeholderColor = placeholderColor
         self._dynamicColor = dynamicColor
         self.loopCount = loopCount
-        
+
         let scale = min(2.0, UIScreenScale)
         self.pointSize = pointSize
         self.pixelSize = CGSize(width: self.pointSize.width * scale, height: self.pointSize.height * scale)
-        
+
         super.init()
         
         if let custom = emoji.custom {
@@ -417,7 +417,7 @@ public final class InlineStickerItemLayer: MultiAnimationRenderTarget {
         return nullAction
     }
     
-    public func updateTintColor(contentTintColor: UIColor?, dynamicColor: UIColor?, transition: Transition) {
+    public func updateTintColor(contentTintColor: UIColor?, dynamicColor: UIColor?, transition: ComponentTransition) {
         self._contentTintColor = contentTintColor
         self._dynamicColor = dynamicColor
         
@@ -547,7 +547,7 @@ public final class InlineStickerItemLayer: MultiAnimationRenderTarget {
         })
         self.contents = image?.cgImage
     }
-    
+
     private func updateFile(file: TelegramMediaFile, attemptSynchronousLoad: Bool) {
         if self.file?.fileId == file.fileId {
             return

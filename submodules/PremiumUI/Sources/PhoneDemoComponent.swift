@@ -473,7 +473,7 @@ final class PhoneDemoComponent: Component {
             self.playbackStatusDisposable?.dispose()
         }
         
-        public func update(component: PhoneDemoComponent, availableSize: CGSize, environment: Environment<DemoPageEnvironment>, transition: Transition) -> CGSize {
+        public func update(component: PhoneDemoComponent, availableSize: CGSize, environment: Environment<DemoPageEnvironment>, transition: ComponentTransition) -> CGSize {
             self.component = component
             
             self.containerView.frame = CGRect(origin: .zero, size: availableSize)
@@ -598,7 +598,7 @@ final class PhoneDemoComponent: Component {
         return View()
     }
     
-    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<DemoPageEnvironment>, transition: Transition) -> CGSize {
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<DemoPageEnvironment>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, environment: environment, transition: transition)
     }
 }

@@ -40,7 +40,7 @@ private final class EmojiActionIconComponent: Component {
     let color: UIColor
     let fileId: Int64?
     let file: TelegramMediaFile?
-    
+
     init(
         context: AccountContext,
         color: UIColor,
@@ -52,7 +52,7 @@ private final class EmojiActionIconComponent: Component {
         self.fileId = fileId
         self.file = file
     }
-    
+
     static func ==(lhs: EmojiActionIconComponent, rhs: EmojiActionIconComponent) -> Bool {
         if lhs.context !== rhs.context {
             return false
@@ -68,13 +68,13 @@ private final class EmojiActionIconComponent: Component {
         }
         return true
     }
-    
+
     final class View: UIView {
         private var icon: ComponentView<Empty>?
-        
-        func update(component: EmojiActionIconComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+
+        func update(component: EmojiActionIconComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             let size = CGSize(width: 24.0, height: 24.0)
-            
+
             if let fileId = component.fileId {
                 let icon: ComponentView<Empty>
                 if let current = self.icon {
@@ -115,16 +115,16 @@ private final class EmojiActionIconComponent: Component {
                     icon.view?.removeFromSuperview()
                 }
             }
-            
+
             return size
         }
     }
-    
+
     func makeView() -> View {
         return View(frame: CGRect())
     }
-    
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }
@@ -238,7 +238,7 @@ final class ChannelAppearanceScreenComponent: Component {
         private let actionButton = ComponentView<Empty>()
         private let bottomPanelBackgroundView: BlurredBackgroundView
         private let bottomPanelSeparator: SimpleLayer
-        
+
         private let replySection = ComponentView<Empty>()
         private let wallpaperSection = ComponentView<Empty>()
         private let bannerSection = ComponentView<Empty>()
@@ -304,7 +304,7 @@ final class ChannelAppearanceScreenComponent: Component {
             
             self.scrollView.delegate = self
             self.addSubview(self.scrollView)
-            
+
             self.addSubview(self.bottomPanelBackgroundView)
             self.layer.addSublayer(self.bottomPanelSeparator)
         }
@@ -366,14 +366,14 @@ final class ChannelAppearanceScreenComponent: Component {
             self.updateScrolling(transition: .immediate)
         }
         
-        private func updateScrolling(transition: Transition) {
+        private func updateScrolling(transition: ComponentTransition) {
             let navigationAlphaDistance: CGFloat = 16.0
             let navigationAlpha: CGFloat = max(0.0, min(1.0, self.scrollView.contentOffset.y / navigationAlphaDistance))
             if let controller = self.environment?.controller(), let navigationBar = controller.navigationBar {
                 transition.setAlpha(layer: navigationBar.backgroundNode.layer, alpha: navigationAlpha)
                 transition.setAlpha(layer: navigationBar.stripeNode.layer, alpha: navigationAlpha)
             }
-            
+
             let bottomNavigationAlphaDistance: CGFloat = 16.0
             let bottomNavigationAlpha: CGFloat = max(0.0, min(1.0, (self.scrollView.contentSize.height - self.scrollView.bounds.maxY) / bottomNavigationAlphaDistance))
             
@@ -441,7 +441,7 @@ final class ChannelAppearanceScreenComponent: Component {
             if emojiStatus != peer.emojiStatus {
                 changes.insert(.emojiStatus)
             }
-            
+
             let wallpaper: TelegramWallpaper?
             if let updatedPeerWallpaper = self.updatedPeerWallpaper {
                 switch updatedPeerWallpaper {
@@ -599,7 +599,7 @@ final class ChannelAppearanceScreenComponent: Component {
                     }
                 )
                 self.environment?.controller()?.push(controller)
-                
+
                 HapticFeedback().impact(.light)
             })
         }
@@ -621,7 +621,7 @@ final class ChannelAppearanceScreenComponent: Component {
             let requiredCustomWallpaperLevel = Int(BoostSubject.customWallpaper.requiredLevel(context: component.context, configuration: premiumConfiguration))
             
             let selectedWallpaper = resolvedState.wallpaper
-            
+
             let controller = ThemeGridController(
                 context: component.context,
                 mode: .peer(peer, contentsData.availableThemes, selectedWallpaper, level < requiredWallpaperLevel ? requiredWallpaperLevel : nil, level < requiredCustomWallpaperLevel ? requiredCustomWallpaperLevel : nil)
@@ -652,13 +652,13 @@ final class ChannelAppearanceScreenComponent: Component {
             }
             self.environment?.controller()?.push(controller)
         }
-        
+
         private enum EmojiSetupSubject {
             case reply
             case profile
             case status
         }
-        
+
         private var previousEmojiSetupTimestamp: Double?
         private func openEmojiSetup(sourceView: UIView, currentFileId: Int64?, color: UIColor?, subject: EmojiSetupSubject) {
             guard let component = self.component, let environment = self.environment else {
@@ -755,7 +755,7 @@ final class ChannelAppearanceScreenComponent: Component {
             environment.controller()?.present(controller, in: .window(.root))
         }
         
-        func update(component: ChannelAppearanceScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: Transition) -> CGSize {
+        func update(component: ChannelAppearanceScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
             self.isUpdating = true
             defer {
                 self.isUpdating = false
@@ -834,7 +834,7 @@ final class ChannelAppearanceScreenComponent: Component {
             let profileIconLevel = Int(BoostSubject.profileIcon.requiredLevel(context: component.context, configuration: premiumConfiguration))
             let emojiStatusLevel = Int(BoostSubject.emojiStatus.requiredLevel(context: component.context, configuration: premiumConfiguration))
             let themeLevel = Int(BoostSubject.wallpaper.requiredLevel(context: component.context, configuration: premiumConfiguration))
-            
+
             let replyFileId = resolvedState.replyFileId
             if replyFileId != nil {
                 requiredBoostSubjects.append(.nameIcon)
@@ -928,7 +928,7 @@ final class ChannelAppearanceScreenComponent: Component {
                     .withUpdatedProfileBackgroundEmojiId(backgroundFileId)
                 )
             }
-            
+
             let requiredBoostSubject: BoostSubject
             if let maxBoostSubject = requiredBoostSubjects.max(by: { $0.requiredLevel(context: component.context, configuration: premiumConfiguration) < $1.requiredLevel(context: component.context, configuration: premiumConfiguration) }) {
                 requiredBoostSubject = maxBoostSubject
@@ -948,9 +948,9 @@ final class ChannelAppearanceScreenComponent: Component {
             var contentHeight: CGFloat = 0.0
             contentHeight += environment.navigationHeight
             contentHeight += topInset
-            
+
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
-            
+
             let messageItem = PeerNameColorChatPreviewItem.MessageItem(
                 outgoing: false,
                 peerId: EnginePeer.Id(namespace: peer.id.namespace, id: PeerId.Id._internalFromInt64Value(0)),
@@ -962,7 +962,7 @@ final class ChannelAppearanceScreenComponent: Component {
                 linkPreview: (environment.strings.Channel_Appearance_ExampleLinkWebsite, environment.strings.Channel_Appearance_ExampleLinkTitle, environment.strings.Channel_Appearance_ExampleLinkText),
                 text: environment.strings.Channel_Appearance_ExampleText
             )
-            
+
             var replyLogoContents: [AnyComponentWithIdentity<Empty>] = []
             replyLogoContents.append(AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
                 text: .plain(NSAttributedString(
@@ -978,10 +978,10 @@ final class ChannelAppearanceScreenComponent: Component {
                     level: replyIconLevel
                 ))))
             }
-            
+
             var chatPreviewTheme: PresentationTheme = environment.theme
             var chatPreviewWallpaper: TelegramWallpaper = presentationData.chatWallpaper
-            if let updatedWallpaper = self.updatedPeerWallpaper, case .remove = updatedWallpaper {  
+            if let updatedWallpaper = self.updatedPeerWallpaper, case .remove = updatedWallpaper {
             } else if let temporaryPeerWallpaper = self.temporaryPeerWallpaper {
                 chatPreviewWallpaper = temporaryPeerWallpaper
             } else if let resolvedCurrentTheme = self.resolvedCurrentTheme {
@@ -992,7 +992,7 @@ final class ChannelAppearanceScreenComponent: Component {
             } else if let initialWallpaper = contentsData.peerWallpaper, !initialWallpaper.isEmoticon {
                 chatPreviewWallpaper = initialWallpaper
             }
-            
+
             let replySectionSize = self.replySection.update(
                 transition: transition,
                 component: AnyComponent(ListSectionComponent(
@@ -1053,7 +1053,7 @@ final class ChannelAppearanceScreenComponent: Component {
                                 guard let self, let resolvedState = self.resolveState(), let view = view as? ListActionItemComponent.View, let iconView = view.iconView else {
                                     return
                                 }
-                                
+
                                 self.openEmojiSetup(sourceView: iconView, currentFileId: resolvedState.replyFileId, color: component.context.peerNameColors.get(resolvedState.nameColor, dark: environment.theme.overallDarkAppearance).main, subject: .reply)
                             }
                         )))
@@ -1072,7 +1072,7 @@ final class ChannelAppearanceScreenComponent: Component {
             contentHeight += replySectionSize.height
             
             contentHeight += sectionSpacing
-            
+
             if !chatThemes.isEmpty {
                 var wallpaperLogoContents: [AnyComponentWithIdentity<Empty>] = []
                 wallpaperLogoContents.append(AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
@@ -1089,7 +1089,7 @@ final class ChannelAppearanceScreenComponent: Component {
                         level: themeLevel
                     ))))
                 }
-                
+
                 var currentTheme = self.currentTheme
                 var selectedWallpaper: TelegramWallpaper?
                 if currentTheme == nil, let wallpaper = resolvedState.wallpaper, !wallpaper.isEmoticon {
@@ -1097,7 +1097,7 @@ final class ChannelAppearanceScreenComponent: Component {
                     currentTheme = theme
                     selectedWallpaper = wallpaper
                 }
-                
+
                 let wallpaperSectionSize = self.wallpaperSection.update(
                     transition: transition,
                     component: AnyComponent(ListSectionComponent(
@@ -1186,7 +1186,7 @@ final class ChannelAppearanceScreenComponent: Component {
                     level: profileIconLevel
                 ))))
             }
-            
+
             let bannerBackground: ListSectionComponent.Background
             if profileColor != nil {
                 bannerBackground = .range(from: 1, corners: DynamicCornerRadiusView.Corners(minXMinY: 0.0, maxXMinY: 0.0, minXMaxY: 11.0, maxXMaxY: 11.0))
@@ -1281,7 +1281,7 @@ final class ChannelAppearanceScreenComponent: Component {
             }
             contentHeight += bannerSectionSize.height
             contentHeight += sectionSpacing
-            
+
             var emojiStatusContents: [AnyComponentWithIdentity<Empty>] = []
             emojiStatusContents.append(AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
                 text: .plain(NSAttributedString(
@@ -1297,7 +1297,7 @@ final class ChannelAppearanceScreenComponent: Component {
                     level: emojiStatusLevel
                 ))))
             }
-            
+
             let resetColorSectionSize = self.resetColorSection.update(
                 transition: transition,
                 component: AnyComponent(ListSectionComponent(
@@ -1349,7 +1349,7 @@ final class ChannelAppearanceScreenComponent: Component {
                 contentHeight += resetColorSectionSize.height
                 contentHeight += sectionSpacing
             }
-            
+
             let emojiStatusSectionSize = self.emojiStatusSection.update(
                 transition: transition,
                 component: AnyComponent(ListSectionComponent(
@@ -1394,7 +1394,7 @@ final class ChannelAppearanceScreenComponent: Component {
                 transition.setFrame(view: emojiStatusSectionView, frame: emojiStatusSectionFrame)
             }
             contentHeight += emojiStatusSectionSize.height
-            
+
             contentHeight += bottomContentInset
             
             var buttonContents: [AnyComponentWithIdentity<Empty>] = []
@@ -1472,7 +1472,7 @@ final class ChannelAppearanceScreenComponent: Component {
             if self.scrollView.scrollIndicatorInsets != scrollInsets {
                 self.scrollView.scrollIndicatorInsets = scrollInsets
             }
-            
+
             if !previousBounds.isEmpty, !transition.animation.isImmediate {
                 let bounds = self.scrollView.bounds
                 if bounds.maxY != previousBounds.maxY {
@@ -1480,7 +1480,7 @@ final class ChannelAppearanceScreenComponent: Component {
                     transition.animateBoundsOrigin(view: self.scrollView, from: CGPoint(x: 0.0, y: offsetY), to: CGPoint(), additive: true)
                 }
             }
-            
+
             self.updateScrolling(transition: transition)
             
             return availableSize
@@ -1491,7 +1491,7 @@ final class ChannelAppearanceScreenComponent: Component {
         return View()
     }
     
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

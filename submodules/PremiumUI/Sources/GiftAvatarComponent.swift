@@ -45,7 +45,7 @@ class GiftAvatarComponent: Component {
             }
             return false
         }
-        
+
         private var _ready = Promise<Bool>()
         var ready: Signal<Bool, NoError> {
             return self._ready.get()
@@ -80,9 +80,9 @@ class GiftAvatarComponent: Component {
             
             self.addSubview(self.sceneView)
             self.addSubview(self.avatarNode.view)
-            
+
             self.setup()
-                        
+
             let tapGestureRecoginzer = UITapGestureRecognizer(target: self, action: #selector(self.handleTap(_:)))
             self.addGestureRecognizer(tapGestureRecoginzer)
             
@@ -104,12 +104,12 @@ class GiftAvatarComponent: Component {
         @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
             self.playAppearanceAnimation(velocity: nil, mirror: false, explode: true)
         }
-        
+
         private func setup() {
             guard let url = getAppBundle().url(forResource: "gift", withExtension: "scn"), let scene = try? SCNScene(url: url, options: nil) else {
                 return
             }
-            
+
             self.sceneView.scene = scene
             self.sceneView.delegate = self
             
@@ -244,7 +244,7 @@ class GiftAvatarComponent: Component {
             }
         }
         
-        func update(component: GiftAvatarComponent, availableSize: CGSize, transition: Transition) -> CGSize {
+        func update(component: GiftAvatarComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
             self.sceneView.bounds = CGRect(origin: .zero, size: CGSize(width: availableSize.width * 2.0, height: availableSize.height * 2.0))
             if self.sceneView.superview == self {
                 self.sceneView.center = CGPoint(x: availableSize.width / 2.0, y: availableSize.height / 2.0)
@@ -329,7 +329,7 @@ class GiftAvatarComponent: Component {
         return View(frame: CGRect())
     }
     
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, transition: transition)
     }
 }

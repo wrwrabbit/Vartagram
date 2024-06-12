@@ -13,7 +13,7 @@ final class BadgeLabelView: UIView {
         var labels: [UILabel] = []
         
         var currentValue: Int32 = 0
-        
+
         init() {
             super.init(frame: CGRect(origin: .zero, size: labelSize))
              
@@ -40,7 +40,7 @@ final class BadgeLabelView: UIView {
             fatalError("init(coder:) has not been implemented")
         }
         
-        func update(value: Int32, isFirst: Bool, isLast: Bool, transition: Transition) {
+        func update(value: Int32, isFirst: Bool, isLast: Bool, transition: ComponentTransition) {
             let previousValue = self.currentValue
             self.currentValue = value
                         
@@ -81,7 +81,7 @@ final class BadgeLabelView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func update(value: String, transition: Transition) -> CGSize {
+    func update(value: String, transition: ComponentTransition) -> CGSize {
         if value.contains(" ") {
             for (_, view) in self.itemViews {
                 view.isHidden = true

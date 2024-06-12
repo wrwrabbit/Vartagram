@@ -218,7 +218,7 @@ private final class StorageUsageHeaderComponent: Component {
             }
         }
         
-        func update(component: StorageUsageHeaderComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+        func update(component: StorageUsageHeaderComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             let themeUpdated = self.component?.theme !== component.theme
             
             self.component = component
@@ -317,7 +317,7 @@ private final class StorageUsageHeaderComponent: Component {
         return View(frame: CGRect())
     }
     
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }
@@ -346,7 +346,7 @@ final class StorageUsagePanelContainerComponent: Component {
     let dateTimeFormat: PresentationDateTimeFormat
     let insets: UIEdgeInsets
     let items: [Item]
-    let currentPanelUpdated: (AnyHashable, Transition) -> Void
+    let currentPanelUpdated: (AnyHashable, ComponentTransition) -> Void
     
     init(
         theme: PresentationTheme,
@@ -354,7 +354,7 @@ final class StorageUsagePanelContainerComponent: Component {
         dateTimeFormat: PresentationDateTimeFormat,
         insets: UIEdgeInsets,
         items: [Item],
-        currentPanelUpdated: @escaping (AnyHashable, Transition) -> Void
+        currentPanelUpdated: @escaping (AnyHashable, ComponentTransition) -> Void
     ) {
         self.theme = theme
         self.strings = strings
@@ -530,7 +530,7 @@ final class StorageUsagePanelContainerComponent: Component {
                 }
                 self.transitionFraction = 0.0
                 
-                let transition = Transition(animation: .curve(duration: 0.35, curve: .spring))
+                let transition = ComponentTransition(animation: .curve(duration: 0.35, curve: .spring))
                 if let currentId = self.currentId {
                     self.state?.updated(transition: transition)
                     component.currentPanelUpdated(currentId, transition)
@@ -545,12 +545,12 @@ final class StorageUsagePanelContainerComponent: Component {
             }
         }
         
-        func updateNavigationMergeFactor(value: CGFloat, transition: Transition) {
+        func updateNavigationMergeFactor(value: CGFloat, transition: ComponentTransition) {
             transition.setAlpha(view: self.topPanelMergedBackgroundView, alpha: value)
             transition.setAlpha(view: self.topPanelBackgroundView, alpha: 1.0 - value)
         }
         
-        func update(component: StorageUsagePanelContainerComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<StorageUsagePanelContainerEnvironment>, transition: Transition) -> CGSize {
+        func update(component: StorageUsagePanelContainerComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<StorageUsagePanelContainerEnvironment>, transition: ComponentTransition) -> CGSize {
             let environment = environment[StorageUsagePanelContainerEnvironment.self].value
             
             let themeUpdated = self.component?.theme !== component.theme
@@ -616,7 +616,7 @@ final class StorageUsagePanelContainerComponent: Component {
                         }
                         if component.items.contains(where: { $0.id == id }) {
                             self.currentId = id
-                            let transition = Transition(animation: .curve(duration: 0.35, curve: .spring))
+                            let transition = ComponentTransition(animation: .curve(duration: 0.35, curve: .spring))
                             self.state?.updated(transition: transition)
                             component.currentPanelUpdated(id, transition)
                         }
@@ -764,7 +764,7 @@ final class StorageUsagePanelContainerComponent: Component {
         return View(frame: CGRect())
     }
     
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<StorageUsagePanelContainerEnvironment>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<StorageUsagePanelContainerEnvironment>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

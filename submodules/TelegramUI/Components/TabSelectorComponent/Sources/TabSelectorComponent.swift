@@ -106,7 +106,7 @@ public final class TabSelectorComponent: Component {
         deinit {
         }
         
-        func update(component: TabSelectorComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+        func update(component: TabSelectorComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.state = state
             
@@ -142,7 +142,7 @@ public final class TabSelectorComponent: Component {
                 
                 let itemId = item.id
                 validIds.append(itemId)
-                
+
                 let itemSize = itemView.title.update(
                     transition: .immediate,
                     component: AnyComponent(PlainButtonComponent(
@@ -208,7 +208,7 @@ public final class TabSelectorComponent: Component {
         return View(frame: CGRect())
     }
     
-    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

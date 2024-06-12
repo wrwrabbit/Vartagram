@@ -759,12 +759,12 @@ final class PremiumOptionComponent: CombinedComponent {
         let discountBackground = Child(RoundedRectangle.self)
         let discount = Child(MultilineTextComponent.self)
         let label = Child(MultilineTextComponent.self)
-        
+
         return { context in
             let component = context.component
-            
+
             var insets = UIEdgeInsets(top: 11.0, left: 46.0, bottom: 13.0, right: 16.0)
-                        
+
             let label = label.update(
                 component: MultilineTextComponent(
                     text: .plain(
@@ -794,7 +794,7 @@ final class PremiumOptionComponent: CombinedComponent {
                 availableSize: CGSize(width: context.availableSize.width - insets.left - insets.right - label.size.width, height: context.availableSize.height),
                 transition: context.transition
             )
-                     
+
             var discountOffset: CGFloat = 0.0
             let discountSize: CGSize
             if !component.discount.isEmpty {
@@ -812,9 +812,9 @@ final class PremiumOptionComponent: CombinedComponent {
                     availableSize: context.availableSize,
                     transition: context.transition
                 )
-                
+
                 discountSize = CGSize(width: discount.size.width + 6.0, height: 18.0)
-            
+
                 let discountBackground = discountBackground.update(
                     component: RoundedRectangle(
                         color: component.accentColor,
@@ -823,7 +823,7 @@ final class PremiumOptionComponent: CombinedComponent {
                     availableSize: discountSize,
                     transition: context.transition
                 )
-                
+
                 let discountPosition: CGPoint
                 if component.multiple {
                     discountOffset = discountSize.width + 6.0
@@ -831,7 +831,7 @@ final class PremiumOptionComponent: CombinedComponent {
                 } else {
                     discountPosition = CGPoint(x: insets.left + title.size.width + 6.0 + discountSize.width / 2.0, y: insets.top + title.size.height / 2.0)
                 }
-                
+
                 context.add(discountBackground
                     .position(discountPosition)
                 )
@@ -841,15 +841,15 @@ final class PremiumOptionComponent: CombinedComponent {
             } else {
                 discountSize = CGSize(width: 0.0, height: 18.0)
             }
-                        
+
             var spacing: CGFloat = 0.0
             var subtitleSize = CGSize()
             if !component.subtitle.isEmpty {
                 spacing = 2.0
-                
+
                 let subtitleFont = Font.regular(13)
                 let subtitleColor = component.secondaryTextColor
-                
+
                 let subtitleString = parseMarkdownIntoAttributedString(
                     component.subtitle,
                     attributes: MarkdownAttributes(
@@ -859,7 +859,7 @@ final class PremiumOptionComponent: CombinedComponent {
                         linkAttribute: { _ in return nil }
                     )
                 )
-                
+
                 let subtitle = subtitle.update(
                     component: MultilineTextComponent(
                         text: .plain(subtitleString),
@@ -872,11 +872,11 @@ final class PremiumOptionComponent: CombinedComponent {
                     .position(CGPoint(x: insets.left + subtitle.size.width / 2.0 + discountOffset, y: insets.top + title.size.height + spacing + subtitle.size.height / 2.0))
                 )
                 subtitleSize = subtitle.size
-                
+
                 insets.top -= 2.0
                 insets.bottom -= 2.0
             }
-            
+
             let check = check.update(
                 component: CheckComponent(
                     theme: CheckComponent.Theme(
@@ -892,30 +892,30 @@ final class PremiumOptionComponent: CombinedComponent {
                 availableSize: context.availableSize,
                 transition: context.transition
             )
-                
+
             context.add(title
                 .position(CGPoint(x: insets.left + title.size.width / 2.0, y: insets.top + title.size.height / 2.0))
             )
-               
+
             let size = CGSize(width: context.availableSize.width, height: insets.top + title.size.height + spacing + subtitleSize.height + insets.bottom)
-            
+
             let distance = context.availableSize.width - insets.left - insets.right - label.size.width - subtitleSize.width
-            
+
             let labelY: CGFloat
             if distance > 8.0 {
                 labelY = size.height / 2.0
             } else {
                 labelY = insets.top + title.size.height / 2.0
             }
-            
+
             context.add(label
                 .position(CGPoint(x: context.availableSize.width - insets.right - label.size.width / 2.0, y: labelY))
             )
-            
+
             context.add(check
                 .position(CGPoint(x: 4.0 + check.size.width / 2.0, y: size.height / 2.0))
             )
-            
+
             return size
         }
     }
@@ -931,7 +931,7 @@ private final class CheckComponent: Component {
         public let hasShadow: Bool
         public let filledBorder: Bool
         public let borderWidth: CGFloat?
-        
+
         public init(backgroundColor: UIColor, strokeColor: UIColor, borderColor: UIColor, overlayBorder: Bool, hasInset: Bool, hasShadow: Bool, filledBorder: Bool = false, borderWidth: CGFloat? = nil) {
             self.backgroundColor = backgroundColor
             self.strokeColor = strokeColor
@@ -942,7 +942,7 @@ private final class CheckComponent: Component {
             self.filledBorder = filledBorder
             self.borderWidth = borderWidth
         }
-        
+
         var checkNodeTheme: CheckNodeTheme {
             return CheckNodeTheme(
                 backgroundColor: self.backgroundColor,
@@ -956,10 +956,10 @@ private final class CheckComponent: Component {
             )
         }
     }
-    
+
     let theme: Theme
     let selected: Bool
-    
+
     init(
         theme: Theme,
         selected: Bool
@@ -967,7 +967,7 @@ private final class CheckComponent: Component {
         self.theme = theme
         self.selected = selected
     }
-    
+
     static func ==(lhs: CheckComponent, rhs: CheckComponent) -> Bool {
         if lhs.theme != rhs.theme {
             return false
@@ -977,7 +977,7 @@ private final class CheckComponent: Component {
         }
         return true
     }
-    
+
     final class View: UIView {
         private var currentValue: CGFloat?
         private var animator: DisplayLinkAnimator?
@@ -985,11 +985,11 @@ private final class CheckComponent: Component {
         private var checkLayer: CheckLayer {
             return self.layer as! CheckLayer
         }
-        
+
         override class var layerClass: AnyClass {
             return CheckLayer.self
         }
-        
+
         init() {
             super.init(frame: CGRect())
         }
@@ -998,11 +998,11 @@ private final class CheckComponent: Component {
             preconditionFailure()
         }
 
-    
-        func update(component: CheckComponent, availableSize: CGSize, transition: Transition) -> CGSize {
+
+        func update(component: CheckComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
             self.checkLayer.setSelected(component.selected, animated: true)
             self.checkLayer.theme = component.theme.checkNodeTheme
-            
+
             return CGSize(width: 22.0, height: 22.0)
         }
     }
@@ -1011,7 +1011,7 @@ private final class CheckComponent: Component {
         return View()
     }
 
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, transition: transition)
     }
 }
@@ -1102,7 +1102,7 @@ final class SectionGroupComponent: Component {
             }
         }
         
-        func update(component: SectionGroupComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+        func update(component: SectionGroupComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             let sideInset: CGFloat = 16.0
             
             self.backgroundColor = component.backgroundColor
@@ -1209,7 +1209,7 @@ final class SectionGroupComponent: Component {
         return View(frame: CGRect())
     }
     
-    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }
@@ -1595,7 +1595,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                 }
             })
             
-            
+
             self.newPerksDisposable = combineLatest(queue: Queue.mainQueue(),
                 ApplicationSpecificNotice.dismissedPremiumAppIconsBadge(accountManager: context.sharedContext.accountManager),
                 ApplicationSpecificNotice.dismissedPremiumWallpapersBadge(accountManager: context.sharedContext.accountManager),
@@ -1698,7 +1698,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
             let titleColor = theme.list.itemPrimaryTextColor
             let subtitleColor = theme.list.itemSecondaryTextColor
             let arrowColor = theme.list.disclosureArrowColor
-            
+
             let textFont = Font.regular(15.0)
             let boldTextFont = Font.semibold(15.0)
             
@@ -1815,7 +1815,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                         UIColor(rgb: 0x9a6fff),
                         UIColor(rgb: 0xb36eee)
                     ]
-                    
+
                     let shortestOptionPrice: (Int64, NSDecimalNumber)
                     if let product = products.first(where: { $0.id.hasSuffix(".monthly") }) {
                         shortestOptionPrice = (Int64(Float(product.storeProduct.priceCurrencyAndAmount.amount)), product.storeProduct.priceValue)
@@ -1948,7 +1948,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                 )
                 size.height += perksTitle.size.height
                 size.height += 3.0
-                
+
                 var i = 0
                 var perksItems: [SectionGroupComponent.Item] = []
                 for perk in state.configuration.perks {
@@ -2014,7 +2014,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                                 demoSubject = .wallpapers
                                 let _ = ApplicationSpecificNotice.setDismissedPremiumWallpapersBadge(accountManager: accountContext.sharedContext.accountManager).startStandalone()
                             }
-                            
+
                             let isPremium = state?.isPremium == true
                             var dismissImpl: (() -> Void)?
                             let controller = PremiumLimitsListScreen(context: accountContext, subject: demoSubject, source: .intro(state?.price), order: state?.configuration.perks, buttonText: isPremium || "".isEmpty ? strings.Common_OK : (state?.isAnnual == true ? strings.Premium_SubscribeForAnnual(state?.price ?? "—").string :  strings.Premium_SubscribeFor(state?.price ?? "–").string), isPremium: isPremium, forceDark: forceDark)
@@ -2032,7 +2032,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                                 controller?.dismiss(animated: true, completion: nil)
                             }
                             updateIsFocused(true)
-                            
+
                             addAppLogEvent(postbox: accountContext.account.postbox, type: "premium.promo_screen_tap", data: ["item": perk.identifier])
                         }
                     ))
@@ -2067,7 +2067,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                     size.height += 23.0
                 }
             }
-            
+
             let copyLink = context.component.copyLink
             if case .emojiStatus = context.component.source {
                 layoutPerks()
@@ -2101,7 +2101,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                 layoutPerks()
                 
                 let textPadding: CGFloat = 13.0
-                
+
                 let infoTitle = infoTitle.update(
                     component: MultilineTextComponent(
                         text: .plain(
@@ -2120,7 +2120,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                 )
                 size.height += infoTitle.size.height
                 size.height += 3.0
-                            
+
                 let infoText = infoText.update(
                     component: MultilineTextComponent(
                         text: .markdown(
@@ -2135,7 +2135,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                     availableSize: CGSize(width: availableWidth - sideInsets - textSideInset * 2.0, height: .greatestFiniteMagnitude),
                     transition: context.transition
                 )
-                
+
                 let infoBackground = infoBackground.update(
                     component: RoundedRectangle(
                         color: environment.theme.list.itemBlocksBackgroundColor,
@@ -2153,7 +2153,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                 )
                 size.height += infoBackground.size.height
                 size.height += 6.0
-                
+
                 let termsFont = Font.regular(13.0)
                 let boldTermsFont = Font.semibold(13.0)
                 let italicTermsFont = Font.italic(13.0)
@@ -2163,14 +2163,14 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                 let termsMarkdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: termsFont, textColor: termsTextColor), bold: MarkdownAttributeSet(font: termsFont, textColor: termsTextColor), link: MarkdownAttributeSet(font: termsFont, textColor: environment.theme.list.itemAccentColor), linkAttribute: { contents in
                     return (TelegramTextAttributes.URL, contents)
                 })
-                           
+
                 var isGiftView = false
                 if case let .gift(fromId, _, _, _) = context.component.source {
                     if fromId == context.component.context.account.peerId {
                         isGiftView = true
                     }
                 }
-                
+
                 let termsString: MultilineTextComponent.TextContent
                 if isGiftView {
                     termsString = .plain(NSAttributedString())
@@ -2183,7 +2183,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                         attributes: termsMarkdownAttributes
                     )
                 }
-                
+
                 let controller = environment.controller
                 let termsTapActionImpl: ([NSAttributedString.Key: Any]) -> Void = { attributes in
                     if let url = attributes[NSAttributedString.Key(rawValue: TelegramTextAttributes.URL)] as? String,
@@ -2215,7 +2215,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                         }
                     }
                 }
-                
+
                 let termsText = termsText.update(
                     component: MultilineTextComponent(
                         text: termsString,
@@ -2653,7 +2653,7 @@ private final class PremiumIntroScreenComponent: CombinedComponent {
         let bottomPanel = Child(BlurredBackgroundComponent.self)
         let bottomSeparator = Child(Rectangle.self)
         let button = Child(SolidRoundedButtonComponent.self)
-        
+
         return { context in
             let environment = context.environment[EnvironmentType.self].value
             let state = context.state
@@ -2750,7 +2750,7 @@ private final class PremiumIntroScreenComponent: CombinedComponent {
                 if case let .emojiStatus(_, _, file, maybeEmojiPack) = context.component.source, let emojiPack = maybeEmojiPack, case let .result(info, _, _) = emojiPack {
                     loadedEmojiPack = maybeEmojiPack
                     highlightableLinks = true
-                    
+
                     var packReference: StickerPackReference?
                     if let file = file {
                         for attribute in file.attributes {
@@ -3050,7 +3050,7 @@ private final class PremiumIntroScreenComponent: CombinedComponent {
                 context.add(bottomPanel
                     .position(CGPoint(x: context.availableSize.width / 2.0, y: context.availableSize.height - bottomPanel.size.height / 2.0))
                     .opacity(bottomPanelAlpha)
-                    .disappear(Transition.Disappear { [weak bottomPanel] view, transition, completion in
+                    .disappear(ComponentTransition.Disappear { [weak bottomPanel] view, transition, completion in
                         if case .none = transition.animation {
                             completion()
                             return
@@ -3063,7 +3063,7 @@ private final class PremiumIntroScreenComponent: CombinedComponent {
                 context.add(bottomSeparator
                     .position(CGPoint(x: context.availableSize.width / 2.0, y: context.availableSize.height - bottomPanel.size.height))
                     .opacity(bottomPanelAlpha)
-                    .disappear(Transition.Disappear { view, transition, completion in
+                    .disappear(ComponentTransition.Disappear { view, transition, completion in
                         if case .none = transition.animation {
                             completion()
                             return
@@ -3075,7 +3075,7 @@ private final class PremiumIntroScreenComponent: CombinedComponent {
                 )
                 context.add(button
                     .position(CGPoint(x: context.availableSize.width / 2.0, y: context.availableSize.height - bottomPanel.size.height + bottomPanelPadding + button.size.height / 2.0))
-                    .disappear(Transition.Disappear { view, transition, completion in
+                    .disappear(ComponentTransition.Disappear { view, transition, completion in
                         if case .none = transition.animation {
                             completion()
                             return
