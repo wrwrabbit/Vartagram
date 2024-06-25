@@ -7,7 +7,7 @@ There are several things we require from **all developers** for the moment.
 
 1. [**Obtain your own api_id**](https://core.telegram.org/api/obtaining_api_id) for your application.
 2. Please **do not** use the name Telegram for your app — or make sure your users understand that it is unofficial.
-3. Kindly **do not** use our standard logo (white paper plane in a blue circle) as your app's logo.
+3. Kindly **do not** use Telegram standard logo (white paper plane in a blue circle) as your app's logo.
 3. Please study our [**security guidelines**](https://core.telegram.org/mtproto/security_guidelines) and take good care of your users' data and privacy.
 4. Please remember to publish **your** code too in order to comply with the licences.
 
