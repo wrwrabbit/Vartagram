@@ -1,5 +1,3 @@
-import PtgForeignAgentNoticeRemoval
-
 import Foundation
 import UIKit
 import Postbox
@@ -500,22 +498,19 @@ public final class ChatMessageAttachedContentNode: ASDisplayNode {
                         }
                     case .text:
                         if let text = text, !text.isEmpty {
-                            let (text_, entities_) = context.shouldSuppressForeignAgentNotice(in: message) ? removeForeignAgentNotice(text: text, entities: entities ?? [], mayRemoveWholeText: true) : (text, entities ?? [])
-                            if !text_.isEmpty {
-                                var cutout: TextNodeCutout?
-                                if remainingCutoutHeight > 0.0 {
-                                    cutout = TextNodeCutout(topRight: CGSize(width: cutoutWidth, height: remainingCutoutHeight))
-                                }
-                                var maximumNumberOfLines: Int = 12
-                                if isPreview {
-                                    maximumNumberOfLines = mediaAndFlags != nil ? 4 : 6
-                                }
-                                let textString = stringWithAppliedEntities(text_, entities: entities_, baseColor: messageTheme.primaryTextColor, linkColor: incoming ? mainColor : messageTheme.linkTextColor, baseFont: textFont, linkFont: textFont, boldFont: textBoldFont, italicFont: textItalicFont, boldItalicFont: textBoldItalicFont, fixedFont: textFixedFont, blockQuoteFont: textBlockQuoteFont, message: nil, adjustQuoteFontSize: true)
-                                let textLayoutAndApplyValue = makeTextLayout(TextNodeLayoutArguments(attributedString: textString, backgroundColor: nil, maximumNumberOfLines: maximumNumberOfLines, truncationType: .end, constrainedSize: CGSize(width: maxContentsWidth, height: 10000.0), alignment: .natural, lineSpacing: textLineSpacing, cutout: cutout, insets: UIEdgeInsets()))
-                                textLayoutAndApply = textLayoutAndApplyValue
-                                
-                                remainingCutoutHeight -= textLayoutAndApplyValue.0.size.height
+                            var cutout: TextNodeCutout?
+                            if remainingCutoutHeight > 0.0 {
+                                cutout = TextNodeCutout(topRight: CGSize(width: cutoutWidth, height: remainingCutoutHeight))
                             }
+                            var maximumNumberOfLines: Int = 12
+                            if isPreview {
+                                maximumNumberOfLines = mediaAndFlags != nil ? 4 : 6
+                            }
+                            let textString = stringWithAppliedEntities(text, entities: entities ?? [], baseColor: messageTheme.primaryTextColor, linkColor: incoming ? mainColor : messageTheme.linkTextColor, baseFont: textFont, linkFont: textFont, boldFont: textBoldFont, italicFont: textItalicFont, boldItalicFont: textBoldItalicFont, fixedFont: textFixedFont, blockQuoteFont: textBlockQuoteFont, message: nil, adjustQuoteFontSize: true)
+                            let textLayoutAndApplyValue = makeTextLayout(TextNodeLayoutArguments(attributedString: textString, backgroundColor: nil, maximumNumberOfLines: maximumNumberOfLines, truncationType: .end, constrainedSize: CGSize(width: maxContentsWidth, height: 10000.0), alignment: .natural, lineSpacing: textLineSpacing, cutout: cutout, insets: UIEdgeInsets()))
+                            textLayoutAndApply = textLayoutAndApplyValue
+                            
+                            remainingCutoutHeight -= textLayoutAndApplyValue.0.size.height
                         }
                     case .media, .file, .actionButton:
                         break
