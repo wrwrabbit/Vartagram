@@ -114,6 +114,10 @@ private final class VideoRecorderImpl {
     }
 
     public func appendVideoSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
+        #if compiler(>=6.0) // Xcode 16
+        nonisolated(unsafe) let sampleBuffer = sampleBuffer
+        #endif
+
         if let _ = self.hasError() {
             return
         }
@@ -210,6 +214,10 @@ private final class VideoRecorderImpl {
     }
     
     public func appendAudioSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
+        #if canImport(SwiftData) // Xcode 16
+        nonisolated(unsafe) let sampleBuffer = sampleBuffer
+        #endif
+
         if let _ = self.hasError() {
             return
         }
