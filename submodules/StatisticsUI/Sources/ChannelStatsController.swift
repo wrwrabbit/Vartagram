@@ -38,7 +38,7 @@ private final class ChannelStatsControllerArguments {
     let openGifts: () -> Void
     let createPrepaidGiveaway: (PrepaidGiveaway) -> Void
     let updateGiftsSelected: (Bool) -> Void
-        
+
     init(context: AccountContext, loadDetailedGraph: @escaping (StatsGraph, Int64) -> Signal<StatsGraph?, NoError>, openPostStats: @escaping (EnginePeer, StatsPostItem) -> Void, openStory: @escaping (EngineStoryItem, UIView) -> Void, contextAction: @escaping (MessageId, ASDisplayNode, ContextGesture?) -> Void, copyBoostLink: @escaping (String) -> Void, shareBoostLink: @escaping (String) -> Void, openBoost: @escaping (ChannelBoostersContext.State.Boost) -> Void, expandBoosters: @escaping () -> Void, openGifts: @escaping () -> Void, createPrepaidGiveaway: @escaping (PrepaidGiveaway) -> Void, updateGiftsSelected: @escaping (Bool) -> Void) {
         self.context = context
         self.loadDetailedGraph = loadDetailedGraph
@@ -774,7 +774,7 @@ private struct ChannelStatsControllerState: Equatable {
     let boostersExpanded: Bool
     let moreBoostersDisplayed: Int32
     let giftsSelected: Bool
-  
+
     init() {
         self.section = .stats
         self.boostersExpanded = false
@@ -831,71 +831,71 @@ private func channelStatsControllerEntries(state: ChannelStatsControllerState, p
         if let data = data {
             let minDate = stringForDate(timestamp: data.period.minDate, strings: presentationData.strings)
             let maxDate = stringForDate(timestamp: data.period.maxDate, strings: presentationData.strings)
-            
+
             entries.append(.overviewTitle(presentationData.theme, presentationData.strings.Stats_Overview, "\(minDate) – \(maxDate)"))
             entries.append(.overview(presentationData.theme, data))
-            
+
             if !data.growthGraph.isEmpty {
                 entries.append(.growthTitle(presentationData.theme, presentationData.strings.Stats_GrowthTitle))
                 entries.append(.growthGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.growthGraph, .lines))
             }
-            
+
             if !data.followersGraph.isEmpty {
                 entries.append(.followersTitle(presentationData.theme, presentationData.strings.Stats_FollowersTitle))
                 entries.append(.followersGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.followersGraph, .lines))
             }
-            
+
             if !data.muteGraph.isEmpty {
                 entries.append(.notificationsTitle(presentationData.theme, presentationData.strings.Stats_NotificationsTitle))
                 entries.append(.notificationsGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.muteGraph, .lines))
             }
-            
+
             if !data.topHoursGraph.isEmpty {
                 entries.append(.viewsByHourTitle(presentationData.theme, presentationData.strings.Stats_ViewsByHoursTitle))
                 entries.append(.viewsByHourGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.topHoursGraph, .hourlyStep))
             }
-            
+
             if !data.viewsBySourceGraph.isEmpty {
                 entries.append(.viewsBySourceTitle(presentationData.theme, presentationData.strings.Stats_ViewsBySourceTitle))
                 entries.append(.viewsBySourceGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.viewsBySourceGraph, .bars))
             }
-            
+
             if !data.newFollowersBySourceGraph.isEmpty {
                 entries.append(.followersBySourceTitle(presentationData.theme, presentationData.strings.Stats_FollowersBySourceTitle))
                 entries.append(.followersBySourceGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.newFollowersBySourceGraph, .bars))
             }
-            
+
             if !data.languagesGraph.isEmpty {
                 entries.append(.languagesTitle(presentationData.theme, presentationData.strings.Stats_LanguagesTitle))
                 entries.append(.languagesGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.languagesGraph, .pie))
             }
-            
+
             if !data.interactionsGraph.isEmpty {
                 entries.append(.postInteractionsTitle(presentationData.theme, presentationData.strings.Stats_InteractionsTitle))
                 entries.append(.postInteractionsGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.interactionsGraph, .twoAxisStep))
             }
-            
+
             if !data.instantPageInteractionsGraph.isEmpty {
                 entries.append(.instantPageInteractionsTitle(presentationData.theme, presentationData.strings.Stats_InstantViewInteractionsTitle))
                 entries.append(.instantPageInteractionsGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.instantPageInteractionsGraph, .twoAxisStep))
             }
-            
+
             if !data.reactionsByEmotionGraph.isEmpty {
                 entries.append(.reactionsByEmotionTitle(presentationData.theme, presentationData.strings.Stats_ReactionsByEmotionTitle))
                 entries.append(.reactionsByEmotionGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.reactionsByEmotionGraph, .bars))
             }
-            
+
             if !data.storyInteractionsGraph.isEmpty {
                 entries.append(.storyInteractionsTitle(presentationData.theme, presentationData.strings.Stats_StoryInteractionsTitle))
                 entries.append(.storyInteractionsGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.storyInteractionsGraph, .twoAxisStep))
             }
-            
+
             if !data.storyReactionsByEmotionGraph.isEmpty {
                 entries.append(.storyReactionsByEmotionTitle(presentationData.theme, presentationData.strings.Stats_StoryReactionsByEmotionTitle))
                 entries.append(.storyReactionsByEmotionGraph(presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, data.storyReactionsByEmotionGraph, .bars))
             }
-            
-            
+
+
             if let peer, let interactions {
                 var posts: [StatsPostItem] = []
                 if let messages {
@@ -913,7 +913,7 @@ private func channelStatsControllerEntries(state: ChannelStatsControllerState, p
                     }
                 }
                 posts.sort(by: { $0.timestamp > $1.timestamp })
-                
+
                 if !posts.isEmpty {
                     entries.append(.postsTitle(presentationData.theme, presentationData.strings.Stats_PostsTitle))
                     var index: Int32 = 0
@@ -942,10 +942,10 @@ private func channelStatsControllerEntries(state: ChannelStatsControllerState, p
                 progress = 1.0
             }
             entries.append(.boostLevel(presentationData.theme, Int32(boostData.boosts), Int32(boostData.level), progress))
-            
+
             entries.append(.boostOverviewTitle(presentationData.theme, presentationData.strings.Stats_Boosts_OverviewHeader))
             entries.append(.boostOverview(presentationData.theme, boostData))
-            
+
             if !boostData.prepaidGiveaways.isEmpty {
                 entries.append(.boostPrepaidTitle(presentationData.theme, presentationData.strings.Stats_Boosts_PrepaidGiveawaysTitle))
                 var i: Int32 = 0
@@ -955,7 +955,7 @@ private func channelStatsControllerEntries(state: ChannelStatsControllerState, p
                 }
                 entries.append(.boostPrepaidInfo(presentationData.theme, presentationData.strings.Stats_Boosts_PrepaidGiveawaysInfo))
             }
-            
+
             let boostersTitle: String
             let boostersPlaceholder: String?
             let boostersFooter: String?
@@ -969,11 +969,11 @@ private func channelStatsControllerEntries(state: ChannelStatsControllerState, p
                 boostersFooter = nil
             }
             entries.append(.boostersTitle(presentationData.theme, boostersTitle))
-            
+
             if let boostersPlaceholder {
                 entries.append(.boostersPlaceholder(presentationData.theme, boostersPlaceholder))
             }
-            
+
             var boostsCount: Int32 = 0
             if let boostersState {
                 boostsCount = boostersState.count
@@ -982,23 +982,23 @@ private func channelStatsControllerEntries(state: ChannelStatsControllerState, p
             if let giftsState {
                 giftsCount = giftsState.count
             }
-            
+
             if boostsCount > 0 && giftsCount > 0 && boostsCount != giftsCount {
                 entries.append(.boosterTabs(presentationData.theme, presentationData.strings.Stats_Boosts_TabBoosts(boostsCount), presentationData.strings.Stats_Boosts_TabGifts(giftsCount), state.giftsSelected))
             }
-            
+
             let selectedState: ChannelBoostersContext.State?
             if state.giftsSelected {
                 selectedState = giftsState
             } else {
                 selectedState = boostersState
             }
-            
+
             if let selectedState {
                 var boosterIndex: Int32 = 0
-                
+
                 var boosters: [ChannelBoostersContext.State.Boost] = selectedState.boosts
-                
+
                 var limit: Int32
                 if state.boostersExpanded {
                     limit = 25 + state.moreBoostersDisplayed
@@ -1006,16 +1006,16 @@ private func channelStatsControllerEntries(state: ChannelStatsControllerState, p
                     limit = initialBoostersDisplayedLimit
                 }
                 boosters = Array(boosters.prefix(Int(limit)))
-                
+
                 for booster in boosters {
                     entries.append(.booster(boosterIndex, presentationData.theme, presentationData.dateTimeFormat, booster))
                     boosterIndex += 1
                 }
-                
+
                 let totalBoostsCount = boosters.reduce(Int32(0)) { partialResult, boost in
                     return partialResult + boost.multiplier
                 }
-                
+
                 if totalBoostsCount < selectedState.count {
                     let moreCount: Int32
                     if !state.boostersExpanded {
@@ -1026,15 +1026,15 @@ private func channelStatsControllerEntries(state: ChannelStatsControllerState, p
                     entries.append(.boostersExpand(presentationData.theme, presentationData.strings.Stats_Boosts_ShowMoreBoosts(moreCount)))
                 }
             }
-            
+
             if let boostersFooter {
                 entries.append(.boostersInfo(presentationData.theme, boostersFooter))
             }
-            
+
             entries.append(.boostLinkTitle(presentationData.theme, presentationData.strings.Stats_Boosts_LinkHeader))
             entries.append(.boostLink(presentationData.theme, boostData.url))
             entries.append(.boostLinkInfo(presentationData.theme, presentationData.strings.Stats_Boosts_LinkInfo))
-            
+
             if giveawayAvailable {
                 entries.append(.gifts(presentationData.theme, presentationData.strings.Stats_Boosts_GetBoosts))
                 entries.append(.giftsInfo(presentationData.theme, presentationData.strings.Stats_Boosts_GetBoostsInfo))
@@ -1236,11 +1236,11 @@ public func channelStatsController(context: AccountContext, updatedPresentationD
             |> map(Optional.init)
         )
     )
-    
+
     let longLoadingSignal: Signal<Bool, NoError> = .single(false) |> then(.single(true) |> delay(2.0, queue: Queue.mainQueue()))
-    
+
     let previousData = Atomic<ChannelStats?>(value: nil)
-    
+
     let presentationData = updatedPresentationData?.signal ?? context.sharedContext.presentationData
     let signal = combineLatest(
         presentationData,

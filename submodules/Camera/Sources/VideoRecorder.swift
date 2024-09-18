@@ -44,7 +44,7 @@ private final class VideoRecorderImpl {
     public var duration: CMTime {
         self.queue.sync { _duration }
     }
-        
+
     private var lastVideoSampleTime: CMTime = .invalid
     private var recordingStartSampleTime: CMTime = .invalid
     private var recordingStopSampleTime: CMTime = .invalid
@@ -112,12 +112,12 @@ private final class VideoRecorderImpl {
             }
         }
     }
-        
+
     public func appendVideoSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
         if let _ = self.hasError() {
             return
         }
-        
+
         guard let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer), CMFormatDescriptionGetMediaType(formatDescription) == kCMMediaType_Video else {
             return
         }
@@ -149,7 +149,7 @@ private final class VideoRecorderImpl {
                 print("error")
                 return
             }
-                        
+
             if self.assetWriter.status == .unknown {
                 if sampleBuffer.presentationTimestamp < self.recordingStartSampleTime {
                     return
@@ -160,19 +160,19 @@ private final class VideoRecorderImpl {
                         return
                     }
                 }
-                
+
                 self.assetWriter.startSession(atSourceTime: presentationTime)
                 self.recordingStartSampleTime = presentationTime
                 self.lastVideoSampleTime = presentationTime
             }
-            
+
             if self.assetWriter.status == .writing {
                 if self.recordingStopSampleTime != .invalid && sampleBuffer.presentationTimestamp > self.recordingStopSampleTime {
                     self.hasAllVideoBuffers = true
                     self.maybeFinish()
                     return
                 }
-                
+
                 if let videoInput = self.videoInput, videoInput.isReadyForMoreMediaData {
                     if videoInput.append(sampleBuffer) {
                         self.lastVideoSampleTime = presentationTime
@@ -213,11 +213,11 @@ private final class VideoRecorderImpl {
         if let _ = self.hasError() {
             return
         }
-        
+
         guard let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer), CMFormatDescriptionGetMediaType(formatDescription) == kCMMediaType_Audio else {
             return
         }
-        
+
         self.queue.async {
             guard !self.stopped && self.error.with({ $0 }) == nil else {
                 return
@@ -339,21 +339,21 @@ private final class VideoRecorderImpl {
                 }
                 return
             }
-                        
+
             if let _ = self.error.with({ $0 }) {
                 DispatchQueue.main.async {
                     completion(false, nil, nil)
                 }
                 return
             }
-            
+
             if !self.tryAppendingPendingAudioBuffers() {
                 DispatchQueue.main.async {
                     completion(false, nil, nil)
                 }
                 return
             }
-            
+
             if self.assetWriter.status == .writing {
                 self.assetWriter.finishWriting {
                     if let _ = self.assetWriter.error {
@@ -519,7 +519,7 @@ public final class VideoRecorder {
     func markPositionChange(position: Camera.Position, time: CMTime? = nil) {
         self.impl.markPositionChange(position: position, time: time)
     }
-    
+
     func appendSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
         guard let formatDescriptor = CMSampleBufferGetFormatDescription(sampleBuffer) else {
             return

@@ -7,7 +7,7 @@ import SwiftSignalKit
 import TelegramPresentationData
 import TelegramUIPreferences
 import AccountContext
-import WebKit
+@preconcurrency import WebKit
 import AppBundle
 
 final class BrowserWebContent: UIView, BrowserContent, UIScrollViewDelegate {
