@@ -2,7 +2,7 @@
     "app": "1.0",
     "original": "10.5.2",
     "original_build": "28031",
-    "bazel": "7.3.1",
+    "bazel": "6.4.0",
     "xcode": "16.2",
     "macos": "15"
 }
