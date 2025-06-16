@@ -2082,7 +2082,7 @@ public final class MediaEditorScreen: ViewController, UIDropInteractionDelegate 
         private var isDismissed = false
         private var isDismissBySwipeSuppressed = false
         
-        private (set) var hasAnyChanges = false
+        private(set) var hasAnyChanges = false
         
         private var playbackPositionDisposable: Disposable?
         
