@@ -1291,6 +1291,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     
     deinit {
         assertionFailure("SharedAccountContextImpl is not supposed to be deallocated")
+        self.ptgSettingsDisposable?.dispose()
         self.registeredNotificationTokensDisposable.dispose()
         self.presentationDataDisposable.dispose()
         self.automaticMediaDownloadSettingsDisposable.dispose()
@@ -1298,7 +1299,6 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         self.inAppNotificationSettingsDisposable?.dispose()
         self.mediaInputSettingsDisposable?.dispose()
         self.mediaDisplaySettingsDisposable?.dispose()
-        self.ptgSettingsDisposable?.dispose()
         self.callDisposable?.dispose()
         self.groupCallDisposable?.dispose()
         self.callStateDisposable?.dispose()
@@ -1312,62 +1312,6 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         self.timeBasedCleanupDisposable?.dispose()
         self.maintainFillerFileDisposable?.dispose()
         self.trackLastNonHidingAccountDisposable?.dispose()
-    }
-    
-    func inactiveAccountsUpdated(_ inactiveAccountIds: Set<AccountRecordId>) {
-        assert(Queue.mainQueue().isCurrent())
-        
-        guard self.activeAccountsValue != nil else {
-            return
-        }
-        
-        var hadUpdates = false
-        
-        if self.activeAccountsValue!.accounts.contains(where: { inactiveAccountIds.contains($0.0) }) {
-            self.activeAccountsValue!.inactiveAccounts.append(contentsOf: self.activeAccountsValue!.accounts.filter({ inactiveAccountIds.contains($0.0) }))
-            self.activeAccountsValue!.accounts.removeAll(where: { inactiveAccountIds.contains($0.0) })
-            hadUpdates = true
-        }
-        if self.activeAccountsValue!.inactiveAccounts.contains(where: { !inactiveAccountIds.contains($0.0) }) {
-            self.activeAccountsValue!.accounts.append(contentsOf: self.activeAccountsValue!.inactiveAccounts.filter({ !inactiveAccountIds.contains($0.0) }))
-            self.activeAccountsValue!.inactiveAccounts.removeAll(where: { !inactiveAccountIds.contains($0.0) })
-            hadUpdates = true
-        }
-        
-        var primary: AccountContext?
-        if let currentPrimary = self.activeAccountsValue!.primary, !inactiveAccountIds.contains(currentPrimary.account.id) {
-            primary = currentPrimary
-        }
-        if primary == nil && !self.activeAccountsValue!.accounts.isEmpty {
-            primary = self.activeAccountsValue!.accounts.sorted(by: { $0.2 < $1.2 }).first?.1
-        }
-        
-        var previousPrimaryId: AccountRecordId?
-        if primary !== self.activeAccountsValue!.primary {
-            previousPrimaryId = self.activeAccountsValue!.primary?.account.id
-            hadUpdates = true
-            self.activeAccountsValue!.primary?.account.postbox.clearCaches()
-            self.activeAccountsValue!.primary?.account.resetCachedData()
-            self.activeAccountsValue!.primary = primary
-        }
-        
-        if hadUpdates {
-            self.activeAccountsValue!.accounts.sort(by: { $0.2 < $1.2 })
-            self.activeAccountsPromise.set(.single(self.activeAccountsValue!))
-        }
-        
-        if self.activeAccountsValue!.primary == nil && self.activeAccountsValue!.currentAuth == nil {
-            self.beginNewAuth(testingEnvironment: false)
-        }
-        
-        if let previousPrimaryId {
-            self.accountBecameNonPrimary(previousPrimaryId)
-        }
-    }
-    
-    public func updatePtgSecretPasscodesPromise(_ ptgSecretPasscodesSignal: Signal<PtgSecretPasscodes, NoError>) {
-        assert(!self.applicationBindings.isMainApp)
-        self._ptgSecretPasscodes.set(ptgSecretPasscodesSignal)
     }
     
     private var didPerformAccountSettingsImport = false
@@ -2465,6 +2409,62 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     
     public func makeInstalledStickerPacksController(context: AccountContext, mode: InstalledStickerPacksControllerMode, forceTheme: PresentationTheme?) -> ViewController {
         return installedStickerPacksController(context: context, mode: mode, forceTheme: forceTheme)
+    }
+    
+    func inactiveAccountsUpdated(_ inactiveAccountIds: Set<AccountRecordId>) {
+        assert(Queue.mainQueue().isCurrent())
+        
+        guard self.activeAccountsValue != nil else {
+            return
+        }
+        
+        var hadUpdates = false
+        
+        if self.activeAccountsValue!.accounts.contains(where: { inactiveAccountIds.contains($0.0) }) {
+            self.activeAccountsValue!.inactiveAccounts.append(contentsOf: self.activeAccountsValue!.accounts.filter({ inactiveAccountIds.contains($0.0) }))
+            self.activeAccountsValue!.accounts.removeAll(where: { inactiveAccountIds.contains($0.0) })
+            hadUpdates = true
+        }
+        if self.activeAccountsValue!.inactiveAccounts.contains(where: { !inactiveAccountIds.contains($0.0) }) {
+            self.activeAccountsValue!.accounts.append(contentsOf: self.activeAccountsValue!.inactiveAccounts.filter({ !inactiveAccountIds.contains($0.0) }))
+            self.activeAccountsValue!.inactiveAccounts.removeAll(where: { !inactiveAccountIds.contains($0.0) })
+            hadUpdates = true
+        }
+        
+        var primary: AccountContext?
+        if let currentPrimary = self.activeAccountsValue!.primary, !inactiveAccountIds.contains(currentPrimary.account.id) {
+            primary = currentPrimary
+        }
+        if primary == nil && !self.activeAccountsValue!.accounts.isEmpty {
+            primary = self.activeAccountsValue!.accounts.sorted(by: { $0.2 < $1.2 }).first?.1
+        }
+        
+        var previousPrimaryId: AccountRecordId?
+        if primary !== self.activeAccountsValue!.primary {
+            previousPrimaryId = self.activeAccountsValue!.primary?.account.id
+            hadUpdates = true
+            self.activeAccountsValue!.primary?.account.postbox.clearCaches()
+            self.activeAccountsValue!.primary?.account.resetCachedData()
+            self.activeAccountsValue!.primary = primary
+        }
+        
+        if hadUpdates {
+            self.activeAccountsValue!.accounts.sort(by: { $0.2 < $1.2 })
+            self.activeAccountsPromise.set(.single(self.activeAccountsValue!))
+        }
+        
+        if self.activeAccountsValue!.primary == nil && self.activeAccountsValue!.currentAuth == nil {
+            self.beginNewAuth(testingEnvironment: false)
+        }
+        
+        if let previousPrimaryId {
+            self.accountBecameNonPrimary(previousPrimaryId)
+        }
+    }
+    
+    public func updatePtgSecretPasscodesPromise(_ ptgSecretPasscodesSignal: Signal<PtgSecretPasscodes, NoError>) {
+        assert(!self.applicationBindings.isMainApp)
+        self._ptgSecretPasscodes.set(ptgSecretPasscodesSignal)
     }
     
     private func hideUIOfInactiveSecrets(accountIds: Set<AccountRecordId>, peerIds: Set<PeerId>) {

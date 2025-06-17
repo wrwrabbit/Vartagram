@@ -1,3 +1,5 @@
+import PtgForeignAgentNoticeRemoval
+
 import Foundation
 import UIKit
 import Postbox
@@ -461,6 +463,11 @@ public final class ChatMessageWebpageBubbleContentNode: ChatMessageBubbleContent
                         default:
                             break
                     }
+                }
+                
+                // do not check item.message.isPeerOrForwardSourceBroadcastChannel, because this may be a preview of a channel message, and item.message just contains link to that message
+                if text != nil, item.context.sharedContext.currentPtgSettings.with({ $0.suppressForeignAgentNotice }) {
+                    (text, entities) = removeForeignAgentNotice(text: text!, entities: entities ?? [], mayRemoveWholeText: true)
                 }
                 
                 if defaultWebpageImageSizeIsSmall(webpage: webpage) {
