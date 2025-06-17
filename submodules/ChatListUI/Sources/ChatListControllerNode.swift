@@ -1289,7 +1289,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         }
     }
     
-    private func updateNavigationBar(layout: ContainerViewLayout, deferScrollApplication: Bool, transition: Transition) -> (navigationHeight: CGFloat, storiesInset: CGFloat) {
+    private func updateNavigationBar(layout: ContainerViewLayout, deferScrollApplication: Bool, transition: ComponentTransition) -> (navigationHeight: CGFloat, storiesInset: CGFloat) {
         let headerContent = self.controller?.updateHeaderContent()
         
         var tabsNode: ASDisplayNode?
@@ -1431,7 +1431,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         }
         
         if let navigationBarComponentView = self.navigationBarView.view as? ChatListNavigationBar.View {
-            navigationBarComponentView.applyScroll(offset: offset, allowAvatarsExpansion: allowAvatarsExpansion, forceUpdate: false, transition: Transition(transition).withUserData(ChatListNavigationBar.AnimationHint(
+            navigationBarComponentView.applyScroll(offset: offset, allowAvatarsExpansion: allowAvatarsExpansion, forceUpdate: false, transition: ComponentTransition(transition).withUserData(ChatListNavigationBar.AnimationHint(
                 disableStoriesAnimations: self.tempDisableStoriesAnimations,
                 crossfadeStoryPeers: false
             )))
@@ -1446,7 +1446,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         transition.updateSublayerTransformOffset(layer: self.mainContainerNode.layer, offset: CGPoint(x: 0.0, y: -mainDelta))
     }
     
-    func requestNavigationBarLayout(transition: Transition) {
+    func requestNavigationBarLayout(transition: ComponentTransition) {
         guard let (layout, _, _, _, _) = self.containerLayout else {
             return
         }
@@ -1477,7 +1477,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         var cleanNavigationBarHeight = cleanNavigationBarHeight
         var storiesInset = storiesInset
         
-        let navigationBarLayout = self.updateNavigationBar(layout: layout, deferScrollApplication: true, transition: Transition(transition))
+        let navigationBarLayout = self.updateNavigationBar(layout: layout, deferScrollApplication: true, transition: ComponentTransition(transition))
         self.mainContainerNode.initialScrollingOffset = ChatListNavigationBar.searchScrollHeight + navigationBarLayout.storiesInset
         
         navigationBarHeight = navigationBarLayout.navigationHeight
@@ -1599,7 +1599,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         
         if let navigationBarComponentView = self.navigationBarView.view as? ChatListNavigationBar.View {
             navigationBarComponentView.deferScrollApplication = false
-            navigationBarComponentView.applyCurrentScroll(transition: Transition(transition))
+            navigationBarComponentView.applyCurrentScroll(transition: ComponentTransition(transition))
         }
     }
     
@@ -1702,7 +1702,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
     
     func willScrollToTop() {
         if let navigationBarComponentView = self.navigationBarView.view as? ChatListNavigationBar.View {
-            navigationBarComponentView.applyScroll(offset: 0.0, allowAvatarsExpansion: false, transition: Transition(animation: .curve(duration: 0.3, curve: .slide)))
+            navigationBarComponentView.applyScroll(offset: 0.0, allowAvatarsExpansion: false, transition: ComponentTransition(animation: .curve(duration: 0.3, curve: .slide)))
         }
     }
     

@@ -59,7 +59,7 @@ public final class PlainButtonComponent: Component {
         
         override init(frame: CGRect) {
             super.init(frame: frame)
-            
+
             self.contentContainer.isUserInteractionEnabled = false
             self.addSubview(self.contentContainer)
             
@@ -74,20 +74,20 @@ public final class PlainButtonComponent: Component {
                         self.contentContainer.layer.removeAnimation(forKey: "opacity")
                         self.contentContainer.layer.removeAnimation(forKey: "sublayerTransform")
                         self.contentContainer.alpha = 0.7
-                        let transition = Transition(animation: .curve(duration: 0.2, curve: .easeInOut))
+                        let transition = ComponentTransition(animation: .curve(duration: 0.2, curve: .easeInOut))
                         transition.setScale(layer: self.contentContainer.layer, scale: topScale)
                     } else {
                         self.contentContainer.alpha = 1.0
                         self.contentContainer.layer.animateAlpha(from: 0.7, to: 1.0, duration: 0.2)
                         
-                        let transition = Transition(animation: .none)
+                        let transition = ComponentTransition(animation: .none)
                         transition.setScale(layer: self.contentContainer.layer, scale: 1.0)
-                        
+
                         self.contentContainer.layer.animateScale(from: topScale, to: maxScale, duration: 0.13, timingFunction: CAMediaTimingFunctionName.easeOut.rawValue, removeOnCompletion: false, completion: { [weak self] _ in
                             guard let self else {
                                 return
                             }
-                            
+
                             self.contentContainer.layer.animateScale(from: maxScale, to: 1.0, duration: 0.1, timingFunction: CAMediaTimingFunctionName.easeIn.rawValue)
                         })
                     }
@@ -123,7 +123,7 @@ public final class PlainButtonComponent: Component {
             return nil
         }
 
-        func update(component: PlainButtonComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+        func update(component: PlainButtonComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.componentState = state
             
@@ -169,7 +169,7 @@ public final class PlainButtonComponent: Component {
             self.contentContainer.layer.anchorPoint = CGPoint(x: anchorX, y: 0.5)
             transition.setBounds(view: self.contentContainer, bounds: CGRect(origin: CGPoint(), size: size))
             transition.setPosition(view: self.contentContainer, position: CGPoint(x: size.width * anchorX, y: size.height * 0.5))
-            
+
             return size
         }
     }
@@ -178,7 +178,7 @@ public final class PlainButtonComponent: Component {
         return View(frame: CGRect())
     }
 
-    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

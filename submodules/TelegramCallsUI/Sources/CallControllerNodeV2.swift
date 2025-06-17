@@ -715,7 +715,7 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
                 interfaceOrientation: layout.metrics.orientation ?? .portrait,
                 screenCornerRadius: layout.deviceMetrics.screenCornerRadius,
                 state: callScreenState,
-                transition: Transition(transition)
+                transition: ComponentTransition(transition)
             )
         }
     }

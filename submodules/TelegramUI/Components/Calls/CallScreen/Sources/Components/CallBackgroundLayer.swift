@@ -169,7 +169,7 @@ final class CallBackgroundLayer: MetalEngineSubjectLayer, MetalEngineSubject {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func update(stateIndex: Int, transition: Transition) {
+    func update(stateIndex: Int, transition: ComponentTransition) {
         if self.stateIndex != stateIndex {
             self.stateIndex = stateIndex
             if !transition.animation.isImmediate {

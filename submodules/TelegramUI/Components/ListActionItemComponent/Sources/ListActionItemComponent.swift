@@ -44,7 +44,7 @@ public final class ListActionItemComponent: Component {
         }
         return true
     }
-    
+
     public final class View: HighlightTrackingButton, ListSectionComponent.ChildView {
         private let title = ComponentView<Empty>()
         private var icon: ComponentView<Empty>?
@@ -56,16 +56,16 @@ public final class ListActionItemComponent: Component {
         public var iconView: UIView? {
             return self.icon?.view
         }
-        
+
         public var customUpdateIsHighlighted: ((Bool) -> Void)?
         
         public override init(frame: CGRect) {
             self.arrowView = UIImageView()
-            
+
             super.init(frame: CGRect())
             
             self.addSubview(self.arrowView)
-            
+
             self.addTarget(self, action: #selector(self.pressed), for: .touchUpInside)
             self.internalHighligthedChanged = { [weak self] isHighlighted in
                 guard let self else {
@@ -85,14 +85,14 @@ public final class ListActionItemComponent: Component {
             self.component?.action?(self)
         }
         
-        func update(component: ListActionItemComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+        func update(component: ListActionItemComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             let previousComponent = self.component
             self.component = component
             
             self.isEnabled = component.action != nil
             
             let verticalInset: CGFloat = 11.0
-            
+
             let contentLeftInset: CGFloat = 16.0
             let contentRightInset: CGFloat = component.hasArrow ? 30.0 : 16.0
             
@@ -181,7 +181,7 @@ public final class ListActionItemComponent: Component {
         return View(frame: CGRect())
     }
     
-    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

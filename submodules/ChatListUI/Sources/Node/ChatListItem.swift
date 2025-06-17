@@ -78,7 +78,7 @@ public enum ChatListItemContent {
             self.hasUnseenCloseFriends = hasUnseenCloseFriends
         }
     }
-    
+
     public struct PeerData {
         public var messages: [EngineMessage]
         public var peer: EngineRenderedPeer
@@ -674,7 +674,7 @@ private final class ChatListMediaPreviewNode: ASDisplayNode {
                 }
             }
         }
-        
+
         let makeLayout = self.imageNode.asyncLayout()
         self.imageNode.frame = CGRect(origin: CGPoint(), size: size)
         let apply = makeLayout(TransformImageArguments(corners: ImageCorners(radius: isRound ? size.width / 2.0 : 2.0), imageSize: dimensions.aspectFilled(size), boundingSize: size, intrinsicInsets: UIEdgeInsets()))
@@ -939,7 +939,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
             }
         }
     }
-    
+
     var item: ChatListItem?
     
     private let backgroundNode: ASDisplayNode
@@ -952,7 +952,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
     private let extractedBackgroundImageNode: ASImageNode
     private var extractedRect: CGRect?
     private var nonExtractedRect: CGRect?
-    
+
     let avatarContainerNode: ASDisplayNode
     let avatarNode: AvatarNode
     var avatarIconView: ComponentHostView<Empty>?
@@ -1281,11 +1281,11 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.separatorNode.isLayerBacked = true
         
         self.contextSourceNode = ContextExtractedContentContainingNode()
-        
+
         self.extractedBackgroundImageNode = ASImageNode()
         self.extractedBackgroundImageNode.displaysAsynchronously = false
         self.extractedBackgroundImageNode.alpha = 0.0
-        
+
         super.init(layerBacked: false, dynamicBounce: false, rotated: false, seeThrough: false)
         
         self.isAccessibilityElement = true
@@ -1364,21 +1364,21 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
             self.avatarTapRecognizer = avatarTapRecognizer
             self.avatarNode.view.addGestureRecognizer(avatarTapRecognizer)
         }
-        
+
         self.contextSourceNode.willUpdateIsExtractedToContextPreview = { [weak self] isExtracted, transition in
             guard let strongSelf = self, let item = strongSelf.item else {
                 return
             }
-            
+
             if isExtracted {
                 strongSelf.extractedBackgroundImageNode.image = generateStretchableFilledCircleImage(diameter: 28.0, color: item.presentationData.theme.list.plainBackgroundColor)
             }
-            
+
             if let extractedRect = strongSelf.extractedRect, let nonExtractedRect = strongSelf.nonExtractedRect {
                 let rect = isExtracted ? extractedRect : nonExtractedRect
                 transition.updateFrame(node: strongSelf.extractedBackgroundImageNode, frame: rect)
             }
-            
+
             transition.updateAlpha(node: strongSelf.extractedBackgroundImageNode, alpha: isExtracted ? 1.0 : 0.0, completion: { _ in
                 if !isExtracted {
                     self?.extractedBackgroundImageNode.image = nil
@@ -1430,7 +1430,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
             }
             self.avatarNode.setPeer(context: item.context, theme: item.presentationData.theme, peer: peer, overrideImage: .archivedChatsIcon(hiddenByDefault: groupReferenceData.hiddenByDefault), emptyColor: item.presentationData.theme.list.mediaPlaceholderColor, synchronousLoad: synchronousLoads)
         }
-        
+
         self.avatarNode.setStoryStats(storyStats: storyState.flatMap { storyState in
             return AvatarNode.StoryStats(
                 totalCount: storyState.stats.totalCount,
@@ -1843,7 +1843,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
                     selectableControlSizeAndApply = sizeAndApply
                 }
                 editingOffset = sizeAndApply.0
-                
+
                 if case let .chatList(index) = item.index, index.pinningIndex != nil, promoInfo == nil, !isPeerGroup {
                     let sizeAndApply = reorderControlLayout(item.presentationData.theme)
                     reorderControlSizeAndApply = sizeAndApply
@@ -1865,7 +1865,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
             let enableChatListPhotos = true
             
             let avatarDiameter = min(60.0, floor(item.presentationData.fontSize.baseDisplaySize * 60.0 / 17.0))
-            
+
             let avatarLeftInset: CGFloat
             if item.interaction.isInlineMode {
                 avatarLeftInset = 12.0
@@ -1989,7 +1989,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
                             }
                         }
                     }
-                
+
                     if let _ = peerText, case let .channel(channel) = itemPeer.chatMainPeer, channel.flags.contains(.isForum), threadInfo == nil {
                         if let forumTopicData = forumTopicData {
                             forumThread = (forumTopicData.id, forumTopicData.title, forumTopicData.iconFileId, forumTopicData.iconColor, forumTopicData.isUnread)
@@ -2016,7 +2016,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
                     if inlineAuthorPrefix == nil, let draftState = draftState {
                         hasDraft = true
                         authorAttributedString = NSAttributedString(string: item.presentationData.strings.DialogList_Draft, font: textFont, textColor: theme.messageDraftTextColor)
-                        
+
                         let draftText = stringWithAppliedEntities(draftState.text, entities: draftState.entities, baseColor: theme.messageTextColor, linkColor: theme.messageTextColor, baseFont: textFont, linkFont: textFont, boldFont: textFont, italicFont: textFont, boldItalicFont: textFont, fixedFont: textFont, blockQuoteFont: textFont, message: nil)
                         
                         attributedText = foldLineBreaks(draftText)
@@ -2650,7 +2650,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
                 badgeSize += currentPinnedIconImage.size.width
             }
             badgeSize = max(badgeSize, reorderInset)
-            
+
             var effectiveAuthorTitle = (hideAuthor && !hasDraft) ? nil : authorAttributedString
             
             let isSearching = item.interaction.searchTextHighightState != nil
@@ -2684,7 +2684,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
             }
             
             let (authorLayout, authorApply) = authorLayout(item.context, rawContentWidth - badgeSize, item.presentationData.theme, effectiveAuthorTitle, forumThreads)
-            
+
             var textCutout: TextNodeCutout?
             if !textLeftCutout.isZero {
                 textCutout = TextNodeCutout(topLeft: CGSize(width: textLeftCutout, height: 10.0), topRight: nil, bottomRight: nil)
@@ -2921,19 +2921,19 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
                     
                     strongSelf.contextSourceNode.frame = contextContainerFrame
                     strongSelf.contextSourceNode.contentNode.frame = contextContainerFrame
-                    
+
                     let nonExtractedRect = CGRect(origin: CGPoint(), size: contextContainerFrame.size)
                     let extractedRect = CGRect(origin: CGPoint(), size: contextContainerFrame.size).insetBy(dx: params.leftInset, dy: 0.0)
                     strongSelf.extractedRect = extractedRect
                     strongSelf.nonExtractedRect = nonExtractedRect
-                    
+
                     if strongSelf.contextSourceNode.isExtractedToContextPreview {
                         strongSelf.extractedBackgroundImageNode.frame = extractedRect
                     } else {
                         strongSelf.extractedBackgroundImageNode.frame = nonExtractedRect
                     }
                     strongSelf.contextSourceNode.contentRect = extractedRect
-                    
+
                     var mainContentFrame: CGRect
                     var mainContentBoundsOffset: CGFloat
                     var mainContentAlpha: CGFloat = 1.0
@@ -3245,7 +3245,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
                                   
                     let _ = measureApply()
                     let _ = dateApply()
-                    
+
                     let _ = textApply(TextNodeWithEntities.Arguments(
                         context: item.context,
                         cache: item.interaction.animationCache,
@@ -3486,7 +3486,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
                         
                         strongSelf.authorNode.assignParentNode(parentNode: nil)
                     }
-                    
+
                     if !textLayout.spoilers.isEmpty {
                         let dustNode: InvisibleInkDustNode
                         if let current = strongSelf.dustNode {
@@ -3635,7 +3635,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
                     }
                     strongSelf.currentMediaPreviewSpecs = contentImageSpecs
                     strongSelf.currentTextLeftCutout = textLeftCutout
-                    
+
                     if !contentDelta.x.isZero || !contentDelta.y.isZero {
                         let titlePosition = strongSelf.titleNode.position
                         transition.animatePosition(node: strongSelf.titleNode, from: CGPoint(x: titlePosition.x - contentDelta.x, y: titlePosition.y - contentDelta.y))
@@ -3760,7 +3760,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
                     } else {
                         transition.updateAlpha(node: strongSelf.separatorNode, alpha: 1.0)
                     }
-                    
+
                     transition.updateFrame(node: strongSelf.backgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: layout.contentSize.width, height: itemHeight)))
                     let backgroundColor: UIColor
                     let highlightedBackgroundColor: UIColor

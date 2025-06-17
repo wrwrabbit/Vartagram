@@ -131,7 +131,7 @@ class ChatControllerNode: ASDisplayNode, UIScrollViewDelegate {
     let historyNodeContainer: ASDisplayNode
     let loadingNode: ChatLoadingNode
     private(set) var loadingPlaceholderNode: ChatLoadingPlaceholderNode?
-    
+
     var isScrollingLockedAtTop: Bool = false
     
     private var emptyNode: ChatEmptyNode?
@@ -261,7 +261,7 @@ class ChatControllerNode: ASDisplayNode, UIScrollViewDelegate {
     private var keyboardGestureAccessoryHeight: CGFloat?
     
     private var derivedLayoutState: ChatControllerNodeDerivedLayoutState?
-    
+
     private var isLoadingValue: Bool = false
     private var isLoadingEarlier: Bool = false
     private func updateIsLoading(isLoading: Bool, earlier: Bool, animated: Bool) {
@@ -999,7 +999,7 @@ class ChatControllerNode: ASDisplayNode, UIScrollViewDelegate {
         guard let peer = self.chatPresentationInterfaceState.renderedPeer?.peer as? TelegramChannel, case .broadcast = peer.info, self.context.sharedContext.currentPtgSettings.with({ $0.hideMuteUnmuteButtonInChannels }) else {
             return
         }
-        
+
         if self.inputPanelNode == nil {
             if self.historyNode.isScrollAtBottomPositionUpdated == nil {
                 self.inputPanelClippingNode.alpha = self.historyNode.isScrollAtBottomPosition ? 1.0 : 0.0
@@ -1019,7 +1019,7 @@ class ChatControllerNode: ASDisplayNode, UIScrollViewDelegate {
             self.inputPanelClippingNode.alpha = 1.0
         }
     }
-    
+
     func preferredContentSizeForLayout(_ layout: ContainerViewLayout) -> CGSize? {
         var height = self.historyNode.scroller.contentSize.height
         height += 3.0
@@ -1467,7 +1467,7 @@ class ChatControllerNode: ASDisplayNode, UIScrollViewDelegate {
         }
         
         self.updateMuteUnmuteButtonVisibilityInChannels()
-        
+
         if let secondaryInputPanelNode = inputPanelNodes.secondary, !previewing {
             if secondaryInputPanelNode !== self.secondaryInputPanelNode {
                 dismissedSecondaryInputPanelNode = self.secondaryInputPanelNode
@@ -1887,7 +1887,7 @@ class ChatControllerNode: ASDisplayNode, UIScrollViewDelegate {
         if case .standard = self.chatPresentationInterfaceState.mode {
             listInsets.left += layout.safeInsets.left
             listInsets.right += layout.safeInsets.right
-            
+
             if case .regular = layout.metrics.widthClass, case .regular = layout.metrics.heightClass {
                 listInsets.left += 6.0
                 listInsets.right += 6.0
@@ -2533,7 +2533,7 @@ class ChatControllerNode: ASDisplayNode, UIScrollViewDelegate {
     
     func updateChatPresentationInterfaceState(_ chatPresentationInterfaceState: ChatPresentationInterfaceState, transition: ContainedViewLayoutTransition, interactive: Bool, completion: @escaping (ContainedViewLayoutTransition) -> Void) {
         self.selectedMessages = chatPresentationInterfaceState.interfaceState.selectionState?.selectedIds
-        
+
         if let textInputPanelNode = self.textInputPanelNode {
             self.chatPresentationInterfaceState = self.chatPresentationInterfaceState.updatedInterfaceState { $0.withUpdatedEffectiveInputState(textInputPanelNode.inputTextState) }
         }

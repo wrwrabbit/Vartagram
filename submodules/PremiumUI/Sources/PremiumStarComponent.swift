@@ -79,7 +79,7 @@ class PremiumStarComponent: Component {
         weak var animateFrom: UIView?
         weak var containerView: UIView?
         var animationColor: UIColor?
-        
+
         private let sceneView: SCNView
                 
         private var previousInteractionTimestamp: Double = 0.0
@@ -267,7 +267,7 @@ class PremiumStarComponent: Component {
                 }
                 resourceUrl = tmpUrl
             }
-            
+
             guard let scene = try? SCNScene(url: resourceUrl, options: nil) else {
                 return
             }
@@ -296,20 +296,20 @@ class PremiumStarComponent: Component {
             }
                         
             containerView = containerView.subviews[2].subviews[1]
-            
+
             if let animationColor = self.animationColor {
                 let newNode = node.clone()
                 newNode.geometry = node.geometry?.copy() as? SCNGeometry
-                
+
                 let colorMaterial = SCNMaterial()
                 colorMaterial.diffuse.contents = animationColor
                 colorMaterial.lightingModel = SCNMaterial.LightingModel.blinn
                 newNode.geometry?.materials = [colorMaterial]
                 node.addChildNode(newNode)
-                
+
                 newNode.scale = SCNVector3(1.03, 1.03, 1.03)
                 newNode.geometry?.materials.first?.diffuse.contents = animationColor
-                   
+
                 let animation = CABasicAnimation(keyPath: "opacity")
                 animation.beginTime = CACurrentMediaTime() + 0.1
                 animation.duration = 0.7
@@ -322,7 +322,7 @@ class PremiumStarComponent: Component {
                 }
                 newNode.addAnimation(animation, forKey: "opacity")
             }
-            
+
             let initialPosition = self.sceneView.center
             let targetPosition = self.sceneView.superview!.convert(self.sceneView.center, to: containerView)
             let sourcePosition = animateFrom.superview!.convert(animateFrom.center, to: containerView).offsetBy(dx: 0.0, dy: -20.0)
@@ -391,7 +391,7 @@ class PremiumStarComponent: Component {
             guard let initial = node.geometry?.materials.first?.diffuse.contentsTransform else {
                 return
             }
-            
+
             let animation = CABasicAnimation(keyPath: "contentsTransform")
             animation.duration = 4.5
             animation.fromValue = NSValue(scnMatrix4: initial)
@@ -399,7 +399,7 @@ class PremiumStarComponent: Component {
             animation.timingFunction = CAMediaTimingFunction(name: .linear)
             animation.autoreverses = true
             animation.repeatCount = .infinity
-            
+
             node.geometry?.materials.first?.diffuse.addAnimation(animation, forKey: "gradient")
         }
         
@@ -410,11 +410,11 @@ class PremiumStarComponent: Component {
             guard let initial = node.geometry?.materials.first?.emission.contentsTransform else {
                 return
             }
-            
+
             if #available(iOS 17.0, *), let material = node.geometry?.materials.first {
                 material.metalness.intensity = 0.2
             }
-            
+
             let animation = CABasicAnimation(keyPath: "contentsTransform")
             animation.fillMode = .forwards
             animation.fromValue = NSValue(scnMatrix4: initial)
@@ -422,13 +422,13 @@ class PremiumStarComponent: Component {
             animation.timingFunction = CAMediaTimingFunction(name: .easeOut)
             animation.beginTime = 1.1
             animation.duration = 0.9
-            
+
             let group = CAAnimationGroup()
             group.animations = [animation]
             group.beginTime = 1.0
             group.duration = 4.0
             group.repeatCount = .infinity
-            
+
             node.geometry?.materials.first?.emission.addAnimation(group, forKey: "shimmer")
         }
         
@@ -552,7 +552,7 @@ class PremiumStarComponent: Component {
             node.addAnimation(springAnimation, forKey: "rotate")
         }
         
-        func update(component: PremiumStarComponent, availableSize: CGSize, transition: Transition) -> CGSize {
+        func update(component: PremiumStarComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
             self.sceneView.bounds = CGRect(origin: .zero, size: CGSize(width: availableSize.width * 2.0, height: availableSize.height * 2.0))
             if self.sceneView.superview == self {
                 self.sceneView.center = CGPoint(x: availableSize.width / 2.0, y: availableSize.height / 2.0)
@@ -568,7 +568,7 @@ class PremiumStarComponent: Component {
         return View(frame: CGRect(), isIntro: self.isIntro)
     }
     
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, transition: transition)
     }
 }

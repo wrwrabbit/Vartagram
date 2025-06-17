@@ -2346,7 +2346,7 @@ class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDelegate, Ch
             //transition.updateFrame(node: textInputNode, frame: textFieldFrame)
             textInputNode.frame = textFieldFrame
             textInputNode.updateLayout(size: textFieldFrame.size)
-            self.updateInputField(textInputFrame: textFieldFrame, transition: Transition(transition))
+            self.updateInputField(textInputFrame: textFieldFrame, transition: ComponentTransition(transition))
             if shouldUpdateLayout {
                 textInputNode.layout()
             }
@@ -2937,7 +2937,7 @@ class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDelegate, Ch
     
     private var dismissedEmojiSuggestionPosition: EmojiSuggestionPosition?
     
-    private func updateInputField(textInputFrame: CGRect, transition: Transition) {
+    private func updateInputField(textInputFrame: CGRect, transition: ComponentTransition) {
         guard let textInputNode = self.textInputNode, let context = self.context else {
             return
         }

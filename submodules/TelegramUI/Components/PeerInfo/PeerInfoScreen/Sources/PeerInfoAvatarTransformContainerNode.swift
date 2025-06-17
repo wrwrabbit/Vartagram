@@ -130,7 +130,7 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
             colors: colors,
             lineWidth: 3.0,
             inactiveLineWidth: 1.5
-        ), transition: Transition(transition))
+        ), transition: ComponentTransition(transition))
     }
     
     @objc private func tapGesture(_ recognizer: UITapGestureRecognizer) {

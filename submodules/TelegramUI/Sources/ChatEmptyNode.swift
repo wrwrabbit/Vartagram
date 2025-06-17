@@ -149,11 +149,11 @@ final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNodeSticke
         if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings {
             self.currentTheme = interfaceState.theme
             self.currentStrings = interfaceState.strings
-            
+
             let serviceColor = serviceMessageColorComponents(theme: interfaceState.theme, wallpaper: interfaceState.chatWallpaper)
-            
+
             self.titleNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_EmptyPlaceholder, font: titleFont, textColor: serviceColor.primaryText)
-            
+
             self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_GreetingText, font: messageFont, textColor: serviceColor.primaryText)
         }
         
@@ -178,7 +178,7 @@ final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNodeSticke
                     return item?.file
                 }
             }
-            
+
             self.didSetupSticker = true
             self.disposable.set((sticker
             |> deliverOnMainQueue).startStrict(next: { [weak self] sticker in
@@ -673,10 +673,10 @@ private final class ChatEmptyNodeCloudChatContent: ASDisplayNode, ChatEmptyNodeC
     private let iconNode: ASImageNode
     private let titleNode: ImmediateTextNode
     private var lineNodes: [ImmediateTextNode] = []
-    
+
     private var currentTheme: PresentationTheme?
     private var currentStrings: PresentationStrings?
-    
+
     override init() {
         self.iconNode = ASImageNode()
         self.iconNode.isLayerBacked = true
@@ -695,7 +695,7 @@ private final class ChatEmptyNodeCloudChatContent: ASDisplayNode, ChatEmptyNodeC
         self.addSubnode(self.iconNode)
         self.addSubnode(self.titleNode)
     }
-    
+
     func updateLayout(interfaceState: ChatPresentationInterfaceState, subject: ChatEmptyNode.Subject, size: CGSize, transition: ContainedViewLayoutTransition) -> CGSize {
         if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings {
             self.currentTheme = interfaceState.theme
@@ -730,9 +730,9 @@ private final class ChatEmptyNodeCloudChatContent: ASDisplayNode, ChatEmptyNodeC
                 self.lineNodes[i].attributedText = lines[i]
             }
         }
-        
+
         let insets = UIEdgeInsets(top: 15.0, left: 15.0, bottom: 15.0, right: 15.0)
-        
+
         let imageSpacing: CGFloat = 12.0
         let titleSpacing: CGFloat = 4.0
         
@@ -752,7 +752,7 @@ private final class ChatEmptyNodeCloudChatContent: ASDisplayNode, ChatEmptyNodeC
             contentHeight += textSize.height + titleSpacing
             lineNodes.append((textSize, textNode))
         }
-        
+
         let titleSize = self.titleNode.updateLayout(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
         
         contentWidth = max(contentWidth, titleSize.width)
@@ -1072,7 +1072,7 @@ final class ChatEmptyNode: ASDisplayNode {
         
         transition.updateFrame(node: self.backgroundNode, frame: contentFrame)
         self.backgroundNode.update(size: self.backgroundNode.bounds.size, cornerRadius: min(20.0, self.backgroundNode.bounds.height / 2.0), transition: transition)
-        
+
         if backgroundNode?.hasExtraBubbleBackground() == true {
             if self.backgroundContent == nil, let backgroundContent = backgroundNode?.makeBubbleBackground(for: .free) {
                 backgroundContent.clipsToBounds = true

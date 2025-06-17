@@ -115,7 +115,7 @@ private final class ChartSelectionTooltip: Component {
             preconditionFailure()
         }
         
-        func update(component: ChartSelectionTooltip, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+        func update(component: ChartSelectionTooltip, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             let sideInset: CGFloat = 10.0
             let height: CGFloat = 24.0
             
@@ -156,7 +156,7 @@ private final class ChartSelectionTooltip: Component {
         return View(frame: CGRect())
     }
     
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }
@@ -1293,11 +1293,11 @@ final class PieChartComponent: Component {
                 } else {
                     self.selectedKey = nil
                 }
-                self.state?.updated(transition: Transition(animation: .curve(duration: 0.3, curve: .spring)))
+                self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.3, curve: .spring)))
             }
         }
         
-        func update(component: PieChartComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+        func update(component: PieChartComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             let dataUpdated = self.component?.chartData != component.chartData
             
             self.state = state
@@ -1390,7 +1390,7 @@ final class PieChartComponent: Component {
         return View(frame: CGRect())
     }
     
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

@@ -426,7 +426,7 @@ final class ShareWithPeersScreenComponent: Component {
                 self.updateScrolling(transition: .immediate)
             }
         }
-        
+
         func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
             guard let itemLayout = self.itemLayout, let topOffsetDistance = self.topOffsetDistance else {
                 return
@@ -504,7 +504,7 @@ final class ShareWithPeersScreenComponent: Component {
                             }
                         }
                     } else {
-                        let transition = Transition(animation: .curve(duration: 0.3, curve: .spring))
+                        let transition = ComponentTransition(animation: .curve(duration: 0.3, curve: .spring))
                         self.state?.updated(transition: transition)
                         self.updateModalOverlayTransition(transition: transition)
                     }
@@ -613,7 +613,7 @@ final class ShareWithPeersScreenComponent: Component {
                 showCountLimitAlert()
                 return
             }
-            
+
             var append = false
             if let index = self.selectedGroups.firstIndex(of: peer.id) {
                 self.selectedGroups.remove(at: index)
@@ -674,7 +674,7 @@ final class ShareWithPeersScreenComponent: Component {
                 } else {
                     self.selectedPeers = self.selectedPeers.filter { !peerIds.contains($0) }
                 }
-                let transition = Transition(animation: .curve(duration: 0.35, curve: .spring))
+                let transition = ComponentTransition(animation: .curve(duration: 0.35, curve: .spring))
                 self.state?.updated(transition: transition)
             }
                         
@@ -796,7 +796,7 @@ final class ShareWithPeersScreenComponent: Component {
             })
         }
         
-        private func updateModalOverlayTransition(transition: Transition) {
+        private func updateModalOverlayTransition(transition: ComponentTransition) {
             guard let component = self.component, let environment = self.environment, let itemLayout = self.itemLayout else {
                 return
             }
@@ -829,14 +829,14 @@ final class ShareWithPeersScreenComponent: Component {
             }
         }
         
-        private func updateScrolling(transition: Transition) {
+        private func updateScrolling(transition: ComponentTransition) {
             guard let component = self.component, let environment = self.environment, let itemLayout = self.itemLayout else {
                 return
             }
             guard let stateValue = self.effectiveStateValue else {
                 return
             }
-            
+
             var topOffset = -self.scrollView.bounds.minY + itemLayout.topInset
             topOffset = max(0.0, topOffset)
             transition.setTransform(layer: self.backgroundView.layer, transform: CATransform3DMakeTranslation(0.0, topOffset + itemLayout.containerInset, 0.0))
@@ -961,7 +961,7 @@ final class ShareWithPeersScreenComponent: Component {
                                     if let self {
                                         self.selectedPeers = []
                                         self.selectedGroups = []
-                                        let transition = Transition(animation: .curve(duration: 0.35, curve: .spring))
+                                        let transition = ComponentTransition(animation: .curve(duration: 0.35, curve: .spring))
                                         self.state?.updated(transition: transition)
                                     }
                                 }
@@ -1108,7 +1108,7 @@ final class ShareWithPeersScreenComponent: Component {
                                                             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
                                                             let controller = component.context.sharedContext.makePremiumLimitController(context: component.context, subject: .storiesChannelBoost(peer: peer, isCurrent: true, level: Int32(status.level), currentLevelBoosts: Int32(status.currentLevelBoosts), nextLevelBoosts: status.nextLevelBoosts.flatMap(Int32.init), link: link, myBoostCount: 0, canBoostAgain: false), count: Int32(status.boosts), forceDark: true, cancel: {}, action: { [weak navigationController] in
                                                                 UIPasteboard.general.string = link
-                                                                
+
                                                                 if let previousController = navigationController?.viewControllers.reversed().first(where: { $0 is ShareWithPeersScreen}) as? ShareWithPeersScreen {
                                                                     previousController.dismiss(completion: { [weak navigationController] in
                                                                         Queue.mainQueue().justDispatch {
@@ -1122,7 +1122,7 @@ final class ShareWithPeersScreenComponent: Component {
                                                             })
                                                             navigationController.pushViewController(controller)
                                                         }
-                                                        
+
                                                         self.hapticFeedback.impact(.light)
                                                     })
                                                 default:
@@ -1222,7 +1222,7 @@ final class ShareWithPeersScreenComponent: Component {
                                             controller.dismiss()
                                         }
                                     }
-                                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.35, curve: .spring)))
+                                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.35, curve: .spring)))
                                 },
                                 secondaryAction: { [weak self] in
                                     guard let self, let environment = self.environment, let controller = environment.controller() as? ShareWithPeersScreen else {
@@ -1419,7 +1419,7 @@ final class ShareWithPeersScreenComponent: Component {
                                         return
                                     }
                                     let update = {
-                                        let transition = Transition(animation: .curve(duration: 0.35, curve: .spring))
+                                        let transition = ComponentTransition(animation: .curve(duration: 0.35, curve: .spring))
                                         self.state?.updated(transition: transition)
                                         
                                         if self.searchStateContext != nil {
@@ -1534,7 +1534,7 @@ final class ShareWithPeersScreenComponent: Component {
                                         } else {
                                             self.selectedOptions.remove(optionId)
                                         }
-                                        let transition = Transition(animation: .curve(duration: 0.35, curve: .spring))
+                                        let transition = ComponentTransition(animation: .curve(duration: 0.35, curve: .spring))
                                         self.state?.updated(transition: transition)
                                         
                                         self.presentOptionsTooltip(optionId: optionId)
@@ -1670,7 +1670,7 @@ final class ShareWithPeersScreenComponent: Component {
                 self.visibleSectionFooters.removeValue(forKey: id)
             }
             
-            let fadeTransition = Transition.easeInOut(duration: 0.25)
+            let fadeTransition = ComponentTransition.easeInOut(duration: 0.25)
             
             var searchQuery: String?
             var searchResultsAreEmpty = false
@@ -1841,7 +1841,7 @@ final class ShareWithPeersScreenComponent: Component {
         }
         
         private var currentHasChannels: Bool?
-        func update(component: ShareWithPeersScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: Transition) -> CGSize {
+        func update(component: ShareWithPeersScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: ComponentTransition) -> CGSize {
             guard !self.isDismissed else {
                 return availableSize
             }
@@ -2048,7 +2048,7 @@ final class ShareWithPeersScreenComponent: Component {
                             if self.selectedCategories.isEmpty {
                                 self.selectedCategories.insert(.everyone)
                             }
-                            self.state?.updated(transition: Transition(animation: .curve(duration: 0.35, curve: .spring)))
+                            self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.35, curve: .spring)))
                         }
                     )),
                     environment: {},
@@ -2084,7 +2084,7 @@ final class ShareWithPeersScreenComponent: Component {
                             }
                             self.searchStateContext = searchStateContext
                             if applyState {
-                                self.state?.updated(transition: Transition(animation: .none).withUserData(AnimationHint(contentReloaded: true)))
+                                self.state?.updated(transition: ComponentTransition(animation: .none).withUserData(AnimationHint(contentReloaded: true)))
                             }
                         })
                         applyState = true
@@ -2788,7 +2788,7 @@ final class ShareWithPeersScreenComponent: Component {
         return View(frame: CGRect())
     }
     
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

@@ -123,7 +123,7 @@ private final class SendInviteLinkScreenComponent: Component {
             
             self.iconBackgroundView = UIView()
             self.iconView = UIImageView(image: UIImage(bundleImageName: "Chat/Links/LargeLink")?.withRenderingMode(.alwaysTemplate))
-            
+
             self.itemContainerView = UIView()
             self.itemContainerView.clipsToBounds = true
             self.itemContainerView.layer.cornerRadius = 10.0
@@ -157,7 +157,7 @@ private final class SendInviteLinkScreenComponent: Component {
             
             self.scrollContentView.addSubview(self.iconBackgroundView)
             self.scrollContentView.addSubview(self.iconView)
-            
+
             self.scrollView.addSubview(self.scrollContentView)
             
             self.scrollContentView.addSubview(self.itemContainerView)
@@ -214,7 +214,7 @@ private final class SendInviteLinkScreenComponent: Component {
             }
         }
         
-        private func updateScrolling(transition: Transition) {
+        private func updateScrolling(transition: ComponentTransition) {
             guard let environment = self.environment, let controller = environment.controller(), let itemLayout = self.itemLayout else {
                 return
             }
@@ -258,7 +258,7 @@ private final class SendInviteLinkScreenComponent: Component {
             }
         }
         
-        func update(component: SendInviteLinkScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: Transition) -> CGSize {
+        func update(component: SendInviteLinkScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: ComponentTransition) -> CGSize {
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
             let themeUpdated = self.environment?.theme !== environment.theme
             
@@ -275,7 +275,7 @@ private final class SendInviteLinkScreenComponent: Component {
             self.component = component
             self.state = state
             self.environment = environment
-            
+
             if themeUpdated {
                 self.dimView.backgroundColor = UIColor(white: 0.0, alpha: 0.5)
                 self.backgroundLayer.backgroundColor = environment.theme.list.blocksBackgroundColor.cgColor
@@ -320,7 +320,7 @@ private final class SendInviteLinkScreenComponent: Component {
                 
                 leftButtonView.isHidden = (self.selectedItems.isEmpty || component.link == nil) ? true : false
             }
-            
+
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
@@ -336,11 +336,11 @@ private final class SendInviteLinkScreenComponent: Component {
                 }
                 transition.setFrame(view: titleView, frame: titleFrame)
             }
-            
+
             contentHeight += 44.0
-            
+
             contentHeight += 22.0
-            
+
             let iconBackgroundSize = CGSize(width: 68.0, height: 48.0)
             let iconBackgroundFrame = CGRect(origin: CGPoint(x: floor((availableSize.width - iconBackgroundSize.width) * 0.5), y: contentHeight), size: iconBackgroundSize)
             transition.setFrame(view: self.iconBackgroundView, frame: iconBackgroundFrame)
@@ -350,11 +350,11 @@ private final class SendInviteLinkScreenComponent: Component {
                 let iconSize = CGSize(width: floor(icon.size.width * scaleFraction), height: floor(icon.size.height * scaleFraction))
                 transition.setFrame(view: self.iconView, frame: CGRect(origin: CGPoint(x: floor(iconBackgroundFrame.minX + (iconBackgroundFrame.width - iconSize.width) * 0.5), y: floor(iconBackgroundFrame.minY + (iconBackgroundFrame.height - iconSize.height) * 0.5)), size: iconSize))
             }
-            
+
             contentHeight += iconBackgroundSize.height
-            
+
             contentHeight += 26.0
-            
+
             let text: String
             if component.link != nil {
                 if component.peers.count == 1 {
@@ -369,10 +369,10 @@ private final class SendInviteLinkScreenComponent: Component {
                     text = environment.strings.SendInviteLink_TextUnavailableMultipleUsers(Int32(component.peers.count))
                 }
             }
-            
+
             let body = MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.freeTextColor)
             let bold = MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.freeTextColor)
-            
+
             let descriptionTextSize = self.descriptionText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
@@ -395,22 +395,22 @@ private final class SendInviteLinkScreenComponent: Component {
                 }
                 transition.setFrame(view: descriptionTextView, frame: descriptionTextFrame)
             }
-            
+
             contentHeight += descriptionTextFrame.height
             contentHeight += 13.0
-            
+
             var singleItemHeight: CGFloat = 0.0
-            
+
             var itemsHeight: CGFloat = 0.0
             var validIds: [AnyHashable] = []
             for i in 0 ..< component.peers.count {
                 let peer = component.peers[i]
-                
+
                 for _ in 0 ..< 1 {
                     //let id: AnyHashable = AnyHashable("\(peer.id)_\(j)")
                     let id = AnyHashable(peer.id)
                     validIds.append(id)
-                    
+
                     let item: ComponentView<Empty>
                     var itemTransition = transition
                     if let current = self.items[id] {
@@ -420,7 +420,7 @@ private final class SendInviteLinkScreenComponent: Component {
                         item = ComponentView()
                         self.items[id] = item
                     }
-                    
+
                     let itemSize = item.update(
                         transition: itemTransition,
                         component: AnyComponent(PeerListItemComponent(
@@ -442,21 +442,21 @@ private final class SendInviteLinkScreenComponent: Component {
                                 } else {
                                     self.selectedItems.insert(peer.id)
                                 }
-                                self.state?.updated(transition: Transition(animation: .curve(duration: 0.3, curve: .easeInOut)))
+                                self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.3, curve: .easeInOut)))
                             }
                         )),
                         environment: {},
                         containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 1000.0)
                     )
                     let itemFrame = CGRect(origin: CGPoint(x: 0.0, y: itemsHeight), size: itemSize)
-                    
+
                     if let itemView = item.view {
                         if itemView.superview == nil {
                             self.itemContainerView.addSubview(itemView)
                         }
                         itemTransition.setFrame(view: itemView, frame: itemFrame)
                     }
-                    
+
                     itemsHeight += itemSize.height
                     singleItemHeight = itemSize.height
                 }
@@ -472,21 +472,21 @@ private final class SendInviteLinkScreenComponent: Component {
                 self.items.removeValue(forKey: id)
             }
             transition.setFrame(view: self.itemContainerView, frame: CGRect(origin: CGPoint(x: sideInset, y: contentHeight), size: CGSize(width: availableSize.width - sideInset * 2.0, height: itemsHeight)))
-            
+
             var initialContentHeight = contentHeight
             initialContentHeight += min(itemsHeight, floor(singleItemHeight * 2.5))
-            
+
             contentHeight += itemsHeight
             contentHeight += 24.0
             initialContentHeight += 24.0
-            
+
             let actionButtonTitle: String
             if component.link != nil {
                 actionButtonTitle = self.selectedItems.isEmpty ? environment.strings.SendInviteLink_ActionSkip : environment.strings.SendInviteLink_ActionInvite
             } else {
                 actionButtonTitle = environment.strings.SendInviteLink_ActionClose
             }
-            
+
             let actionButtonSize = self.actionButton.update(
                 transition: transition,
                 component: AnyComponent(SolidRoundedButtonComponent(
@@ -509,7 +509,7 @@ private final class SendInviteLinkScreenComponent: Component {
                             controller.dismiss()
                         } else if let link = component.link {
                             let selectedPeers = component.peers.filter { self.selectedItems.contains($0.id) }
-                            
+
                             let _ = enqueueMessagesToMultiplePeers(account: component.context.account, peerIds: Array(self.selectedItems), threadIds: [:], messages: [.message(text: link, attributes: [], inlineStickers: [:], mediaReference: nil, threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])]).start()
                             let text: String
                             if selectedPeers.count == 1 {
@@ -519,10 +519,10 @@ private final class SendInviteLinkScreenComponent: Component {
                             } else {
                                 text = environment.strings.Conversation_ShareLinkTooltip_ManyChats_One(selectedPeers[0].displayTitle(strings: environment.strings, displayOrder: .firstLast).replacingOccurrences(of: "*", with: ""), "\(selectedPeers.count - 1)").string
                             }
-                            
+
                             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
                             controller.present(UndoOverlayController(presentationData: presentationData, content: .forward(savedMessages: false, text: text), elevatedLayout: false, action: { _ in return false }), in: .window(.root))
-                            
+
                             controller.dismiss()
                         } else {
                             controller.dismiss()
@@ -540,7 +540,7 @@ private final class SendInviteLinkScreenComponent: Component {
                 }
                 transition.setFrame(view: actionButtonView, frame: actionButtonFrame)
             }
-            
+
             contentHeight += bottomPanelHeight
             initialContentHeight += bottomPanelHeight
             
@@ -582,7 +582,7 @@ private final class SendInviteLinkScreenComponent: Component {
         return View(frame: CGRect())
     }
     
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }
@@ -603,7 +603,7 @@ public class SendInviteLinkScreen: ViewControllerComponentContainer {
         if link == nil, let addressName = peer.addressName {
             link = "https://t.me/\(addressName)"
         }
-        
+
         self.link = link
         self.peers = peers
         

@@ -426,7 +426,7 @@ private final class StoryContainerScreenComponent: Component {
         
         private var previousSeekTime: Double?
         private var initialSeekTimestamp: Double?
-        
+
         override init(frame: CGRect) {
             self.backgroundLayer = SimpleLayer()
             self.backgroundLayer.backgroundColor = UIColor.black.cgColor
@@ -613,7 +613,7 @@ private final class StoryContainerScreenComponent: Component {
                     return
                 }
                 self.itemSetPinchState = nil
-                self.state?.updated(transition: Transition(animation: .curve(duration: 0.3, curve: .spring)))
+                self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.3, curve: .spring)))
             }
             self.addGestureRecognizer(pinchRecognizer)
             
@@ -764,7 +764,7 @@ private final class StoryContainerScreenComponent: Component {
             if let itemSetPanState = self.itemSetPanState, !itemSetPanState.didBegin {
                 self.itemSetPanState = ItemSetPanState(fraction: 0.0, didBegin: true)
                 if !updateImmediately {
-                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.25, curve: .easeInOut)))
+                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)))
                 }
             } else {
                 self.itemSetPanState = ItemSetPanState(fraction: 0.0, didBegin: true)
@@ -850,7 +850,7 @@ private final class StoryContainerScreenComponent: Component {
                 itemSetPanState.fraction = 0.0
                 self.itemSetPanState = itemSetPanState
                 
-                let transition = Transition(animation: .curve(duration: 0.4, curve: .spring))
+                let transition = ComponentTransition(animation: .curve(duration: 0.4, curve: .spring))
                 self.state?.updated(transition: transition)
                 
                 transition.attachAnimation(view: self, id: "panState", completion: { [weak self] completed in
@@ -890,12 +890,12 @@ private final class StoryContainerScreenComponent: Component {
             case .began:
                 if self.itemSetPanState == nil {
                     self.itemSetPanState = ItemSetPanState(fraction: 0.0, didBegin: false)
-                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.25, curve: .easeInOut)))
+                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)))
                 }
             case .cancelled, .ended:
                 if let itemSetPanState = self.itemSetPanState, !itemSetPanState.didBegin {
                     self.itemSetPanState = nil
-                    self.state?.updated(transition: Transition(animation: .curve(duration: 0.25, curve: .easeInOut)))
+                    self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)))
                 }
             default:
                 break
@@ -1027,7 +1027,7 @@ private final class StoryContainerScreenComponent: Component {
             if !self.dismissWithoutTransitionOut, let component = self.component, let stateValue = self.stateValue, let slice = stateValue.slice, let itemSetView = self.visibleItemSetViews[slice.peer.id], let itemSetComponentView = itemSetView.view.view as? StoryItemSetContainerComponent.View, let transitionOut = component.transitionOut(slice.peer.id, slice.item.storyItem.id) {
                 self.state?.updated(transition: .immediate)
                 
-                let transition = Transition(animation: .curve(duration: 0.25, curve: .easeInOut))
+                let transition = ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut))
                 transition.setAlpha(layer: self.backgroundLayer, alpha: 0.0)
                 transition.setAlpha(view: self.backgroundEffectView, alpha: 0.0)
                 
@@ -1048,11 +1048,11 @@ private final class StoryContainerScreenComponent: Component {
                     transitionOut.completed()
                 }
                 
-                let transition: Transition
+                let transition: ComponentTransition
                 if self.dismissWithoutTransitionOut {
-                    transition = Transition(animation: .curve(duration: 0.5, curve: .spring))
+                    transition = ComponentTransition(animation: .curve(duration: 0.5, curve: .spring))
                 } else {
-                    transition = Transition(animation: .curve(duration: 0.2, curve: .easeInOut))
+                    transition = ComponentTransition(animation: .curve(duration: 0.2, curve: .easeInOut))
                 }
                 
                 self.isDismissedExlusively = true
@@ -1089,7 +1089,7 @@ private final class StoryContainerScreenComponent: Component {
                             }
                         }
                     }
-                    
+
                     if isSilentVideo {
                         if let slice = self.stateValue?.slice, let itemSetView = self.visibleItemSetViews[slice.peer.id], let currentItemView = itemSetView.view.view as? StoryItemSetContainerComponent.View {
                             currentItemView.displayMutedVideoTooltip()
@@ -1102,13 +1102,13 @@ private final class StoryContainerScreenComponent: Component {
                             return
                         }
                         self.audioMode = .on
-                        
+
                         for (_, itemSetView) in self.visibleItemSetViews {
                             if let componentView = itemSetView.view.view as? StoryItemSetContainerComponent.View {
                                 componentView.leaveAmbientMode()
                             }
                         }
-                        
+
                         self.state?.updated(transition: .immediate)
                     }
                 }
@@ -1175,11 +1175,11 @@ private final class StoryContainerScreenComponent: Component {
             }
         }
         
-        func update(component: StoryContainerScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: Transition) -> CGSize {
+        func update(component: StoryContainerScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: ComponentTransition) -> CGSize {
             if self.didAnimateOut {
                 return availableSize
             }
-            
+
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
             self.environment = environment
             
@@ -1735,8 +1735,8 @@ private final class StoryContainerScreenComponent: Component {
                                 return targetTransform
                             }
                                                         
-                            Transition.immediate.setTransform(view: itemSetComponentView, transform: faceTransform)
-                            Transition.immediate.setTransform(layer: itemSetView.tintLayer, transform: faceTransform)
+                            ComponentTransition.immediate.setTransform(view: itemSetComponentView, transform: faceTransform)
+                            ComponentTransition.immediate.setTransform(layer: itemSetView.tintLayer, transform: faceTransform)
                             
                             if let previousRotationFraction = itemSetView.rotationFraction, !itemSetTransition.animation.isImmediate {
                                 let fromT = previousRotationFraction
@@ -1859,7 +1859,7 @@ private final class StoryContainerScreenComponent: Component {
         return View(frame: CGRect())
     }
     
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }
@@ -1883,12 +1883,12 @@ public class StoryContainerScreen: ViewControllerComponentContainer {
     
     public final class TransitionView {
         public let makeView: () -> UIView
-        public let updateView: (UIView, TransitionState, Transition) -> Void
+        public let updateView: (UIView, TransitionState, ComponentTransition) -> Void
         public let insertCloneTransitionView: ((UIView) -> Void)?
         
         public init(
             makeView: @escaping () -> UIView,
-            updateView: @escaping (UIView, TransitionState, Transition) -> Void,
+            updateView: @escaping (UIView, TransitionState, ComponentTransition) -> Void,
             insertCloneTransitionView: ((UIView) -> Void)?
         ) {
             self.makeView = makeView
@@ -2003,7 +2003,7 @@ public class StoryContainerScreen: ViewControllerComponentContainer {
             }
         }
     }
-    
+
     func dismissWithoutTransitionOut() {
         self.focusedItemPromise.set(.single(nil))
         

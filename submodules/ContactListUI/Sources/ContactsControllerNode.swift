@@ -341,7 +341,7 @@ final class ContactsControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         )
         
         let navigationBarSize = self.navigationBarView.update(
-            transition: Transition(transition),
+            transition: ComponentTransition(transition),
             component: AnyComponent(ChatListNavigationBar(
                 context: self.context,
                 theme: self.presentationData.theme,
@@ -406,7 +406,7 @@ final class ContactsControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         }
         
         if let navigationBarComponentView = self.navigationBarView.view as? ChatListNavigationBar.View {
-            navigationBarComponentView.applyScroll(offset: offset, allowAvatarsExpansion: false, transition: Transition(transition))
+            navigationBarComponentView.applyScroll(offset: offset, allowAvatarsExpansion: false, transition: ComponentTransition(transition))
         }
     }
     
@@ -436,7 +436,7 @@ final class ContactsControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         
         if let navigationBarComponentView = self.navigationBarView.view as? ChatListNavigationBar.View {
             navigationBarComponentView.deferScrollApplication = false
-            navigationBarComponentView.applyCurrentScroll(transition: Transition(transition))
+            navigationBarComponentView.applyCurrentScroll(transition: ComponentTransition(transition))
         }
     }
     

@@ -58,10 +58,10 @@ final class GradientBackgroundComponent: Component {
         }
         
         
-        func update(component: GradientBackgroundComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+        func update(component: GradientBackgroundComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.clipLayer.frame = CGRect(origin: .zero, size: CGSize(width: availableSize.width, height: availableSize.height + 10.0))
             self.gradientLayer.frame = CGRect(origin: .zero, size: availableSize)
-        
+
             var locations: [NSNumber] = []
             let delta = 1.0 / CGFloat(component.colors.count - 1)
             for i in 0 ..< component.colors.count {
@@ -76,7 +76,7 @@ final class GradientBackgroundComponent: Component {
             self.component = component
             
             self.setupGradientAnimations()
-            
+
             return availableSize
         }
         
@@ -124,7 +124,7 @@ final class GradientBackgroundComponent: Component {
         return View(frame: CGRect())
     }
     
-    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }
@@ -346,7 +346,7 @@ final class DemoPagerComponent: Component {
             self.ignoreContentOffsetChange = false
         }
         
-        func update(component: DemoPagerComponent, availableSize: CGSize, transition: Transition) -> CGSize {
+        func update(component: DemoPagerComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
             var validIds: [AnyHashable] = []
             
             component.nextAction?.connect { [weak self] in
@@ -448,7 +448,7 @@ final class DemoPagerComponent: Component {
         return View(frame: CGRect())
     }
     
-    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, transition: transition)
     }
 }
@@ -647,7 +647,7 @@ private final class DemoSheetContent: CombinedComponent {
                 strongSelf.isPremium = isPremium
                 strongSelf.promoConfiguration = promoConfiguration
                 if !reactions.isEmpty && !stickers.isEmpty {
-                    strongSelf.updated(transition: Transition(.immediate).withUserData(DemoAnimateInTransition()))
+                    strongSelf.updated(transition: ComponentTransition(.immediate).withUserData(DemoAnimateInTransition()))
                 }
             })
         }
@@ -1040,7 +1040,7 @@ private final class DemoSheetContent: CombinedComponent {
             )
                          
             var measuredTextHeight: CGFloat?
-            
+
             let buttonText: String
             var buttonAnimationName: String?
             if state.isPremium == true {
@@ -1086,7 +1086,7 @@ private final class DemoSheetContent: CombinedComponent {
                         default:
                             buttonText = strings.Common_OK
                     }
-                    
+
                     switch component.subject {
                     case .moreUpload:
                         text = strings.Premium_UploadSizeInfo
@@ -1123,9 +1123,9 @@ private final class DemoSheetContent: CombinedComponent {
                     case .stories:
                         text = ""
                     }
-                
+
                     let textSideInset: CGFloat = 24.0
-                    
+
                     let textColor = UIColor.black
                     let textFont = Font.regular(17.0)
                     let boldTextFont = Font.semibold(17.0)
@@ -1251,7 +1251,7 @@ private final class DemoSheetComponent: CombinedComponent {
         if lhs.order != rhs.order {
             return false
         }
-        
+
         return true
     }
     
@@ -1357,7 +1357,7 @@ public class PremiumDemoScreen: ViewControllerComponentContainer {
     public convenience init(context: AccountContext, subject: PremiumDemoScreen.Subject, source: PremiumDemoScreen.Source = .other, forceDark: Bool = false, action: @escaping () -> Void) {
         self.init(context: context, subject: subject, source: source, order: nil, forceDark: forceDark, action: action)
     }
-    
+
     init(context: AccountContext, subject: PremiumDemoScreen.Subject, source: PremiumDemoScreen.Source = .other, order: [PremiumPerk]?, forceDark: Bool = false, action: @escaping () -> Void) {
         super.init(context: context, component: DemoSheetComponent(context: context, subject: subject, source: source, order: order, action: action), navigationBarAppearance: .none, theme: forceDark ? .dark : .default)
         

@@ -169,7 +169,7 @@ private let rightShadowImage: UIImage = {
     let baseImage = UIImage(bundleImageName: "Peer Info/MediaGridShadow")!
     let image = generateImage(baseImage.size, rotatedContext: { size, context in
         context.clear(CGRect(origin: CGPoint(), size: size))
-        
+
         UIGraphicsPushContext(context)
         baseImage.draw(in: CGRect(origin: CGPoint(), size: size))
         UIGraphicsPopContext()
@@ -275,11 +275,11 @@ private protocol ItemLayer: SparseItemGridLayer {
 
     var hasContents: Bool { get set }
     func setSpoilerContents(_ contents: Any?)
-    
+
     func updateDuration(viewCount: Int32?, duration: Int32?, isMin: Bool, minFactor: CGFloat)
     func updateSelection(theme: CheckNodeTheme, isSelected: Bool?, animated: Bool)
     func updateHasSpoiler(hasSpoiler: Bool)
-    
+
     func bind(item: VisualMediaItem)
     func unbind()
 }
@@ -370,7 +370,7 @@ private final class GenericItemLayer: CALayer, ItemLayer {
             self.durationLayer = nil
             durationLayer.removeFromSuperlayer()
         }
-        
+
         let size = self.bounds.size
         
         if self.viewCountLayer != nil {
@@ -536,7 +536,7 @@ private final class ItemTransitionView: UIView {
                 self.layer.addSublayer(copyLayer)
                 self.copyRightShadowLayer = copyLayer
             }
-            
+
             if let viewCountLayer {
                 let copyViewCountLayer = SimpleLayer()
                 copyViewCountLayer.contents = viewCountLayer.contents
@@ -549,7 +549,7 @@ private final class ItemTransitionView: UIView {
                 
                 self.viewCountLayerBottomLeftPosition = CGPoint(x: viewCountLayer.frame.minX, y: itemLayer.bounds.height - viewCountLayer.frame.maxY)
             }
-            
+
             if let durationLayer {
                 let copyDurationLayer = SimpleLayer()
                 copyDurationLayer.contents = durationLayer.contents
@@ -569,7 +569,7 @@ private final class ItemTransitionView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func update(state: StoryContainerScreen.TransitionState, transition: Transition) {
+    func update(state: StoryContainerScreen.TransitionState, transition: ComponentTransition) {
         let size = state.sourceSize.interpolate(to: state.destinationSize, amount: state.progress)
         
         if let copyDurationLayer = self.copyDurationLayer, let durationLayerBottomLeftPosition = self.durationLayerBottomLeftPosition {
@@ -793,7 +793,7 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding {
                 if let value = story.views?.seenCount {
                     viewCount = Int32(value)
                 }
-                
+
                 var duration: Int32?
                 var isMin: Bool = false
                 if let file = selectedMedia as? TelegramMediaFile, !file.isAnimated {
@@ -804,13 +804,13 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding {
                 }
                 layer.updateDuration(viewCount: viewCount, duration: duration, isMin: isMin, minFactor: min(1.0, layer.bounds.height / 74.0))
             }
-            
+
             var isSelected: Bool?
             if let selectedIds = self.itemInteraction?.selectedIds {
                 isSelected = selectedIds.contains(story.id)
             }
             layer.updateSelection(theme: self.checkNodeTheme, isSelected: isSelected, animated: false)
-            
+
             layer.bind(item: item)
         }
     }
@@ -889,7 +889,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
             self.value = SparseItemGrid.ZoomLevel(rawValue: Int(rawValue))
         }
     }
-    
+
     private let context: AccountContext
     private let peerId: PeerId
     private let chatLocation: ChatLocation
@@ -947,7 +947,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
             return true
         }
     }
-    
+
     public private(set) var isSelectionModeActive: Bool
     
     private var currentParams: (size: CGSize, topInset: CGFloat, sideInset: CGFloat, bottomInset: CGFloat, deviceMetrics: DeviceMetrics, visibleHeight: CGFloat, isScrollingLockedAtTop: Bool, expandProgress: CGFloat, presentationData: PresentationData)?
@@ -1114,7 +1114,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
                     )
                     
                     if let blurLayer = foundItem?.blurLayer {
-                        let transition = Transition(animation: .curve(duration: 0.25, curve: .easeInOut))
+                        let transition = ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut))
                         transition.setAlpha(layer: blurLayer, alpha: 0.0)
                     }
                 }
@@ -1141,7 +1141,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
                         }
                         if let foundItemLayer {
                             if let blurLayer = foundItem?.blurLayer {
-                                let transition = Transition(animation: .curve(duration: 0.25, curve: .easeInOut))
+                                let transition = ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut))
                                 transition.setAlpha(layer: blurLayer, alpha: 1.0)
                             }
                             
@@ -1417,7 +1417,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
 
             strongSelf.itemGrid.cancelGestures()
         }
-        
+
         self.statusPromise.set(.single(PeerInfoStatusData(text: "", isActivity: false, key: .stories)))
 
         /*self.storedStateDisposable = (visualMediaStoredState(engine: context.engine, peerId: peerId, messageTag: self.stateTag)
@@ -1430,7 +1430,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
             }
             strongSelf.requestHistoryAroundVisiblePosition(synchronous: false, reloadAtTop: false)
         })*/
-        
+
         //TODO:hidden media
         /*self.hiddenMediaDisposable = context.sharedContext.mediaManager.galleryHiddenMediaManager.hiddenIds().start(next: { [weak self] ids in
             guard let strongSelf = self else {
@@ -1457,7 +1457,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
 
             strongSelf.updateHiddenMedia()
         })*/
-        
+
         /*let animationTimer = SwiftSignalKit.Timer(timeout: 0.3, repeat: true, completion: { [weak self] in
             guard let strongSelf = self else {
                 return
@@ -1490,7 +1490,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
             case .music:
                 summaries.append(.music)
             }
-            
+
             return context.engine.data.subscribe(EngineDataMap(
                 summaries.map { TelegramEngine.EngineData.Item.Messages.MessageCount(peerId: peerId, threadId: chatLocation.threadId, tag: $0) }
             ))
@@ -1939,7 +1939,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
     
     public func updateSelectedMessages(animated: Bool) {
     }
-    
+
     private func updateSelectedItems(animated: Bool) {
         self.itemGrid.forEachVisibleItem { item in
             guard let itemLayer = item.layer as? ItemLayer, let item = itemLayer.item else {
@@ -1996,7 +1996,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
             itemLayer.isHidden = itemHidden
             
             if let blurLayer = itemValue.blurLayer {
-                let transition = Transition.immediate
+                let transition = ComponentTransition.immediate
                 if itemHidden {
                     transition.setAlpha(layer: blurLayer, alpha: 0.0)
                 } else {
@@ -2013,7 +2013,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
         
         if let items = self.items, items.items.isEmpty, items.count == 0 {
             let emptyStateView: ComponentView<Empty>
-            var emptyStateTransition = Transition(transition)
+            var emptyStateTransition = ComponentTransition(transition)
             if let current = self.emptyStateView {
                 emptyStateView = current
             } else {
@@ -2050,13 +2050,13 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
                 emptyStateTransition.setFrame(view: emptyStateComponentView, frame: CGRect(origin: CGPoint(x: floor((size.width - emptyStateSize.width) * 0.5), y: topInset), size: emptyStateSize))
             }
             if self.didUpdateItemsOnce {
-                Transition(animation: .curve(duration: 0.2, curve: .easeInOut)).setBackgroundColor(view: self.view, color: presentationData.theme.list.blocksBackgroundColor)
+                ComponentTransition(animation: .curve(duration: 0.2, curve: .easeInOut)).setBackgroundColor(view: self.view, color: presentationData.theme.list.blocksBackgroundColor)
             } else {
                 self.view.backgroundColor = presentationData.theme.list.blocksBackgroundColor
             }
         } else {
             if let emptyStateView = self.emptyStateView {
-                let subTransition = Transition(animation: .curve(duration: 0.2, curve: .easeInOut))
+                let subTransition = ComponentTransition(animation: .curve(duration: 0.2, curve: .easeInOut))
                 self.emptyStateView = nil
                 
                 if let emptyStateComponentView = emptyStateView.view {
@@ -2083,9 +2083,9 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
             }
             
             let fixedItemAspect: CGFloat? = 0.81
-            
+
             let gridTopInset = topInset
-         
+
             self.itemGrid.pinchEnabled = items.count > 2
             self.itemGrid.update(size: size, insets: UIEdgeInsets(top: gridTopInset, left: sideInset, bottom:  bottomInset, right: sideInset), useSideInsets: !isList, scrollIndicatorInsets: UIEdgeInsets(top: 0.0, left: sideInset, bottom: bottomInset, right: sideInset), lockScrollingAtTop: isScrollingLockedAtTop, fixedItemHeight: fixedItemHeight, fixedItemAspect: fixedItemAspect, items: items, theme: self.itemGridBinding.chatPresentationData.theme.theme, synchronous: wasFirstTime ? .full : .none)
         }

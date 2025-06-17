@@ -95,7 +95,7 @@ public final class EmojiSelectionComponent: Component {
         
         private var component: EmojiSelectionComponent?
         private weak var state: EmptyComponentState?
-        
+
         override init(frame: CGRect) {
             self.keyboardView = ComponentView<Empty>()
             self.keyboardClippingView = UIView()
@@ -144,7 +144,7 @@ public final class EmojiSelectionComponent: Component {
         deinit {
         }
         
-        func update(component: EmojiSelectionComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: Transition) -> CGSize {
+        func update(component: EmojiSelectionComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
             self.backgroundColor = component.backgroundColor
             let panelBackgroundColor = component.backgroundColor.withMultipliedAlpha(0.85)
             self.panelBackgroundView.updateColor(color: panelBackgroundColor, transition: .immediate)
@@ -153,7 +153,7 @@ public final class EmojiSelectionComponent: Component {
             let previousComponent = self.component
             self.component = component
             self.state = state
-            
+
             self.cornersView.tintColor = component.theme.list.blocksBackgroundColor
             transition.setFrame(view: self.cornersView, frame: CGRect(origin: CGPoint(x: 0.0, y: -8.0), size: CGSize(width: availableSize.width, height: 16.0)))
             
@@ -219,7 +219,7 @@ public final class EmojiSelectionComponent: Component {
                     transition.setScale(view: backspaceButtonView, scale: 0.001)
                 }
             }
-            
+
             let keyboardSize = self.keyboardView.update(
                 transition: transition.withUserData(EmojiPagerContentComponent.SynchronousLoadBehavior(isDisabled: true)),
                 component: AnyComponent(EntityKeyboardComponent(
@@ -290,7 +290,7 @@ public final class EmojiSelectionComponent: Component {
         return View(frame: CGRect())
     }
     
-    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: Transition) -> CGSize {
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

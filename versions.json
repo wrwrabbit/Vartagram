@@ -4,5 +4,5 @@
     "original_build": "28031",
     "bazel": "6.4.0",
     "xcode": "16.2",
-    "macos": "13.0"
+    "macos": "15"
 }

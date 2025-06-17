@@ -64,16 +64,16 @@ public final class ListSectionComponent: Component {
         private var header: ComponentView<Empty>?
         private var footer: ComponentView<Empty>?
         private var itemViews: [AnyHashable: ComponentView<Empty>] = [:]
-        
+
         private var isHighlighted: Bool = false
-        
+
         private var component: ListSectionComponent?
         
         public override init(frame: CGRect) {
             self.contentView = UIView()
             self.contentView.layer.cornerRadius = 11.0
             self.contentView.clipsToBounds = true
-            
+
             self.contentBackgroundView = DynamicCornerRadiusView()
             
             super.init(frame: CGRect())
@@ -91,12 +91,12 @@ public final class ListSectionComponent: Component {
                 return
             }
             self.isHighlighted = isHighlighted
-            
+
             guard let component = self.component else {
                 return
             }
-            
-            let transition: Transition
+
+            let transition: ComponentTransition
             let backgroundColor: UIColor
             if isHighlighted {
                 transition = .immediate
@@ -108,7 +108,7 @@ public final class ListSectionComponent: Component {
             self.contentBackgroundView.updateColor(color: backgroundColor, transition: transition)
         }
         
-        func update(component: ListSectionComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+        func update(component: ListSectionComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             
             let backgroundColor: UIColor
@@ -118,7 +118,7 @@ public final class ListSectionComponent: Component {
                 backgroundColor = component.theme.list.itemBlocksBackgroundColor
             }
             self.contentBackgroundView.updateColor(color: backgroundColor, transition: transition)
-            
+
             let headerSideInset: CGFloat = 16.0
             
             var contentHeight: CGFloat = 0.0
@@ -180,7 +180,7 @@ public final class ListSectionComponent: Component {
                     if itemComponentView.superview == nil {
                         self.contentView.addSubview(itemComponentView)
                         transition.animateAlpha(view: itemComponentView, from: 0.0, to: 1.0)
-                        
+
                         if let itemComponentView = itemComponentView as? ChildView {
                             itemComponentView.customUpdateIsHighlighted = { [weak self] isHighlighted in
                                 guard let self else {
@@ -198,7 +198,7 @@ public final class ListSectionComponent: Component {
             for (id, itemView) in self.itemViews {
                 if !validItemIds.contains(id) {
                     removedItemIds.append(id)
-                    
+
                     if let itemComponentView = itemView.view {
                         transition.setAlpha(view: itemComponentView, alpha: 0.0, completion: { [weak itemComponentView] _ in
                             itemComponentView?.removeFromSuperview()
@@ -216,7 +216,7 @@ public final class ListSectionComponent: Component {
             
             let contentFrame = CGRect(origin: CGPoint(x: 0.0, y: contentHeight), size: CGSize(width: availableSize.width, height: innerContentHeight))
             transition.setFrame(view: self.contentView, frame: contentFrame)
-            
+
             let backgroundFrame: CGRect
             var backgroundAlpha: CGFloat = 1.0
             switch component.background {
@@ -237,7 +237,7 @@ public final class ListSectionComponent: Component {
             }
             transition.setFrame(view: self.contentBackgroundView, frame: backgroundFrame)
             transition.setAlpha(view: self.contentBackgroundView, alpha: backgroundAlpha)
-            
+
             contentHeight += innerContentHeight
             
             if let footerValue = component.footer {
@@ -282,7 +282,7 @@ public final class ListSectionComponent: Component {
         return View(frame: CGRect())
     }
     
-    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: Transition) -> CGSize {
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

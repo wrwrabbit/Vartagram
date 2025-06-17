@@ -748,7 +748,7 @@ private final class CameraScreenComponent: CombinedComponent {
             
             state.cameraState = component.cameraState
             state.volumeButtonsListenerActive = component.hasAppeared && component.isVisible
-            
+
             let isTablet: Bool
             if case .regular = environment.metrics.widthClass {
                 isTablet = true
@@ -1441,7 +1441,7 @@ public class CameraScreen: ViewController {
         private var validLayout: ContainerViewLayout?
         
         fileprivate var didAppear: () -> Void = {}
-        
+
         private let completion = ActionSlot<Signal<CameraScreen.Result, NoError>>()
         
         var cameraState: CameraState {
@@ -1534,7 +1534,7 @@ public class CameraScreen: ViewController {
             self.mainPreviewContainerView = UIView()
             self.mainPreviewContainerView.clipsToBounds = true
             self.mainPreviewView = CameraSimplePreviewView(frame: .zero, main: true)
-            
+
             self.additionalPreviewContainerView = UIView()
             self.additionalPreviewContainerView.clipsToBounds = true
             self.additionalPreviewView = CameraSimplePreviewView(frame: .zero, main: false)
@@ -1607,7 +1607,7 @@ public class CameraScreen: ViewController {
                             if case .pendingImage = value {
                                 Queue.mainQueue().async {
                                     self.mainPreviewView.isEnabled = false
-                                    
+
                                     self.additionalPreviewView.isEnabled = false
                                 }
                             } else {
@@ -1915,7 +1915,7 @@ public class CameraScreen: ViewController {
                     let velocity = gestureRecognizer.velocity(in: self.view)
                     let transitionFraction = 1.0 - max(0.0, translation.x * -1.0) / self.frame.width
                     controller.completeWithTransitionProgress(transitionFraction, velocity: abs(velocity.x), dismissing: true)
-                    
+
                     self.isDismissing = false
                 }
             default:
@@ -1983,7 +1983,7 @@ public class CameraScreen: ViewController {
             CATransaction.setDisableActions(true)
             self.requestUpdateLayout(hasAppeared: self.hasAppeared, transition: .immediate)
             CATransaction.commit()
-            
+
             self.additionalPreviewContainerView.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
             self.additionalPreviewContainerView.layer.animateScale(from: 0.01, to: 1.0, duration: duration, timingFunction: timingFunction)
                         
@@ -2022,7 +2022,7 @@ public class CameraScreen: ViewController {
                 }
             )
         }
-        
+
         func animateIn() {
             self.transitionDimView.alpha = 0.0
             self.backgroundView.alpha = 0.0
@@ -2042,7 +2042,7 @@ public class CameraScreen: ViewController {
                     self.requestUpdateLayout(hasAppeared: true, transition: .immediate)
                 })
                 self.previewContainerView.layer.animateScale(from: sourceScale, to: 1.0, duration: 0.3, timingFunction: kCAMediaTimingFunctionSpring)
-                
+
                 let minSide = min(self.previewContainerView.bounds.width, self.previewContainerView.bounds.height)
                 self.previewContainerView.layer.animateBounds(from: CGRect(origin: CGPoint(x: (self.previewContainerView.bounds.width - minSide) / 2.0, y: (self.previewContainerView.bounds.height - minSide) / 2.0), size: CGSize(width: minSide, height: minSide)), to: self.previewContainerView.bounds, duration: 0.3, timingFunction: kCAMediaTimingFunctionSpring)
                 self.previewContainerView.layer.animate(
@@ -2069,13 +2069,13 @@ public class CameraScreen: ViewController {
             
             if let transitionOut = self.controller?.transitionOut(false), let destinationView = transitionOut.destinationView {
                 let destinationLocalFrame = destinationView.convert(transitionOut.destinationRect, to: self.view)
-                
+
                 let targetScale = destinationLocalFrame.width / self.previewContainerView.frame.width
                 self.previewContainerView.layer.animatePosition(from: self.previewContainerView.center, to: destinationLocalFrame.center, duration: 0.3, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false, completion: { _ in
                     completion()
                 })
                 self.previewContainerView.layer.animateScale(from: 1.0, to: targetScale, duration: 0.3, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false)
-                
+
                 let minSide = min(self.previewContainerView.bounds.width, self.previewContainerView.bounds.height)
                 self.previewContainerView.layer.animateBounds(from: self.previewContainerView.bounds, to: CGRect(origin: CGPoint(x: (self.previewContainerView.bounds.width - minSide) / 2.0, y: (self.previewContainerView.bounds.height - minSide) / 2.0), size: CGSize(width: minSide, height: minSide)), duration: 0.3, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false)
                 self.previewContainerView.layer.animate(
@@ -2103,7 +2103,7 @@ public class CameraScreen: ViewController {
             self.cameraIsActive = false
             self.requestUpdateLayout(hasAppeared: self.hasAppeared, transition: .immediate)
             
-            let transition = Transition(animation: .curve(duration: 0.2, curve: .easeInOut))
+            let transition = ComponentTransition(animation: .curve(duration: 0.2, curve: .easeInOut))
             if let view = self.componentHost.findTaggedView(tag: cancelButtonTag) {
                 view.layer.animateScale(from: 1.0, to: 0.1, duration: 0.2)
                 transition.setAlpha(view: view, alpha: 0.0)
@@ -2181,7 +2181,7 @@ public class CameraScreen: ViewController {
                 self.cameraIsActive = true
                 self.requestUpdateLayout(hasAppeared: self.hasAppeared, transition: .immediate)
                 
-                let transition = Transition(animation: .curve(duration: 0.2, curve: .easeInOut))
+                let transition = ComponentTransition(animation: .curve(duration: 0.2, curve: .easeInOut))
                 if let view = self.componentHost.findTaggedView(tag: cancelButtonTag) {
                     view.layer.animateScale(from: 0.1, to: 1.0, duration: 0.2)
                     transition.setAlpha(view: view, alpha: 1.0)
@@ -2334,14 +2334,14 @@ public class CameraScreen: ViewController {
             return result
         }
         
-        func requestUpdateLayout(hasAppeared: Bool, transition: Transition) {
+        func requestUpdateLayout(hasAppeared: Bool, transition: ComponentTransition) {
             if let layout = self.validLayout {
                 self.containerLayoutUpdated(layout: layout, forceUpdate: true, hasAppeared: hasAppeared, transition: transition)
             }
         }
 
         fileprivate var hasAppeared = false
-        func containerLayoutUpdated(layout: ContainerViewLayout, forceUpdate: Bool = false, hasAppeared: Bool = false, transition: Transition) {
+        func containerLayoutUpdated(layout: ContainerViewLayout, forceUpdate: Bool = false, hasAppeared: Bool = false, transition: ComponentTransition) {
             guard let _ = self.controller else {
                 return
             }
@@ -2537,7 +2537,7 @@ public class CameraScreen: ViewController {
             transition.setPosition(view: self.additionalPreviewContainerView, position: additionalPreviewFrame.center)
             transition.setBounds(view: self.additionalPreviewContainerView, bounds: CGRect(origin: .zero, size: additionalPreviewFrame.size))
             self.additionalPreviewContainerView.layer.cornerRadius = additionalPreviewFrame.width / 2.0
-            
+
             transition.setScale(view: self.additionalPreviewContainerView, scale: isDualCameraEnabled ? 1.0 : 0.1)
             transition.setAlpha(view: self.additionalPreviewContainerView, alpha: isDualCameraEnabled ? 1.0 : 0.0)
             
@@ -2658,7 +2658,7 @@ public class CameraScreen: ViewController {
         return self.node.cameraState
     }
     
-    fileprivate func updateCameraState(_ f: (CameraState) -> CameraState, transition: Transition) {
+    fileprivate func updateCameraState(_ f: (CameraState) -> CameraState, transition: ComponentTransition) {
         self.node.cameraState = f(self.node.cameraState)
         self.node.requestUpdateLayout(hasAppeared: self.node.hasAppeared, transition: transition)
     }
@@ -3044,7 +3044,7 @@ public class CameraScreen: ViewController {
         super.containerLayoutUpdated(layout, transition: transition)
 
         if !self.isDismissed {
-            (self.displayNode as! Node).containerLayoutUpdated(layout: layout, transition: Transition(transition))
+            (self.displayNode as! Node).containerLayoutUpdated(layout: layout, transition: ComponentTransition(transition))
         }
     }
 }
@@ -3117,7 +3117,7 @@ private final class DualIconComponent: Component {
             fatalError("init(coder:) has not been implemented")
         }
                 
-        func update(component: DualIconComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: Transition) -> CGSize {
+        func update(component: DualIconComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.state = state
                         
@@ -3135,7 +3135,7 @@ private final class DualIconComponent: Component {
         return View(frame: CGRect())
     }
     
-    public func update(view: View, availableSize: CGSize, state: State, environment: Environment<EnvironmentType>, transition: Transition) -> CGSize {
+    public func update(view: View, availableSize: CGSize, state: State, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

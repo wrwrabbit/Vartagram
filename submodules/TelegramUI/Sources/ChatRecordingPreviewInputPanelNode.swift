@@ -18,8 +18,14 @@ import ChatInputPanelNode
 import TooltipUI
 import TelegramNotices
 
+//Xcode 16
+#if canImport(ContactProvider)
+extension AudioWaveformNode: @retroactive CustomMediaPlayerScrubbingForegroundNode {
+}
+#else
 extension AudioWaveformNode: CustomMediaPlayerScrubbingForegroundNode {
 }
+#endif
 
 final class ChatRecordingPreviewViewForOverlayContent: UIView, ChatInputPanelViewForOverlayContent {
     let ignoreHit: (UIView, CGPoint) -> Bool
