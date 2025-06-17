@@ -14,16 +14,30 @@ import SearchUI
 import ChatListSearchItemHeader
 import ContactsPeerItem
 
-extension NavigationBarSearchContentNode: ItemListControllerSearchNavigationContentNode {
+//Xcode 16
+#if canImport(ContactProvider)
+extension NavigationBarSearchContentNode: @retroactive ItemListControllerSearchNavigationContentNode {
     public func activate() {
     }
-    
+
     public func deactivate() {
     }
-    
+
     public func setQueryUpdated(_ f: @escaping (String) -> Void) {
     }
 }
+#else
+extension NavigationBarSearchContentNode: ItemListControllerSearchNavigationContentNode {
+    public func activate() {
+    }
+
+    public func deactivate() {
+    }
+
+    public func setQueryUpdated(_ f: @escaping (String) -> Void) {
+    }
+}
+#endif
 
 final class OldChannelsSearchItem: ItemListControllerSearch {
     let context: AccountContext
