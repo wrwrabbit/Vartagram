@@ -15,7 +15,7 @@ objc_library(
         "Source/**/*.mm",
     ]) + private_headers,
     copts = [
-        "-Werror",
+        
     ],
     hdrs = public_headers,
     defines = [
