@@ -51,6 +51,7 @@ python3 build-system/Make/Make.py \
 1. Copy and edit `build-system/appstore-configuration.json`.
 2. Copy `build-system/fake-codesigning`. Create and download provisioning profiles, using the `profiles` folder as a reference for the entitlements.
 3. Generate an Xcode project:
+
 ```
 python3 build-system/Make/Make.py \
     --cacheDir="$HOME/telegram-bazel-cache" \
