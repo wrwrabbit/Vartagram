@@ -3119,7 +3119,7 @@ objc_library(
 )
 
 objc_library(
-    name = "webrtc",
+    name = "webrtc_lib",
     enable_modules = True,
     module_name = "webrtc",
     srcs = combined_sources,
