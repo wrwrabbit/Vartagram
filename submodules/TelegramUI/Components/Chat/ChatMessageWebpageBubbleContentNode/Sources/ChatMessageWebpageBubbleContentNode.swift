@@ -343,6 +343,14 @@ public final class ChatMessageWebpageBubbleContentNode: ChatMessageBubbleContent
                             break
                         }
                     }
+                case "telegram_auction":
+                    for attribute in webpage.attributes {
+                        if case let .giftAuction(giftAuction) = attribute, case let .generic(gift) = giftAuction.gift {
+                            let media = GiftAuctionPreviewMedia(content: gift, centerColor: UIColor(rgb: UInt32(bitPattern: giftAuction.centerColor)), edgeColor: UIColor(rgb: UInt32(bitPattern: giftAuction.edgeColor)), endTime: giftAuction.endDate)
+                            mediaAndFlags = ([media], [])
+                            break
+                        }
+                    }
                 default:
                     if var file = mainMedia as? TelegramMediaFile, webpage.type != "telegram_theme" {
                         if webpage.imageIsVideoCover, let image = webpage.image {
@@ -480,6 +488,21 @@ public final class ChatMessageWebpageBubbleContentNode: ChatMessageBubbleContent
                             actionTitle = item.presentationData.strings.Chat_ViewCollection
                         case "telegram_story_album":
                             actionTitle = item.presentationData.strings.Chat_ViewAlbum
+                        case "telegram_auction":
+                            var hasEnded = false
+                            for attribute in webpage.attributes {
+                                if case let .giftAuction(giftAuction) = attribute {
+                                    let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
+                                    if giftAuction.endDate < currentTime {
+                                        hasEnded = true
+                                    }
+                                    break
+                                }
+                            }
+                            subtitle = NSAttributedString(string: item.presentationData.strings.Chat_Auction, font: titleFont)
+                            text = nil
+                            actionTitle = hasEnded ? item.presentationData.strings.Chat_Auction_ViewResults : item.presentationData.strings.Chat_Auction_Join
+                            actionIcon = !hasEnded ? .bid : nil
                         default:
                             break
                     }

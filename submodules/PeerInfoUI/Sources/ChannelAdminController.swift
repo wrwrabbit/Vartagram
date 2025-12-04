@@ -348,7 +348,7 @@ private enum ChannelAdminEntry: ItemListNodeEntry {
         let arguments = arguments as! ChannelAdminControllerArguments
         switch self {
             case let .info(_, _, dateTimeFormat, peer, presence):
-                return ItemListAvatarAndNameInfoItem(itemContext: .accountContext(arguments.context), presentationData: presentationData, dateTimeFormat: dateTimeFormat, mode: .generic, peer: peer, presence: presence, memberCount: nil, state: ItemListAvatarAndNameInfoItemState(), sectionId: self.section, style: .blocks(withTopInset: true, withExtendedBottomInset: false), editingNameUpdated: { _ in
+                return ItemListAvatarAndNameInfoItem(itemContext: .accountContext(arguments.context), presentationData: presentationData, systemStyle: .glass, dateTimeFormat: dateTimeFormat, mode: .generic, peer: peer, presence: presence, memberCount: nil, state: ItemListAvatarAndNameInfoItemState(), sectionId: self.section, style: .blocks(withTopInset: true, withExtendedBottomInset: false), editingNameUpdated: { _ in
                 }, avatarTapped: {
                 })
             case let .rankTitle(_, text, count, limit):
@@ -358,7 +358,7 @@ private enum ChannelAdminEntry: ItemListNodeEntry {
                 }
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, accessoryText: accessoryText, sectionId: self.section)
             case let .rank(_, _, placeholder, text, enabled):
-                return ItemListSingleLineInputItem(presentationData: presentationData, title: NSAttributedString(string: "", textColor: .black), text: text, placeholder: placeholder, type: .regular(capitalization: false, autocorrection: true), spacing: 0.0, clearType: enabled ? .always : .none, enabled: enabled, tag: ChannelAdminEntryTag.rank, sectionId: self.section, textUpdated: { updatedText in
+                return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: "", textColor: .black), text: text, placeholder: placeholder, type: .regular(capitalization: false, autocorrection: true), spacing: 0.0, clearType: enabled ? .always : .none, enabled: enabled, tag: ChannelAdminEntryTag.rank, sectionId: self.section, textUpdated: { updatedText in
                     arguments.updateRank(text, updatedText)
                 }, shouldUpdateText: { text in
                     if text.containsEmoji {
@@ -374,7 +374,7 @@ private enum ChannelAdminEntry: ItemListNodeEntry {
             case let .rankInfo(_, text, trimBottomInset):
                 return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section, additionalOuterInsets: UIEdgeInsets(top: 0.0, left: 0.0, bottom: trimBottomInset ? -44.0 : 0.0, right: 0.0))
             case let .adminRights(_, text, value):
-                return ItemListSwitchItem(presentationData: presentationData, title: text, value: value, type: .regular, enabled: true, sectionId: self.section, style: .blocks, updated: { value in
+                return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, type: .regular, enabled: true, sectionId: self.section, style: .blocks, updated: { value in
                     arguments.updateAdminRights(value)
                 }, activatedWhileDisabled: {
                 })
@@ -382,7 +382,7 @@ private enum ChannelAdminEntry: ItemListNodeEntry {
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
             case let .rightItem(_, _, text, right, flags, value, enabled, subPermissions, isExpanded):
                 if !subPermissions.isEmpty {
-                    return ItemListExpandableSwitchItem(presentationData: presentationData, title: text, value: value, isExpanded: isExpanded, subItems: subPermissions.map { item in
+                    return ItemListExpandableSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, isExpanded: isExpanded, subItems: subPermissions.map { item in
                         return ItemListExpandableSwitchItem.SubItem(
                             id: AnyHashable(item.flags.rawValue),
                             title: item.title,
@@ -414,7 +414,7 @@ private enum ChannelAdminEntry: ItemListNodeEntry {
                         }
                     })
                 } else {
-                    return ItemListSwitchItem(presentationData: presentationData, title: text, value: value, type: .icon, enabled: enabled, sectionId: self.section, style: .blocks, updated: { value in
+                    return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, type: .icon, enabled: enabled, sectionId: self.section, style: .blocks, updated: { value in
                         arguments.toggleRight(right, flags, value)
                     }, activatedWhileDisabled: {
                         if case let .direct(right) = right {
@@ -425,11 +425,11 @@ private enum ChannelAdminEntry: ItemListNodeEntry {
             case let .addAdminsInfo(_, text):
                 return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
             case let .transfer(_, text):
-                return ItemListActionItem(presentationData: presentationData, title: text, kind: .generic, alignment: .center, sectionId: self.section, style: .blocks, action: {
+                return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: text, kind: .generic, alignment: .center, sectionId: self.section, style: .blocks, action: {
                     arguments.transferOwnership()
                 }, tag: nil)
             case let .dismiss(_, text):
-                return ItemListActionItem(presentationData: presentationData, title: text, kind: .destructive, alignment: .center, sectionId: self.section, style: .blocks, action: {
+                return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: text, kind: .destructive, alignment: .center, sectionId: self.section, style: .blocks, action: {
                     arguments.dismissAdmin()
                 }, tag: nil)
         }
@@ -665,7 +665,7 @@ private func channelAdminControllerEntries(presentationData: PresentationData, s
                 ]
             case .group:
                 isGroup = true
-                if channel.flags.contains(.isForum) {
+                if channel.isForum {
                     rightsOrder = [
                         .direct(.canChangeInfo),
                         .direct(.canDeleteMessages),
@@ -732,7 +732,7 @@ private func channelAdminControllerEntries(presentationData: PresentationData, s
                         
                         enabled = right == .canBeAnonymous
                         
-                        itemTitle = stringForRight(strings: presentationData.strings, right: right, isGroup: isGroup, isChannel: isChannel, isForum: channel.flags.contains(.isForum), defaultBannedRights: channel.defaultBannedRights)
+                        itemTitle = stringForRight(strings: presentationData.strings, right: right, isGroup: isGroup, isChannel: isChannel, isForum: channel.isForum, defaultBannedRights: channel.defaultBannedRights)
                         isSelected = currentRightsFlags.contains(right)
                     case let .sub(type, subRights):
                         let filteredSubRights = subRights.filter({ accountUserRightsFlags.contains($0) })
@@ -756,7 +756,7 @@ private func channelAdminControllerEntries(presentationData: PresentationData, s
                         for subRight in filteredSubRights {
                             let subRightEnabled = true
                             
-                            subItems.append(AdminSubPermission(title: stringForRight(strings: presentationData.strings, right: subRight, isGroup: isGroup, isChannel: isChannel, isForum: channel.flags.contains(.isForum), defaultBannedRights: channel.defaultBannedRights), flags: subRight, isSelected: currentRightsFlags.contains(subRight), isEnabled: enabled && subRightEnabled))
+                            subItems.append(AdminSubPermission(title: stringForRight(strings: presentationData.strings, right: subRight, isGroup: isGroup, isChannel: isChannel, isForum: channel.isForum, defaultBannedRights: channel.defaultBannedRights), flags: subRight, isSelected: currentRightsFlags.contains(subRight), isEnabled: enabled && subRightEnabled))
                         }
                     }
                     
@@ -811,7 +811,7 @@ private func channelAdminControllerEntries(presentationData: PresentationData, s
                             
                             enabled = !state.updating && admin.id != accountPeerId && !rightEnabledByDefault(channelPeer: .channel(channel), right: right)
                             
-                            itemTitle = stringForRight(strings: presentationData.strings, right: right, isGroup: isGroup, isChannel: isChannel, isForum: channel.flags.contains(.isForum), defaultBannedRights: channel.defaultBannedRights)
+                            itemTitle = stringForRight(strings: presentationData.strings, right: right, isGroup: isGroup, isChannel: isChannel, isForum: channel.isForum, defaultBannedRights: channel.defaultBannedRights)
                             isSelected = currentRightsFlags.contains(right)
                         case let .sub(type, subRights):
                             let filteredSubRights = subRights.filter({ accountUserRightsFlags.contains($0) })
@@ -835,7 +835,7 @@ private func channelAdminControllerEntries(presentationData: PresentationData, s
                             for subRight in filteredSubRights {
                                 let subRightEnabled = !state.updating && admin.id != accountPeerId && !rightEnabledByDefault(channelPeer: .channel(channel), right: subRight)
                                 
-                                subItems.append(AdminSubPermission(title: stringForRight(strings: presentationData.strings, right: subRight, isGroup: isGroup, isChannel: isChannel, isForum: channel.flags.contains(.isForum), defaultBannedRights: channel.defaultBannedRights), flags: subRight, isSelected: currentRightsFlags.contains(subRight), isEnabled: enabled && subRightEnabled))
+                                subItems.append(AdminSubPermission(title: stringForRight(strings: presentationData.strings, right: subRight, isGroup: isGroup, isChannel: isChannel, isForum: channel.isForum, defaultBannedRights: channel.defaultBannedRights), flags: subRight, isSelected: currentRightsFlags.contains(subRight), isEnabled: enabled && subRightEnabled))
                             }
                         }
                             
@@ -878,7 +878,7 @@ private func channelAdminControllerEntries(presentationData: PresentationData, s
                         
                         switch right {
                         case let .direct(right):
-                            itemTitle = stringForRight(strings: presentationData.strings, right: right, isGroup: isGroup, isChannel: isChannel, isForum: channel.flags.contains(.isForum), defaultBannedRights: channel.defaultBannedRights)
+                            itemTitle = stringForRight(strings: presentationData.strings, right: right, isGroup: isGroup, isChannel: isChannel, isForum: channel.isForum, defaultBannedRights: channel.defaultBannedRights)
                             isSelected = adminInfo.rights.rights.contains(right)
                         case let .sub(type, subRights):
                             let filteredSubRights = subRights
@@ -900,7 +900,7 @@ private func channelAdminControllerEntries(presentationData: PresentationData, s
                             for subRight in filteredSubRights {
                                 let subRightEnabled = false
                                 
-                                subItems.append(AdminSubPermission(title: stringForRight(strings: presentationData.strings, right: subRight, isGroup: isGroup, isChannel: isChannel, isForum: channel.flags.contains(.isForum), defaultBannedRights: channel.defaultBannedRights), flags: subRight, isSelected: adminInfo.rights.rights.contains(subRight), isEnabled: enabled && subRightEnabled))
+                                subItems.append(AdminSubPermission(title: stringForRight(strings: presentationData.strings, right: subRight, isGroup: isGroup, isChannel: isChannel, isForum: channel.isForum, defaultBannedRights: channel.defaultBannedRights), flags: subRight, isSelected: adminInfo.rights.rights.contains(subRight), isEnabled: enabled && subRightEnabled))
                             }
                         }
                         

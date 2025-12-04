@@ -1042,6 +1042,9 @@ public final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTr
             } else if let _ = media as? UniqueGiftPreviewMedia {
                 isGift = true
                 unboundSize = CGSize(width: 200.0, height: 200.0)
+            } else if let _ = media as? GiftAuctionPreviewMedia {
+                isGift = true
+                unboundSize = CGSize(width: 200.0, height: 200.0)
             } else {
                 var extendedMedia: TelegramExtendedMedia?
                 if let invoice = media as? TelegramMediaInvoice, let selectedMedia = invoice.extendedMedia {
@@ -1849,6 +1852,8 @@ public final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTr
                             }
                         } else if let _ = media as? UniqueGiftPreviewMedia {
                             updatedStatusSignal = .single((.Local, nil))
+                        } else if let _ = media as? GiftAuctionPreviewMedia {
+                            updatedStatusSignal = .single((.Local, nil))
                         }
                     }
 
@@ -2221,6 +2226,38 @@ public final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTr
                                     containerSize: imageFrame.size
                                 )
 
+                                if let giftView = giftView.view {
+                                    if giftView.superview == nil {
+                                        strongSelf.pinchContainerNode.contentNode.view.addSubview(giftView)
+                                    }
+                                    giftView.frame = imageFrame
+                                }
+                            } else if let giftPreview = media as? GiftAuctionPreviewMedia, let gift = giftPreview.content {
+                                let giftView: ComponentView<Empty>
+                                if let current = strongSelf.giftView {
+                                    giftView = current
+                                } else {
+                                    giftView = ComponentView()
+                                    strongSelf.giftView = giftView
+                                }
+                                
+                                let _ = giftView.update(
+                                    transition: .immediate,
+                                    component: AnyComponent(
+                                        GiftItemComponent(
+                                            context: context,
+                                            theme: presentationData.theme.theme,
+                                            strings: presentationData.strings,
+                                            subject: .auction(gift: gift, centerColor: giftPreview.centerColor, edgeColor: giftPreview.edgeColor, endTime: giftPreview.endTime),
+                                            title: gift.title ?? "",
+                                            subtitle: presentationData.strings.Chat_Auction_Gifts(gift.availability?.total ?? 0),
+                                            mode: .preview
+                                        )
+                                    ),
+                                    environment: {},
+                                    containerSize: imageFrame.size
+                                )
+                                
                                 if let giftView = giftView.view {
                                     if giftView.superview == nil {
                                         strongSelf.pinchContainerNode.contentNode.view.addSubview(giftView)

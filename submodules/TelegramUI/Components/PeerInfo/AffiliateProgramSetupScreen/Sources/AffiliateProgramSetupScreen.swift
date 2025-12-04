@@ -918,7 +918,8 @@ final class AffiliateProgramSetupScreenComponent: Component {
                                         
                                         self.state?.updated(transition: .immediate)
                                     }
-                                ))
+                                )),
+                                preferNative: true
                             )))
                         ],
                         displaySeparators: false
@@ -995,7 +996,8 @@ final class AffiliateProgramSetupScreenComponent: Component {
                                         self.durationValue = Int(durationItems[value])
                                         self.state?.updated(transition: .immediate)
                                     }
-                                ))
+                                )),
+                                preferNative: true
                             )))
                         ],
                         displaySeparators: false

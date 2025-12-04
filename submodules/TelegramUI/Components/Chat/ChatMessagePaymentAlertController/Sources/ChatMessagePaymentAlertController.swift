@@ -439,6 +439,8 @@ public class ChatMessagePaymentAlertController: AlertController {
                                         starsContext: starsContext,
                                         options: options,
                                         purpose: .generic,
+                                        targetPeerId: nil,
+                                        customTheme: nil,
                                         completion: { _ in }
                                     )
                                     navigationController.pushViewController(controller)

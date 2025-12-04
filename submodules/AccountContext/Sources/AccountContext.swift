@@ -196,6 +196,7 @@ public enum ResolvedUrlSettingsSection {
     case twoStepAuth
     case enableLog
     case phonePrivacy
+    case loginEmail
 }
 
 public struct ResolvedBotChoosePeerTypes: OptionSet {
@@ -331,6 +332,7 @@ public enum ResolvedUrl {
     case premiumGiftCode(slug: String)
     case premiumMultiGift(reference: String?)
     case collectible(gift: StarGift.UniqueGift?)
+    case auction(auction: GiftAuctionContext?)
     case messageLink(link: TelegramResolvedMessageLink?)
     case stars
     case ton
@@ -707,6 +709,7 @@ public enum PeerInfoControllerMode {
     case recommendedChannels
     case myProfile
     case gifts
+    case upgradableGifts
     case myProfileGifts
     case groupsInCommon
     case monoforum(EnginePeer.Id)
@@ -913,8 +916,52 @@ public class MediaEditorTransitionOutExternalState {
     }
 }
 
-public protocol CameraScreen: ViewController {
+public enum CameraScreenMode {
+    case story
+    case sticker
+    case avatar
+}
 
+public final class CameraScreenTransitionIn {
+    public weak var sourceView: UIView?
+    public let sourceRect: CGRect
+    public let sourceCornerRadius: CGFloat
+    public let useFillAnimation: Bool
+
+    public init(
+        sourceView: UIView,
+        sourceRect: CGRect,
+        sourceCornerRadius: CGFloat,
+        useFillAnimation: Bool
+    ) {
+        self.sourceView = sourceView
+        self.sourceRect = sourceRect
+        self.sourceCornerRadius = sourceCornerRadius
+        self.useFillAnimation = useFillAnimation
+    }
+}
+
+public final class CameraScreenTransitionOut {
+    public weak var destinationView: UIView?
+    public let destinationRect: CGRect
+    public let destinationCornerRadius: CGFloat
+    public let completion: (() -> Void)?
+
+    public init(
+        destinationView: UIView,
+        destinationRect: CGRect,
+        destinationCornerRadius: CGFloat,
+        completion: (() -> Void)? = nil
+    ) {
+        self.destinationView = destinationView
+        self.destinationRect = destinationRect
+        self.destinationCornerRadius = destinationCornerRadius
+        self.completion = completion
+    }
+}
+
+public protocol CameraScreen: ViewController {
+func returnFromEditor()
 }
 
 public protocol MediaEditorScreen: ViewController {
@@ -933,7 +980,7 @@ public protocol MediaEditorScreenResult {
 
 public protocol TelegramRootControllerInterface: NavigationController {
     @discardableResult
-    func openStoryCamera(customTarget: Stories.PendingTarget?, transitionIn: StoryCameraTransitionIn?, transitionedIn: @escaping () -> Void, transitionOut: @escaping (Stories.PendingTarget?, Bool) -> StoryCameraTransitionOut?) -> StoryCameraTransitionInCoordinator?
+    func openStoryCamera(customTarget: Stories.PendingTarget?, resumeLiveStream: Bool, transitionIn: StoryCameraTransitionIn?, transitionedIn: @escaping () -> Void, transitionOut: @escaping (Stories.PendingTarget?, Bool) -> StoryCameraTransitionOut?) -> StoryCameraTransitionInCoordinator?
     func proceedWithStoryUpload(target: Stories.PendingTarget, results: [MediaEditorScreenResult], existingMedia: EngineMedia?, forwardInfo: Stories.PendingForwardInfo?, externalState: MediaEditorTransitionOutExternalState, commit: @escaping (@escaping () -> Void) -> Void)
     
     func getContactsController() -> ViewController?
@@ -1139,6 +1186,51 @@ public enum StarsWithdrawalScreenSubject {
     case postSuggestionModification(current: CurrencyAmount, timestamp: Int32?, completion: (CurrencyAmount, Int32?) -> Void)
 }
 
+public enum ChannelMembersSearchControllerMode {
+    case promote
+    case ban
+    case inviteToCall
+}
+
+public enum ChannelMembersSearchFilter {
+    case exclude([EnginePeer.Id])
+    case disable([EnginePeer.Id])
+    case excludeNonMembers
+    case excludeBots
+}
+
+public final class ChannelMembersSearchControllerParams {
+    public let context: AccountContext
+    public let updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?
+    public let peerId: EnginePeer.Id
+    public let forceTheme: PresentationTheme?
+    public let mode: ChannelMembersSearchControllerMode
+    public let filters: [ChannelMembersSearchFilter]
+    public let openPeer: (EnginePeer, RenderedChannelParticipant?) -> Void
+
+    public init(
+        context: AccountContext,
+        updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil,
+        peerId: EnginePeer.Id,
+        forceTheme: PresentationTheme? = nil,
+        mode: ChannelMembersSearchControllerMode,
+        filters: [ChannelMembersSearchFilter] = [],
+        openPeer: @escaping (EnginePeer, RenderedChannelParticipant?) -> Void
+    ) {
+        self.context = context
+        self.updatedPresentationData = updatedPresentationData
+        self.peerId = peerId
+        self.forceTheme = forceTheme
+        self.mode = mode
+        self.filters = filters
+        self.openPeer = openPeer
+    }
+}
+
+public protocol ChannelMembersSearchController: ViewController {
+    var copyInviteLink: (() -> Void)? { get set }
+}
+
 public protocol SharedAccountContext: AnyObject {
     var sharedContainerPath: String { get }
     var basePath: String { get }
@@ -1298,6 +1390,8 @@ public protocol SharedAccountContext: AnyObject {
 
     func makeStickerPackScreen(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?, mainStickerPack: StickerPackReference, stickerPacks: [StickerPackReference], loadedStickerPacks: [LoadedStickerPack], actionTitle: String?, isEditing: Bool, expandIfNeeded: Bool, parentNavigationController: NavigationController?, sendSticker: ((FileMediaReference, UIView, CGRect) -> Bool)?, actionPerformed: ((Bool) -> Void)?) -> ViewController
     
+    func makeCameraScreen(context: AccountContext, mode: CameraScreenMode, cameraHolder: Any?, transitionIn: CameraScreenTransitionIn?, transitionOut: @escaping (Bool) -> CameraScreenTransitionOut?, completion: @escaping (Any, @escaping () -> Void) -> Void, transitionedOut: (() -> Void)?) -> ViewController
+
     func makeMediaPickerScreen(context: AccountContext, hasSearch: Bool, completion: @escaping (Any) -> Void) -> ViewController
     
     func makeStoryMediaEditorScreen(context: AccountContext, source: Any?, text: String?, link: (url: String, name: String?)?, remainingCount: Int32, completion: @escaping ([MediaEditorScreenResult], MediaEditorTransitionOutExternalState, @escaping (@escaping () -> Void) -> Void) -> Void) -> ViewController
@@ -1325,7 +1419,7 @@ public protocol SharedAccountContext: AnyObject {
     func makeStoryStatsController(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?, peerId: EnginePeer.Id, storyId: Int32, storyItem: EngineStoryItem, fromStory: Bool) -> ViewController
     
     func makeStarsTransactionsScreen(context: AccountContext, starsContext: StarsContext) -> ViewController
-    func makeStarsPurchaseScreen(context: AccountContext, starsContext: StarsContext, options: [Any], purpose: StarsPurchasePurpose, completion: @escaping (Int64) -> Void) -> ViewController
+    func makeStarsPurchaseScreen(context: AccountContext, starsContext: StarsContext, options: [Any], purpose: StarsPurchasePurpose, targetPeerId: EnginePeer.Id?, customTheme: PresentationTheme?, completion: @escaping (Int64) -> Void) -> ViewController
     func makeStarsTransferScreen(context: AccountContext, starsContext: StarsContext, invoice: TelegramMediaInvoice, source: BotPaymentInvoiceSource, extendedMedia: [TelegramExtendedMedia], inputData: Signal<(StarsContext.State, BotPaymentForm, EnginePeer?, EnginePeer?)?, NoError>, completion: @escaping (Bool) -> Void) -> ViewController
     func makeStarsSubscriptionTransferScreen(context: AccountContext, starsContext: StarsContext, invoice: TelegramMediaInvoice, link: String, inputData: Signal<(StarsContext.State, BotPaymentForm, EnginePeer?, EnginePeer?)?, NoError>, navigateToPeer: @escaping (EnginePeer) -> Void) -> ViewController
     func makeStarsTransactionScreen(context: AccountContext, transaction: StarsContext.State.Transaction, peer: EnginePeer) -> ViewController
@@ -1343,6 +1437,10 @@ public protocol SharedAccountContext: AnyObject {
     func makeGiftViewScreen(context: AccountContext, message: EngineMessage, shareStory: ((StarGift.UniqueGift) -> Void)?) -> ViewController
     func makeGiftViewScreen(context: AccountContext, gift: StarGift.UniqueGift, shareStory: ((StarGift.UniqueGift) -> Void)?, openChatTheme: (() -> Void)?, dismissed: (() -> Void)?) -> ViewController
     func makeGiftWearPreviewScreen(context: AccountContext, gift: StarGift.UniqueGift) -> ViewController
+func makeGiftAuctionInfoScreen(context: AccountContext, auctionContext: GiftAuctionContext, completion: (() -> Void)?) -> ViewController
+    func makeGiftAuctionBidScreen(context: AccountContext, toPeerId: EnginePeer.Id, text: String?, entities: [MessageTextEntity]?, hideName: Bool, auctionContext: GiftAuctionContext) -> ViewController
+    func makeGiftAuctionViewScreen(context: AccountContext, auctionContext: GiftAuctionContext, completion: @escaping () -> Void) -> ViewController
+    func makeGiftAuctionActiveBidsScreen(context: AccountContext) -> ViewController
 
     func makeStorySharingScreen(context: AccountContext, subject: StorySharingSubject, parentController: ViewController) -> ViewController
 
@@ -1374,10 +1472,18 @@ public protocol SharedAccountContext: AnyObject {
     func makePostSuggestionsSettingsScreen(context: AccountContext, peerId: EnginePeer.Id) async -> ViewController
 
     func makeForumSettingsScreen(context: AccountContext, peerId: EnginePeer.Id) -> ViewController
+func makeBirthdayPickerScreen(context: AccountContext, settings: Promise<AccountPrivacySettings?>, openSettings: @escaping () -> Void, completion: @escaping (TelegramBirthday) -> Void) -> ViewController
+    func makeBirthdaySuggestionScreen(context: AccountContext, peerId: EnginePeer.Id, completion: @escaping (TelegramBirthday) -> Void) -> ViewController
+    func makeBirthdayAcceptSuggestionScreen(context: AccountContext, birthday: TelegramBirthday, settings: Promise<AccountPrivacySettings?>, openSettings: @escaping () -> Void, completion: @escaping (TelegramBirthday) -> Void) -> ViewController
+
+    func makeChannelMembersSearchController(params: ChannelMembersSearchControllerParams) -> ChannelMembersSearchController
 
     func makeDebugSettingsController(context: AccountContext?) -> ViewController?
     
     func openCreateGroupCallUI(context: AccountContext, peerIds: [EnginePeer.Id], parentController: ViewController)
+func makeNewContactScreen(context: AccountContext, peer: EnginePeer?, phoneNumber: String?, shareViaException: Bool, completion: @escaping (EnginePeer?, DeviceContactStableId?, DeviceContactExtendedData?) -> Void) -> ViewController
+
+    func makeLoginEmailSetupController(context: AccountContext, blocking: Bool, emailPattern: String?, canAutoDismissIfNeeded: Bool, navigationController: NavigationController?, completion: @escaping () -> Void, dismiss: @escaping () -> Void) -> ViewController
 
     func navigateToCurrentCall()
     var hasOngoingCall: ValuePromise<Bool> { get }
@@ -1454,7 +1560,6 @@ public protocol AccountContext: AnyObject {
     var engine: TelegramEngine { get }
     
     var liveLocationManager: LiveLocationManager? { get }
-    var peersNearbyManager: PeersNearbyManager? { get }
     var fetchManager: FetchManager { get }
     var prefetchManager: PrefetchManager? { get }
     var downloadedMediaStoreManager: DownloadedMediaStoreManager { get }
@@ -1463,6 +1568,7 @@ public protocol AccountContext: AnyObject {
     var inAppPurchaseManager: InAppPurchaseManager? { get }
     var starsContext: StarsContext? { get }
     var tonContext: StarsContext? { get }
+var giftAuctionsManager: GiftAuctionsManager? { get }
 
     var currentLimitsConfiguration: Atomic<LimitsConfiguration> { get }
     var currentContentSettings: Atomic<ContentSettings> { get }

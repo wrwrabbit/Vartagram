@@ -41,6 +41,9 @@ swift_library(
         "//submodules/TelegramUI/Components/ContextReferenceButtonComponent",
         "//submodules/TelegramUI/Components/Stories/ForwardInfoPanelComponent",
         "//submodules/TelegramUI/Components/PlainButtonComponent",
+        "//submodules/TelegramUI/Components/GlassBackgroundComponent",
+        "//submodules/TelegramUI/Components/Chat/ChatTextInputPanelNode",
+        "//submodules/TelegramUI/Components/Stories/LiveChat/StoryLiveChatMessageComponent",
     ],
     visibility = [
         "//visibility:public",

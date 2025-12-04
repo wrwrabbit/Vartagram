@@ -936,6 +936,10 @@ public extension TelegramEngine {
         public func removeSavedMusic(file: FileMediaReference) -> Signal<Never, NoError> {
             return _internal_removeSavedMusic(account: self.account, file: file)
         }
+        
+        public func suggestBirthday(peerId: EnginePeer.Id, birthday: TelegramBirthday) -> Signal<Never, SuggestBirthdayError> {
+            return _internal_suggestBirthday(account: self.account, peerId: peerId, birthday: birthday)
+        }
 
         public func getNextUnreadChannel(peerId: PeerId, chatListFilterId: Int32?, getFilterPredicate: @escaping (ChatListFilterData) -> ChatListFilterPredicate, reverseOrder: Bool) -> Signal<(peer: EnginePeer, unreadCount: Int, location: NextUnreadChannelLocation)?, NoError> {
             let startTime = CFAbsoluteTimeGetCurrent()
@@ -1186,6 +1190,10 @@ public extension TelegramEngine {
         
         public func updatePeerSendAsPeer(peerId: PeerId, sendAs: PeerId) -> Signal<Never, UpdatePeerSendAsPeerError> {
             return _internal_updatePeerSendAsPeer(account: self.account, peerId: peerId, sendAs: sendAs)
+        }
+        
+        public func liveStorySendAsAvailablePeers(peerId: PeerId) -> Signal<[SendAsPeer], NoError> {
+            return _internal_cachedLiveStorySendAsAvailablePeers(account: self.account, peerId: peerId)
         }
         
         public func updatePeerReactionSettings(peerId: PeerId, reactionSettings: PeerReactionSettings) -> Signal<Never, UpdatePeerAllowedReactionsError> {

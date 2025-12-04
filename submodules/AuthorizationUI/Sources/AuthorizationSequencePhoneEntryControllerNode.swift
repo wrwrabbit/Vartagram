@@ -284,7 +284,14 @@ private final class ContactSyncNode: ASDisplayNode {
     }
     
     func updateLayout(width: CGFloat) -> CGSize {
-        let switchSize = CGSize(width: 51.0, height: 31.0)
+        var switchSize = CGSize(width: 51.0, height: 31.0)
+        if let switchView = self.switchNode.view as? UISwitch {
+            if self.switchNode.bounds.size.width.isZero {
+                switchView.sizeToFit()
+            }
+            switchSize = switchView.bounds.size
+        }
+        
         let inset: CGFloat = 24.0
         let titleSize = self.titleNode.updateLayout(CGSize(width: width - switchSize.width - inset * 2.0 - 8.0, height: .greatestFiniteMagnitude))
         let height: CGFloat = 40.0
@@ -414,7 +421,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         
         self.phoneAndCountryNode = PhoneAndCountryNode(strings: strings, theme: theme)
         
-        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: self.theme), height: 50.0, cornerRadius: 11.0, gloss: false)
+        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: self.theme), height: 50.0, cornerRadius: 11.0)
         self.proceedNode.progressType = .embedded
         self.proceedNode.isEnabled = false
         
@@ -815,7 +822,7 @@ final class PhoneConfirmationController: ViewController {
             self.cancelButton.accessibilityTraits = [.button]
             self.cancelButton.accessibilityLabel = strings.Login_Edit
             
-            self.proceedNode = SolidRoundedButtonNode(title: strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: theme), height: 50.0, cornerRadius: 11.0, gloss: false)
+            self.proceedNode = SolidRoundedButtonNode(title: strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: theme), height: 50.0, cornerRadius: 11.0)
             self.proceedNode.progressType = .embedded
             
             let font = Font.with(size: 20.0, design: .regular, traits: [.monospacedNumbers])

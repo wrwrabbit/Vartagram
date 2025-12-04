@@ -1,4 +1,54 @@
 public extension Api.account {
+    enum SavedRingtone: TypeConstructorDescription {
+        case savedRingtone
+        case savedRingtoneConverted(document: Api.Document)
+    
+    public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+    switch self {
+                case .savedRingtone:
+                    if boxed {
+                        buffer.appendInt32(-1222230163)
+                    }
+                    
+                    break
+                case .savedRingtoneConverted(let document):
+                    if boxed {
+                        buffer.appendInt32(523271863)
+                    }
+                    document.serialize(buffer, true)
+                    break
+    }
+    }
+    
+    public func descriptionFields() -> (String, [(String, Any)]) {
+        switch self {
+                case .savedRingtone:
+                return ("savedRingtone", [])
+                case .savedRingtoneConverted(let document):
+                return ("savedRingtoneConverted", [("document", document as Any)])
+    }
+    }
+    
+        public static func parse_savedRingtone(_ reader: BufferReader) -> SavedRingtone? {
+            return Api.account.SavedRingtone.savedRingtone
+        }
+        public static func parse_savedRingtoneConverted(_ reader: BufferReader) -> SavedRingtone? {
+            var _1: Api.Document?
+            if let signature = reader.readInt32() {
+                _1 = Api.parse(reader, signature: signature) as? Api.Document
+            }
+            let _c1 = _1 != nil
+            if _c1 {
+                return Api.account.SavedRingtone.savedRingtoneConverted(document: _1!)
+            }
+            else {
+                return nil
+            }
+        }
+    
+    }
+}
+public extension Api.account {
     enum SavedRingtones: TypeConstructorDescription {
         case savedRingtones(hash: Int64, ringtones: [Api.Document])
         case savedRingtonesNotModified
@@ -701,7 +751,7 @@ public extension Api.auth {
 public extension Api.auth {
     enum SentCode: TypeConstructorDescription {
         case sentCode(flags: Int32, type: Api.auth.SentCodeType, phoneCodeHash: String, nextType: Api.auth.CodeType?, timeout: Int32?)
-        case sentCodePaymentRequired(storeProduct: String, phoneCodeHash: String, supportEmailAddress: String, supportEmailSubject: String)
+        case sentCodePaymentRequired(storeProduct: String, phoneCodeHash: String, supportEmailAddress: String, supportEmailSubject: String, currency: String, amount: Int64)
         case sentCodeSuccess(authorization: Api.auth.Authorization)
     
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
@@ -716,14 +766,16 @@ public extension Api.auth {
                     if Int(flags) & Int(1 << 1) != 0 {nextType!.serialize(buffer, true)}
                     if Int(flags) & Int(1 << 2) != 0 {serializeInt32(timeout!, buffer: buffer, boxed: false)}
                     break
-                case .sentCodePaymentRequired(let storeProduct, let phoneCodeHash, let supportEmailAddress, let supportEmailSubject):
+                case .sentCodePaymentRequired(let storeProduct, let phoneCodeHash, let supportEmailAddress, let supportEmailSubject, let currency, let amount):
                     if boxed {
-                        buffer.appendInt32(-677184263)
+                        buffer.appendInt32(-527082948)
                     }
                     serializeString(storeProduct, buffer: buffer, boxed: false)
                     serializeString(phoneCodeHash, buffer: buffer, boxed: false)
                     serializeString(supportEmailAddress, buffer: buffer, boxed: false)
                     serializeString(supportEmailSubject, buffer: buffer, boxed: false)
+                    serializeString(currency, buffer: buffer, boxed: false)
+                    serializeInt64(amount, buffer: buffer, boxed: false)
                     break
                 case .sentCodeSuccess(let authorization):
                     if boxed {
@@ -738,8 +790,8 @@ public extension Api.auth {
         switch self {
                 case .sentCode(let flags, let type, let phoneCodeHash, let nextType, let timeout):
                 return ("sentCode", [("flags", flags as Any), ("type", type as Any), ("phoneCodeHash", phoneCodeHash as Any), ("nextType", nextType as Any), ("timeout", timeout as Any)])
-                case .sentCodePaymentRequired(let storeProduct, let phoneCodeHash, let supportEmailAddress, let supportEmailSubject):
-                return ("sentCodePaymentRequired", [("storeProduct", storeProduct as Any), ("phoneCodeHash", phoneCodeHash as Any), ("supportEmailAddress", supportEmailAddress as Any), ("supportEmailSubject", supportEmailSubject as Any)])
+                case .sentCodePaymentRequired(let storeProduct, let phoneCodeHash, let supportEmailAddress, let supportEmailSubject, let currency, let amount):
+                return ("sentCodePaymentRequired", [("storeProduct", storeProduct as Any), ("phoneCodeHash", phoneCodeHash as Any), ("supportEmailAddress", supportEmailAddress as Any), ("supportEmailSubject", supportEmailSubject as Any), ("currency", currency as Any), ("amount", amount as Any)])
                 case .sentCodeSuccess(let authorization):
                 return ("sentCodeSuccess", [("authorization", authorization as Any)])
     }
@@ -781,12 +833,18 @@ public extension Api.auth {
             _3 = parseString(reader)
             var _4: String?
             _4 = parseString(reader)
+            var _5: String?
+            _5 = parseString(reader)
+            var _6: Int64?
+            _6 = reader.readInt64()
             let _c1 = _1 != nil
             let _c2 = _2 != nil
             let _c3 = _3 != nil
             let _c4 = _4 != nil
-            if _c1 && _c2 && _c3 && _c4 {
-                return Api.auth.SentCode.sentCodePaymentRequired(storeProduct: _1!, phoneCodeHash: _2!, supportEmailAddress: _3!, supportEmailSubject: _4!)
+            let _c5 = _5 != nil
+            let _c6 = _6 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 {
+                return Api.auth.SentCode.sentCodePaymentRequired(storeProduct: _1!, phoneCodeHash: _2!, supportEmailAddress: _3!, supportEmailSubject: _4!, currency: _5!, amount: _6!)
             }
             else {
                 return nil

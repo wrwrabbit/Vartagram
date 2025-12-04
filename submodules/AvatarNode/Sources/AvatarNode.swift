@@ -72,7 +72,7 @@ private class AvatarNodeParameters: NSObject {
     }
 }
 
-public func calculateAvatarColors(context: AccountContext?, explicitColorIndex: Int?, peerId: EnginePeer.Id?, nameColor: PeerNameColor?, icon: AvatarNodeIcon, theme: PresentationTheme?) -> [UIColor] {
+public func calculateAvatarColors(context: AccountContext?, explicitColorIndex: Int?, peerId: EnginePeer.Id?, nameColor: PeerColor?, icon: AvatarNodeIcon, theme: PresentationTheme?) -> [UIColor] {
     let colorIndex: Int
     if let explicitColorIndex = explicitColorIndex {
         colorIndex = explicitColorIndex
@@ -138,9 +138,8 @@ public func calculateAvatarColors(context: AccountContext?, explicitColorIndex: 
         }
     } else {
         if let nameColor {
-            if let context, nameColor.rawValue > 13 {
-                let nameColors = context.peerNameColors.get(nameColor)
-                let hue = nameColors.main.hsb.h
+            func colorIndexFromColor(color: UIColor) -> Int {
+                let hue = color.hsb.h
                 var index: Int = 0
                 if hue > 0.9 || hue < 0.02 {
                     index = 0
@@ -157,10 +156,24 @@ public func calculateAvatarColors(context: AccountContext?, explicitColorIndex: 
                 } else {
                     index = 6
                 }
-                colors = AvatarNode.gradientColors[index % AvatarNode.gradientColors.count]
-            } else {
-                colors = AvatarNode.gradientColors[Int(nameColor.rawValue) % AvatarNode.gradientColors.count]
+                return index
             }
+            
+            switch nameColor {
+            case let .preset(nameColor):
+                if let context, nameColor.rawValue > 13 {
+                    let nameColors = context.peerNameColors.get(nameColor)
+                    let index = colorIndexFromColor(color: nameColors.main)
+                    colors = AvatarNode.gradientColors[index % AvatarNode.gradientColors.count]
+                } else {
+                    colors = AvatarNode.gradientColors[Int(nameColor.rawValue) % AvatarNode.gradientColors.count]
+                }
+            case let .collectible(peerCollectibleColor):
+                let color = UIColor(rgb: peerCollectibleColor.accentColor)
+                let index = colorIndexFromColor(color: color)
+                colors = AvatarNode.gradientColors[index % AvatarNode.gradientColors.count]
+            }
+            
         } else {
             colors = AvatarNode.gradientColors[colorIndex % AvatarNode.gradientColors.count]
         }
@@ -175,7 +188,7 @@ public enum AvatarNodeExplicitIcon {
 
 private enum AvatarNodeState: Equatable {
     case empty
-    case peerAvatar(EnginePeer.Id, PeerNameColor?, [String], TelegramMediaImageRepresentation?, AvatarNodeClipStyle, CGRect?)
+    case peerAvatar(EnginePeer.Id, PeerColor?, [String], TelegramMediaImageRepresentation?, AvatarNodeClipStyle, CGRect?)
     case custom(letter: [String], explicitColorIndex: Int?, explicitIcon: AvatarNodeExplicitIcon?)
 }
 
@@ -1151,17 +1164,20 @@ public final class AvatarNode: ASDisplayNode {
         public var totalCount: Int
         public var unseenCount: Int
         public var hasUnseenCloseFriendsItems: Bool
+        public var hasLiveItems: Bool
         public var progress: Float?
         
         public init(
             totalCount: Int,
             unseenCount: Int,
             hasUnseenCloseFriendsItems: Bool,
+            hasLiveItems: Bool,
             progress: Float? = nil
         ) {
             self.totalCount = totalCount
             self.unseenCount = unseenCount
             self.hasUnseenCloseFriendsItems = hasUnseenCloseFriendsItems
+            self.hasLiveItems = hasLiveItems
             self.progress = progress
         }
     }
@@ -1446,6 +1462,7 @@ public final class AvatarNode: ASDisplayNode {
                 component: AnyComponent(AvatarStoryIndicatorComponent(
                     hasUnseen: storyStats.unseenCount != 0,
                     hasUnseenCloseFriendsItems: storyStats.hasUnseenCloseFriendsItems,
+                    hasLiveItems: storyStats.hasLiveItems,
                     colors: AvatarStoryIndicatorComponent.Colors(
                         unseenColors: storyPresentationParams.colors.unseenColors,
                         unseenCloseFriendsColors: storyPresentationParams.colors.unseenCloseFriendsColors,

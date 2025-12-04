@@ -26,6 +26,7 @@ import ChatScheduleTimeController
 import TabSelectorComponent
 import PresentationDataUtils
 import BalanceNeededScreen
+import GlassBarButtonComponent
 
 private let amountTag = GenericComponentViewTag()
 
@@ -54,7 +55,8 @@ private final class SheetContent: CombinedComponent {
     }
     
     static var body: (CombinedComponentContext<SheetContent>) -> CGSize {
-        let closeButton = Child(Button.self)
+        let closeButton = Child(GlassBarButtonComponent.self)
+        let cancelButton = Child(Button.self)
         let balance = Child(BalanceComponent.self)
         let title = Child(Text.self)
         let currencyToggle = Child(TabSelectorComponent.self)
@@ -114,7 +116,7 @@ private final class SheetContent: CombinedComponent {
                     )
                 }
                 
-                let closeButton = closeButton.update(
+                let cancelButton = cancelButton.update(
                     component: Button(
                         content: AnyComponent(Text(text: environment.strings.Common_Cancel, font: Font.regular(17.0), color: environment.theme.list.itemAccentColor)),
                         action: {
@@ -124,30 +126,32 @@ private final class SheetContent: CombinedComponent {
                     availableSize: CGSize(width: 200.0, height: 100.0),
                     transition: .immediate
                 )
-                let closeFrame = CGRect(origin: CGPoint(x: 16.0, y: floor((56.0 - closeButton.size.height) * 0.5)), size: closeButton.size)
-                context.add(closeButton
+                let closeFrame = CGRect(origin: CGPoint(x: 16.0, y: floor((56.0 - cancelButton.size.height) * 0.5)), size: cancelButton.size)
+                context.add(cancelButton
                     .position(closeFrame.center)
                 )
             } else {
-                let closeImage: UIImage
-                if let (image, theme) = state.cachedCloseImage, theme === environment.theme {
-                    closeImage = image
-                } else {
-                    closeImage = generateCloseButtonImage(backgroundColor: UIColor(rgb: 0x808084, alpha: 0.1), foregroundColor: theme.actionSheet.inputClearButtonColor)!
-                    state.cachedCloseImage = (closeImage, theme)
-                }
                 let closeButton = closeButton.update(
-                    component: Button(
-                        content: AnyComponent(Image(image: closeImage)),
-                        action: {
+                    component: GlassBarButtonComponent(
+                        size: CGSize(width: 40.0, height: 40.0),
+                        backgroundColor: theme.rootController.navigationBar.glassBarButtonBackgroundColor,
+                        isDark: theme.overallDarkAppearance,
+                        state: .generic,
+                        component: AnyComponentWithIdentity(id: "close", component: AnyComponent(
+                            BundleIconComponent(
+                                name: "Navigation/Close",
+                                tintColor: theme.rootController.navigationBar.glassBarButtonForegroundColor
+                            )
+                        )),
+                        action: { _ in
                             component.dismiss()
                         }
                     ),
-                    availableSize: CGSize(width: 30.0, height: 30.0),
+                    availableSize: CGSize(width: 40.0, height: 40.0),
                     transition: .immediate
                 )
                 context.add(closeButton
-                    .position(CGPoint(x: context.availableSize.width - closeButton.size.width, y: 28.0))
+                    .position(CGPoint(x: 16.0 + closeButton.size.width / 2.0, y: 16.0 + closeButton.size.height / 2.0))
                 )
             }
             
@@ -257,7 +261,7 @@ private final class SheetContent: CombinedComponent {
                 transition: .immediate
             )
             context.add(title
-                .position(CGPoint(x: context.availableSize.width / 2.0, y: contentSize.height + title.size.height / 2.0))
+                .position(CGPoint(x: context.availableSize.width / 2.0, y: 36.0))
             )
             contentSize.height += title.size.height
             contentSize.height += 40.0
@@ -466,7 +470,7 @@ private final class SheetContent: CombinedComponent {
                 case .ton:
                     if let value = state.amount?.value, value > 0 {
                         let tonValue = Int64(Float(value) * Float(resaleConfiguration.starGiftCommissionTonPermille) / 1000.0)
-                        let tonString = formatTonAmountText(tonValue, dateTimeFormat: environment.dateTimeFormat, maxDecimalPositions: nil) + " TON"
+                        let tonString = formatTonAmountText(tonValue, dateTimeFormat: environment.dateTimeFormat, maxDecimalPositions: 3) + " TON"
                         amountInfoString = NSAttributedString(attributedString: parseMarkdownIntoAttributedString(environment.strings.Stars_SellGift_AmountInfo(tonString).string, attributes: amountMarkdownAttributes, textAlignment: .natural))
                         
                         if let tonUsdRate = withdrawConfiguration.tonUsdRate {
@@ -537,6 +541,7 @@ private final class SheetContent: CombinedComponent {
             let amountSection = amountSection.update(
                 component: ListSectionComponent(
                     theme: theme,
+                    style: .glass,
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: amountTitle.uppercased(),
@@ -557,6 +562,7 @@ private final class SheetContent: CombinedComponent {
                                     accentColor: theme.list.itemAccentColor,
                                     value: state.amount?.value,
                                     minValue: minAmount?.value,
+                                    forceMinValue: false,
                                     allowZero: allowZero,
                                     maxValue: maxAmount?.value,
                                     placeholderText: amountPlaceholder,
@@ -838,13 +844,14 @@ private final class SheetContent: CombinedComponent {
                 isButtonEnabled = true
             }
             
+            let buttonInsets = ContainerViewLayout.concentricInsets(bottomInset: environment.safeInsets.bottom, innerDiameter: 52.0, sideInset: 30.0)
             let button = button.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        style: .glass,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,
-                        pressedColor: theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9),
-                        cornerRadius: 10.0
+                        pressedColor: theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9)
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
@@ -894,7 +901,7 @@ private final class SheetContent: CombinedComponent {
                                                     guard let controller, let state else {
                                                         return
                                                     }
-                                                    let purchaseController = state.context.sharedContext.makeStarsPurchaseScreen(context: state.context, starsContext: starsContext, options: options, purpose: .generic, completion: { _ in
+                                                    let purchaseController = state.context.sharedContext.makeStarsPurchaseScreen(context: state.context, starsContext: starsContext, options: options, purpose: .generic, targetPeerId: nil, customTheme: nil, completion: { _ in
                                                     })
                                                     controller.push(purchaseController)
                                                 })
@@ -931,19 +938,21 @@ private final class SheetContent: CombinedComponent {
                         }
                     }
                 ),
-                availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0, height: 50),
+                availableSize: CGSize(width: context.availableSize.width - buttonInsets.left - buttonInsets.right, height: 52.0),
                 transition: .immediate
             )
             context.add(button
-                .clipsToBounds(true)
-                .cornerRadius(10.0)
                 .position(CGPoint(x: context.availableSize.width / 2.0, y: contentSize.height + button.size.height / 2.0))
             )
             contentSize.height += button.size.height
-            contentSize.height += 15.0
             
-            contentSize.height += max(environment.inputHeight, environment.safeInsets.bottom)
-
+            if environment.inputHeight > 0.0 {
+                contentSize.height += 15.0
+                contentSize.height += max(environment.inputHeight, environment.safeInsets.bottom)
+            } else {
+                contentSize.height += buttonInsets.bottom
+            }
+            
             return contentSize
         }
         
@@ -965,7 +974,6 @@ private final class SheetContent: CombinedComponent {
         fileprivate var tonBalance: StarsAmount?
         private var tonStateDisposable: Disposable?
         
-        var cachedCloseImage: (UIImage, PresentationTheme)?
         var cachedStarImage: (UIImage, PresentationTheme)?
         var cachedTonImage: (UIImage, PresentationTheme)?
         var cachedChevronImage: (UIImage, PresentationTheme)?
@@ -1130,6 +1138,7 @@ private final class StarsWithdrawSheetComponent: CombinedComponent {
                             })
                         }
                     )),
+                    style: .glass,
                     backgroundColor: .color(environment.theme.list.blocksBackgroundColor),
                     followContentSizeChanges: false,
                     clipsContent: true,
@@ -1230,7 +1239,13 @@ public final class StarsWithdrawScreen: ViewControllerComponentContainer {
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
         var text = presentationData.strings.Stars_Withdraw_Withdraw_ErrorMinimum(presentationData.strings.Stars_Withdraw_Withdraw_ErrorMinimum_Stars(Int32(clamping: minAmount))).string
         if case .starGiftResell = self.mode {
-            text = presentationData.strings.Stars_SellGiftMinAmountToast_Text("\(presentationData.strings.Stars_Withdraw_Withdraw_ErrorMinimum_Stars(Int32(clamping: minAmount)))").string
+            switch currency {
+            case .stars:
+                text = presentationData.strings.Stars_SellGiftMinAmountToast_Text("\(presentationData.strings.Stars_Withdraw_Withdraw_ErrorMinimum_Stars(Int32(clamping: minAmount)))").string
+            case .ton:
+                let amountString = formatTonAmountText(minAmount, dateTimeFormat: presentationData.dateTimeFormat) + " TON"
+                text = presentationData.strings.Stars_SellGiftMinAmountToast_Text(amountString).string
+            }
         } else if case let .suggestedPost(mode, _, _, _) = self.mode {
             let resaleConfiguration = StarsSubscriptionConfiguration.with(appConfiguration: self.context.currentAppConfiguration.with { $0 })
             switch currency {
@@ -1253,7 +1268,7 @@ public final class StarsWithdrawScreen: ViewControllerComponentContainer {
         let resultController = UndoOverlayController(
             presentationData: presentationData,
             content: .image(
-                image: UIImage(bundleImageName: "Premium/Stars/StarLarge")!,
+                image: currency == .ton ? generateTintedImage(image: UIImage(bundleImageName: "Premium/TonGift"), color: .white)! : UIImage(bundleImageName: "Premium/Stars/StarLarge")!,
                 title: nil,
                 text: text,
                 round: false,
@@ -1282,6 +1297,7 @@ private final class AmountFieldStarsFormatter: NSObject, UITextFieldDelegate {
     
     private let textField: UITextField
     private let minValue: Int64
+    private let forceMinValue: Bool
     private let allowZero: Bool
     private let maxValue: Int64
     private let updated: (Int64) -> Void
@@ -1289,11 +1305,12 @@ private final class AmountFieldStarsFormatter: NSObject, UITextFieldDelegate {
     private let animateError: () -> Void
     private let focusUpdated: (Bool) -> Void
 
-    init?(textField: UITextField, currency: CurrencyAmount.Currency, dateTimeFormat: PresentationDateTimeFormat, minValue: Int64, allowZero: Bool, maxValue: Int64, updated: @escaping (Int64) -> Void, isEmptyUpdated: @escaping (Bool) -> Void, animateError: @escaping () -> Void, focusUpdated: @escaping (Bool) -> Void) {
+    init?(textField: UITextField, currency: CurrencyAmount.Currency, dateTimeFormat: PresentationDateTimeFormat, minValue: Int64, forceMinValue: Bool, allowZero: Bool, maxValue: Int64, updated: @escaping (Int64) -> Void, isEmptyUpdated: @escaping (Bool) -> Void, animateError: @escaping () -> Void, focusUpdated: @escaping (Bool) -> Void) {
         self.textField = textField
         self.currency = currency
         self.dateTimeFormat = dateTimeFormat
         self.minValue = minValue
+        self.forceMinValue = forceMinValue
         self.allowZero = allowZero
         self.maxValue = maxValue
         self.updated = updated
@@ -1314,9 +1331,9 @@ private final class AmountFieldStarsFormatter: NSObject, UITextFieldDelegate {
                 }
             case .ton:
                 let scale: Int64 = 1_000_000_000  // 10⁹  (one “nano”)
-                if let dot = text.firstIndex(of: ".") {
+                if let decimalSeparator = self.dateTimeFormat.decimalSeparator.first, let dot = text.firstIndex(of: decimalSeparator) {
                     // Slices for the parts on each side of the dot
-                    var wholeSlice     = String(text[..<dot])
+                    var wholeSlice = String(text[..<dot])
                     if wholeSlice.isEmpty {
                         wholeSlice = "0"
                     }
@@ -1356,7 +1373,7 @@ private final class AmountFieldStarsFormatter: NSObject, UITextFieldDelegate {
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         var acceptZero = false
-        if self.minValue <= 0 {
+        if case .ton = self.currency, self.minValue < 1_000_000_000 {
             acceptZero = true
         }
         
@@ -1367,7 +1384,7 @@ private final class AmountFieldStarsFormatter: NSObject, UITextFieldDelegate {
                 return false
             default:
                 if case .ton = self.currency {
-                    if c == "." {
+                    if let decimalSeparator = self.dateTimeFormat.decimalSeparator.first, c == decimalSeparator {
                         return false
                     }
                 }
@@ -1376,7 +1393,7 @@ private final class AmountFieldStarsFormatter: NSObject, UITextFieldDelegate {
         }) {
             return false
         }
-        if newText.count(where: { $0 == "." }) > 1 {
+        if let decimalSeparator = self.dateTimeFormat.decimalSeparator.first, newText.count(where: { $0 == decimalSeparator }) > 1 {
             return false
         }
         
@@ -1390,7 +1407,7 @@ private final class AmountFieldStarsFormatter: NSObject, UITextFieldDelegate {
             }
         case .ton:
             var fixedText = false
-            if let index = newText.firstIndex(of: ".") {
+            if let decimalSeparator = self.dateTimeFormat.decimalSeparator.first, let index = newText.firstIndex(of: decimalSeparator) {
                 let fractionalString = newText[newText.index(after: index)...]
                 if fractionalString.count > 2 {
                     newText = String(newText[newText.startIndex ..< newText.index(index, offsetBy: 3)])
@@ -1398,7 +1415,16 @@ private final class AmountFieldStarsFormatter: NSObject, UITextFieldDelegate {
                 }
             }
             
-            if (newText == "0" && !acceptZero) || (newText.count > 1 && newText.hasPrefix("0") && !newText.hasPrefix("0.")) {
+            if newText == self.dateTimeFormat.decimalSeparator {
+                if !acceptZero {
+                    newText.removeFirst()
+                } else {
+                    newText = "0\(newText)"
+                }
+                fixedText = true
+            }
+            
+            if (newText == "0" && !acceptZero) || (newText.count > 1 && newText.hasPrefix("0") && !newText.hasPrefix("0\(self.dateTimeFormat.decimalSeparator)")) {
                 newText.removeFirst()
                 fixedText = true
             }
@@ -1411,12 +1437,22 @@ private final class AmountFieldStarsFormatter: NSObject, UITextFieldDelegate {
         }
         
         let amount: Int64 = self.amountFrom(text: newText)
-        if amount > self.maxValue {
+        if self.forceMinValue && amount < self.minValue {
+            switch self.currency {
+            case .stars:
+                textField.text = "\(self.minValue)"
+            case .ton:
+                textField.text = "\(formatTonAmountText(self.minValue, dateTimeFormat: PresentationDateTimeFormat(timeFormat: self.dateTimeFormat.timeFormat, dateFormat: self.dateTimeFormat.dateFormat, dateSeparator: "", dateSuffix: "", requiresFullYear: false, decimalSeparator: self.dateTimeFormat.decimalSeparator, groupingSeparator: ""), maxDecimalPositions: nil))"
+            }
+            self.onTextChanged(text: self.textField.text ?? "")
+            self.animateError()
+            return false
+        } else if amount > self.maxValue {
             switch self.currency {
             case .stars:
                 textField.text = "\(self.maxValue)"
             case .ton:
-                textField.text = "\(formatTonAmountText(self.maxValue, dateTimeFormat: PresentationDateTimeFormat(timeFormat: self.dateTimeFormat.timeFormat, dateFormat: self.dateTimeFormat.dateFormat, dateSeparator: "", dateSuffix: "", requiresFullYear: false, decimalSeparator: ".", groupingSeparator: ""), maxDecimalPositions: nil))"
+                textField.text = "\(formatTonAmountText(self.maxValue, dateTimeFormat: PresentationDateTimeFormat(timeFormat: self.dateTimeFormat.timeFormat, dateFormat: self.dateTimeFormat.dateFormat, dateSeparator: "", dateSuffix: "", requiresFullYear: false, decimalSeparator: self.dateTimeFormat.decimalSeparator, groupingSeparator: ""), maxDecimalPositions: nil))"
             }
             self.onTextChanged(text: self.textField.text ?? "")
             self.animateError()
@@ -1429,8 +1465,8 @@ private final class AmountFieldStarsFormatter: NSObject, UITextFieldDelegate {
     }
 }
 
-private final class AmountFieldComponent: Component {
-    typealias EnvironmentType = Empty
+public final class AmountFieldComponent: Component {
+    public typealias EnvironmentType = Empty
     
     let textColor: UIColor
     let secondaryColor: UIColor
@@ -1438,25 +1474,29 @@ private final class AmountFieldComponent: Component {
     let accentColor: UIColor
     let value: Int64?
     let minValue: Int64?
+    let forceMinValue: Bool
     let allowZero: Bool
     let maxValue: Int64?
     let placeholderText: String
+    let textFieldOffset: CGPoint
     let labelText: String?
     let currency: CurrencyAmount.Currency
     let dateTimeFormat: PresentationDateTimeFormat
     let amountUpdated: (Int64?) -> Void
     let tag: AnyObject?
     
-    init(
+    public init(
         textColor: UIColor,
         secondaryColor: UIColor,
         placeholderColor: UIColor,
         accentColor: UIColor,
         value: Int64?,
         minValue: Int64?,
+        forceMinValue: Bool,
         allowZero: Bool,
         maxValue: Int64?,
         placeholderText: String,
+        textFieldOffset: CGPoint = .zero,
         labelText: String?,
         currency: CurrencyAmount.Currency,
         dateTimeFormat: PresentationDateTimeFormat,
@@ -1469,9 +1509,11 @@ private final class AmountFieldComponent: Component {
         self.accentColor = accentColor
         self.value = value
         self.minValue = minValue
+        self.forceMinValue = forceMinValue
         self.allowZero = allowZero
         self.maxValue = maxValue
         self.placeholderText = placeholderText
+        self.textFieldOffset = textFieldOffset
         self.labelText = labelText
         self.currency = currency
         self.dateTimeFormat = dateTimeFormat
@@ -1479,7 +1521,7 @@ private final class AmountFieldComponent: Component {
         self.tag = tag
     }
     
-    static func ==(lhs: AmountFieldComponent, rhs: AmountFieldComponent) -> Bool {
+    public static func ==(lhs: AmountFieldComponent, rhs: AmountFieldComponent) -> Bool {
         if lhs.textColor != rhs.textColor {
             return false
         }
@@ -1516,7 +1558,7 @@ private final class AmountFieldComponent: Component {
         return true
     }
     
-    final class View: UIView, UITextFieldDelegate, ComponentTaggedView {
+    public final class View: UIView, UITextFieldDelegate, ComponentTaggedView {
         public func matches(tag: Any) -> Bool {
             if let component = self.component, let componentTag = component.tag {
                 let tag = tag as AnyObject
@@ -1540,7 +1582,7 @@ private final class AmountFieldComponent: Component {
         
         private var didSetValueOnce = false
         
-        override init(frame: CGRect) {
+        public override init(frame: CGRect) {
             self.placeholderView = ComponentView<Empty>()
             self.textField = TextFieldNodeView(frame: .zero)
             self.labelView = ComponentView<Empty>()
@@ -1554,21 +1596,32 @@ private final class AmountFieldComponent: Component {
             fatalError("init(coder:) has not been implemented")
         }
         
-        func activateInput() {
+        public func activateInput() {
             self.textField.becomeFirstResponder()
         }
         
-        func selectAll() {
-            self.textField.selectAll(nil)
+        public func deactivateInput() {
+            self.textField.resignFirstResponder()
         }
         
-        func animateError() {
+        public func selectAll() {
+            self.textField.selectAll(nil)
+        }
+                
+        public func animateError() {
             self.textField.layer.addShakeAnimation()
             let hapticFeedback = HapticFeedback()
             hapticFeedback.error()
             DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 1.0, execute: {
                 let _ = hapticFeedback
             })
+        }
+        
+        public func resetValue() {
+            guard let component = self.component, let value = component.value else {
+                return
+            }
+            self.textField.text = "\(value)"
         }
         
         func update(component: AmountFieldComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
@@ -1610,6 +1663,7 @@ private final class AmountFieldComponent: Component {
                             currency: component.currency,
                             dateTimeFormat: component.dateTimeFormat,
                             minValue: component.minValue ?? 0,
+                            forceMinValue: component.forceMinValue,
                             allowZero: component.allowZero,
                             maxValue: component.maxValue ?? Int64.max,
                             updated: { [weak self] value in
@@ -1639,13 +1693,14 @@ private final class AmountFieldComponent: Component {
                     self.tonFormatter = nil
                     self.textField.delegate = self.starsFormatter
                 case .ton:
-                    self.textField.keyboardType = .numbersAndPunctuation
+                    self.textField.keyboardType = .decimalPad
                     if self.tonFormatter == nil {
                         self.tonFormatter = AmountFieldStarsFormatter(
                             textField: self.textField,
                             currency: component.currency,
                             dateTimeFormat: component.dateTimeFormat,
                             minValue: component.minValue ?? 0,
+                            forceMinValue: component.forceMinValue,
                             allowZero: component.allowZero,
                             maxValue: component.maxValue ?? 10000000,
                             updated: { [weak self] value in
@@ -1681,7 +1736,7 @@ private final class AmountFieldComponent: Component {
             self.component = component
             self.state = state
                        
-            let size = CGSize(width: availableSize.width, height: 44.0)
+            let size = CGSize(width: availableSize.width, height: 52.0)
             
             let sideInset: CGFloat = 16.0
             var leftInset: CGFloat = 16.0
@@ -1767,7 +1822,7 @@ private final class AmountFieldComponent: Component {
                 labelView.removeFromSuperview()
             }
             
-            self.textField.frame = CGRect(x: leftInset, y: 0.0, width: size.width - 30.0, height: 44.0)
+            self.textField.frame = CGRect(x: leftInset + component.textFieldOffset.x, y: 4.0 + component.textFieldOffset.y, width: size.width - 30.0, height: 44.0)
                         
             return size
         }
@@ -1780,28 +1835,6 @@ private final class AmountFieldComponent: Component {
     public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
-}
-
-
-func generateCloseButtonImage(backgroundColor: UIColor, foregroundColor: UIColor) -> UIImage? {
-    return generateImage(CGSize(width: 30.0, height: 30.0), contextGenerator: { size, context in
-        context.clear(CGRect(origin: CGPoint(), size: size))
-        
-        context.setFillColor(backgroundColor.cgColor)
-        context.fillEllipse(in: CGRect(origin: CGPoint(), size: size))
-        
-        context.setLineWidth(2.0)
-        context.setLineCap(.round)
-        context.setStrokeColor(foregroundColor.cgColor)
-        
-        context.move(to: CGPoint(x: 10.0, y: 10.0))
-        context.addLine(to: CGPoint(x: 20.0, y: 20.0))
-        context.strokePath()
-        
-        context.move(to: CGPoint(x: 20.0, y: 10.0))
-        context.addLine(to: CGPoint(x: 10.0, y: 20.0))
-        context.strokePath()
-    })
 }
 
 private struct StarsWithdrawConfiguration {

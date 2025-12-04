@@ -331,7 +331,7 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
             }
             
             if hasAvatar {
-                avatarInset = layoutConstants.avatarDiameter
+                avatarInset = layoutConstants.avatarInset
             } else {
                 avatarInset = 0.0
             }
@@ -1345,7 +1345,7 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
         
         let avatarInset: CGFloat
         if self.appliedHasAvatar {
-            avatarInset = layoutConstants.avatarDiameter
+            avatarInset = layoutConstants.avatarInset
         } else {
             avatarInset = 0.0
         }

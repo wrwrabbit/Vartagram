@@ -8,6 +8,8 @@ import Display
 import AccountContext
 import ContextUI
 import TooltipUI
+import UndoUI
+import TextFormat
 
 public enum ChatLoadingMessageSubject {
     case generic
@@ -84,9 +86,9 @@ public final class ChatPanelInterfaceInteraction {
     public let saveMessages: ([Message]) -> Void
     public let shareMessages: ([Message]) -> Void
     public let updateForwardOptionsState: ((ChatInterfaceForwardOptionsState) -> ChatInterfaceForwardOptionsState) -> Void
-    public let presentForwardOptions: (ASDisplayNode) -> Void
-    public let presentReplyOptions: (ASDisplayNode) -> Void
-    public let presentLinkOptions: (ASDisplayNode) -> Void
+    public let presentForwardOptions: (UIView) -> Void
+    public let presentReplyOptions: (UIView) -> Void
+    public let presentLinkOptions: (UIView) -> Void
     public let presentSuggestPostOptions: () -> Void
     public let shareSelectedMessages: () -> Void
     public let updateTextInputStateAndMode: (@escaping (ChatTextInputState, ChatInputMode) -> (ChatTextInputState, ChatInputMode)) -> Void
@@ -166,7 +168,7 @@ public final class ChatPanelInterfaceInteraction {
     public let openInviteRequests: () -> Void
     public let openSendAsPeer: (ASDisplayNode, ContextGesture?) -> Void
     public let presentChatRequestAdminInfo: () -> Void
-    public let displayCopyProtectionTip: (ASDisplayNode, Bool) -> Void
+    public let displayCopyProtectionTip: (UIView, Bool) -> Void
     public let openWebView: (String, String, Bool, ChatOpenWebViewSource) -> Void
     public let updateShowWebView: ((Bool) -> Bool) -> Void
     public let insertText: (NSAttributedString) -> Void
@@ -189,6 +191,11 @@ public final class ChatPanelInterfaceInteraction {
     public let updateRecordingTrimRange: (Double, Double, Bool, Bool) -> Void
     public let dismissAllTooltips: () -> Void
     public let editTodoMessage: (MessageId, Int32?, Bool) -> Void
+    public let dismissUrlPreview: () -> Void
+    public let dismissForwardMessages: () -> Void
+    public let dismissSuggestPost: () -> Void
+    public let displayUndo: (UndoOverlayContent) -> Void
+    public let sendEmoji: (String, ChatTextInputTextCustomEmojiAttribute, Bool) -> Void
     public let requestLayout: (ContainedViewLayoutTransition) -> Void
     public let chatController: () -> ViewController?
     public let statuses: ChatPanelInterfaceInteractionStatuses?
@@ -209,9 +216,9 @@ public final class ChatPanelInterfaceInteraction {
         saveMessages: @escaping ([Message]) -> Void,
         shareMessages: @escaping ([Message]) -> Void,
         updateForwardOptionsState: @escaping ((ChatInterfaceForwardOptionsState) -> ChatInterfaceForwardOptionsState) -> Void,
-        presentForwardOptions: @escaping (ASDisplayNode) -> Void,
-        presentReplyOptions: @escaping (ASDisplayNode) -> Void,
-        presentLinkOptions: @escaping (ASDisplayNode) -> Void,
+        presentForwardOptions: @escaping (UIView) -> Void,
+        presentReplyOptions: @escaping (UIView) -> Void,
+        presentLinkOptions: @escaping (UIView) -> Void,
         presentSuggestPostOptions: @escaping () -> Void,
         shareSelectedMessages: @escaping () -> Void,
         updateTextInputStateAndMode: @escaping ((ChatTextInputState, ChatInputMode) -> (ChatTextInputState, ChatInputMode)) -> Void,
@@ -291,7 +298,7 @@ public final class ChatPanelInterfaceInteraction {
         openInviteRequests: @escaping () -> Void,
         openSendAsPeer: @escaping (ASDisplayNode, ContextGesture?) -> Void,
         presentChatRequestAdminInfo: @escaping () -> Void,
-        displayCopyProtectionTip: @escaping (ASDisplayNode, Bool) -> Void,
+        displayCopyProtectionTip: @escaping (UIView, Bool) -> Void,
         openWebView: @escaping (String, String, Bool, ChatOpenWebViewSource) -> Void,
         updateShowWebView: @escaping ((Bool) -> Bool) -> Void,
         insertText: @escaping (NSAttributedString) -> Void,
@@ -310,6 +317,11 @@ public final class ChatPanelInterfaceInteraction {
         updateRecordingTrimRange: @escaping (Double, Double, Bool, Bool) -> Void,
         dismissAllTooltips: @escaping () -> Void,
         editTodoMessage: @escaping (MessageId, Int32?, Bool) -> Void,
+        dismissUrlPreview: @escaping () -> Void,
+        dismissForwardMessages: @escaping () -> Void,
+        dismissSuggestPost: @escaping () -> Void,
+        displayUndo: @escaping (UndoOverlayContent) -> Void,
+        sendEmoji: @escaping (String, ChatTextInputTextCustomEmojiAttribute, Bool) -> Void,
         updateHistoryFilter: @escaping ((ChatPresentationInterfaceState.HistoryFilter?) -> ChatPresentationInterfaceState.HistoryFilter?) -> Void,
         updateChatLocationThread: @escaping (Int64?, ChatControllerAnimateInnerChatSwitchDirection?) -> Void,
         toggleChatSidebarMode: @escaping () -> Void,
@@ -434,6 +446,11 @@ public final class ChatPanelInterfaceInteraction {
         self.updateRecordingTrimRange = updateRecordingTrimRange
         self.dismissAllTooltips = dismissAllTooltips
         self.editTodoMessage = editTodoMessage
+        self.dismissUrlPreview = dismissUrlPreview
+        self.dismissForwardMessages = dismissForwardMessages
+        self.dismissSuggestPost = dismissSuggestPost
+        self.displayUndo = displayUndo
+        self.sendEmoji = sendEmoji
         self.updateHistoryFilter = updateHistoryFilter
         self.updateChatLocationThread = updateChatLocationThread
         self.toggleChatSidebarMode = toggleChatSidebarMode
@@ -567,6 +584,11 @@ public final class ChatPanelInterfaceInteraction {
         }, updateRecordingTrimRange: { _, _, _, _ in
         }, dismissAllTooltips: {
         }, editTodoMessage: { _, _, _ in
+        }, dismissUrlPreview: {
+        }, dismissForwardMessages: {
+        }, dismissSuggestPost: {
+        }, displayUndo: { _ in
+        }, sendEmoji: { _, _, _ in
         }, updateHistoryFilter: { _ in
         }, updateChatLocationThread: { _, _ in
         }, toggleChatSidebarMode: {

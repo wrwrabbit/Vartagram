@@ -48,6 +48,9 @@ swift_library(
         "//submodules/ProgressNavigationButtonNode",
         "//submodules/TelegramUI/Components/Gifts/GiftViewScreen",
         "//submodules/ConfettiEffect",
+        "//submodules/TelegramUI/Components/EdgeEffect",
+        "//submodules/TelegramUI/Components/AnimatedTextComponent",
+        "//submodules/TelegramUI/Components/GlassBackgroundComponent",
     ],
     visibility = [
         "//visibility:public",

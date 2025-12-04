@@ -307,6 +307,8 @@ alternate_icon_folders = [
     "BlueIcon",
 ]
 
+composer_icon_folders = ["Telegram"]
+
 [
     filegroup(
         name = "{}".format(name),
@@ -314,6 +316,15 @@ alternate_icon_folders = [
             "Telegram-iOS/{}.alticon/*.png".format(name),
         ]),
     ) for name in alternate_icon_folders
+]
+
+[
+    filegroup(
+        name = "{}_icon".format(name),
+        srcs = glob([
+            "Telegram-iOS/{}.icon/**/*".format(name),
+        ]),
+    ) for name in composer_icon_folders
 ]
 
 filegroup(
@@ -517,6 +528,12 @@ filtering_notifications_fragment = "" if telegram_is_non_dev_account else """
 <true/>
 """
 
+official_notification_filtering_fragment = """
+<key>com.apple.developer.usernotifications.filtering</key>
+<true/>
+"""
+notification_filtering_fragment = official_notification_filtering_fragment if telegram_bundle_id == "ph.telegra.Telegraph" else ""
+
 store_signin_fragment = """
 <key>com.apple.developer.applesignin</key>
 <array>
@@ -539,6 +556,7 @@ plist_fragment(
         carplay_fragment,
         communication_notifications_fragment,
         filtering_notifications_fragment,
+        notification_filtering_fragment,
         signin_fragment,
     ])
 )
@@ -1821,12 +1839,13 @@ ios_application(
         ":UrlTypesInfoPlist",
         ":PTVersionInfoPlist",
     ],
+    app_icons = [ ":{}_icon".format(name) for name in composer_icon_folders ],
     alternate_icons = [
         ":{}".format(name) for name in alternate_icon_folders
     ],
     resources = [
         ":LaunchScreen",
-        ":DefaultAppIcon",
+        #":DefaultAppIcon",
     ],
     frameworks = [
         ":MtProtoKitFramework",

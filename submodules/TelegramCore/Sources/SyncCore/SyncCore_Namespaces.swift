@@ -147,6 +147,7 @@ public struct Namespaces {
         public static let cachedProfileGiftsCollections: Int8 = 48
         public static let cachedProfileSavedMusic: Int8 = 49
         public static let cachedChatThemes: Int8 = 50
+        public static let cachedLiveStorySendAsPeers: Int8 = 51
 
         // 64 - ...: ApplicationSpecificItemCacheCollectionIdValues
         // 100: CachedChannelAdminRanks

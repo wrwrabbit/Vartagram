@@ -37,6 +37,7 @@ import TelegramStringFormatting
 import TextFormat
 import BrowserUI
 import MediaEditorScreen
+import GiftSetupScreen
 
 private func defaultNavigationForPeerId(_ peerId: PeerId?, navigation: ChatControllerInteractionNavigateToPeer) -> ChatControllerInteractionNavigateToPeer {
     if case .default = navigation {
@@ -343,7 +344,7 @@ func openResolvedUrlImpl(
                             if let photoRepresentation = invite.photoRepresentation {
                                 photo.append(photoRepresentation)
                             }
-                            let channel = TelegramChannel(id: PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(0)), accessHash: .genericPublic(0), title: invite.title, username: nil, photo: photo, creationDate: 0, version: 0, participationStatus: .left, info: .broadcast(TelegramChannelBroadcastInfo(flags: [])), flags: [], restrictionInfo: nil, adminRights: nil, bannedRights: nil, defaultBannedRights: nil, usernames: [], storiesHidden: nil, nameColor: invite.nameColor, backgroundEmojiId: nil, profileColor: nil, profileBackgroundEmojiId: nil, emojiStatus: nil, approximateBoostLevel: nil, subscriptionUntilDate: nil, verificationIconFileId: nil, sendPaidMessageStars: nil, linkedMonoforumId: nil, linkedBotId: nil)
+                            let channel = TelegramChannel(id: PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(0)), accessHash: .genericPublic(0), title: invite.title, username: nil, photo: photo, creationDate: 0, version: 0, participationStatus: .left, info: .broadcast(TelegramChannelBroadcastInfo(flags: [])), flags: [], restrictionInfo: nil, adminRights: nil, bannedRights: nil, defaultBannedRights: nil, usernames: [], storiesHidden: nil, nameColor: invite.nameColor, backgroundEmojiId: nil, profileColor: nil, profileBackgroundEmojiId: nil, emojiStatus: nil, approximateBoostLevel: nil, subscriptionUntilDate: nil, verificationIconFileId: nil, sendPaidMessageStars: nil, linkedMonoforumId: nil)
                             let invoice = TelegramMediaInvoice(title: "", description: "", photo: nil, receiptMessageId: nil, currency: "XTR", totalAmount: subscriptionPricing.amount.value, startParam: "", extendedMedia: nil, subscriptionPeriod: nil, flags: [], version: 0)
 
                             inputData.set(.single(BotCheckoutController.InputData(
@@ -831,6 +832,11 @@ func openResolvedUrlImpl(
                         navigationController.pushViewController(controller)
                     }
                 })
+            case .loginEmail:
+                if let navigationController {
+                    let controller = loginEmailSetupController(context: context, blocking: false, emailPattern: nil, navigationController: navigationController, completion: {}, dismiss: {})
+                    navigationController.pushViewController(controller)
+                }
             }
         case let .premiumOffer(reference):
             dismissInput()
@@ -848,7 +854,7 @@ func openResolvedUrlImpl(
             dismissInput()
             if let starsContext = context.starsContext {
                 let proceed = {
-                    let controller = context.sharedContext.makeStarsPurchaseScreen(context: context, starsContext: starsContext, options: [], purpose: .topUp(requiredStars: amount, purpose: purpose), completion: { _ in })
+                    let controller = context.sharedContext.makeStarsPurchaseScreen(context: context, starsContext: starsContext, options: [], purpose: .topUp(requiredStars: amount, purpose: purpose), targetPeerId: nil, customTheme: nil, completion: { _ in })
                     if let navigationController = navigationController {
                         navigationController.pushViewController(controller, animated: true)
                     }
@@ -1492,6 +1498,37 @@ func openResolvedUrlImpl(
 
                 if let storyProgressPauseContext = contentContext as? StoryProgressPauseContext {
                     storyProgressPauseContext.update(controller)
+                }
+            } else {
+                present(textAlertController(context: context, updatedPresentationData: updatedPresentationData, title: nil, text: presentationData.strings.Login_UnknownError, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), nil)
+            }
+        case let .auction(auctionContext):
+            if let auctionContext, case let .generic(gift) = auctionContext.gift {
+                if !auctionContext.isFinished, let currentBidPeerId = auctionContext.currentBidPeerId {
+                    let controller = context.sharedContext.makeGiftAuctionBidScreen(
+                        context: context,
+                        toPeerId: currentBidPeerId,
+                        text: nil,
+                        entities: nil,
+                        hideName: false,
+                        auctionContext: auctionContext
+                    )
+                    navigationController?.pushViewController(controller)
+                } else {
+                    let controller = context.sharedContext.makeGiftAuctionViewScreen(
+                        context: context,
+                        auctionContext: auctionContext,
+                        completion: { [weak navigationController] in
+                            let controller = GiftSetupScreen(
+                                context: context,
+                                peerId: context.account.peerId,
+                                subject: .starGift(gift, nil),
+                                completion: nil
+                            )
+                            navigationController?.pushViewController(controller)
+                        }
+                    )
+                    navigationController?.pushViewController(controller)
                 }
             } else {
                 present(textAlertController(context: context, updatedPresentationData: updatedPresentationData, title: nil, text: presentationData.strings.Login_UnknownError, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), nil)

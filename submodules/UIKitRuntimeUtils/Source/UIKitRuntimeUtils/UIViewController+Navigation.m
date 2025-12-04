@@ -173,6 +173,64 @@ static bool notyfyingShiftState = false;
 
 @end
 
+static EffectSettingsContainerView *findTopmostEffectSuperview(UIView *view, int depth) {
+    if (depth > 10) {
+        return nil;
+    }
+    if ([view isKindOfClass:[EffectSettingsContainerView class]]) {
+        return (EffectSettingsContainerView *)view;
+    }
+    if (view.superview != nil) {
+        return findTopmostEffectSuperview(view.superview, depth + 1);
+    } else {
+        return nil;
+    }
+}
+
+static id (*original_backdropLayerDidChangeLuma)(UIView *, SEL, CALayer *, double) = NULL;
+static void replacement_backdropLayerDidChangeLuma(UIView *self, SEL selector, CALayer *layer, double luma) {
+    EffectSettingsContainerView *topmostSuperview = findTopmostEffectSuperview(self, 0);
+    if (topmostSuperview) {
+        luma = MIN(MAX(luma, topmostSuperview.lumaMin), topmostSuperview.lumaMax);
+    }
+    original_backdropLayerDidChangeLuma(self, selector, layer, luma);
+}
+
+static NSString *TGEncodeText(NSString *string, int key) {
+    NSMutableString *result = [[NSMutableString alloc] init];
+    
+    for (int i = 0; i < (int)[string length]; i++) {
+        unichar c = [string characterAtIndex:i];
+        c += key;
+        [result appendString:[NSString stringWithCharacters:&c length:1]];
+    }
+    
+    return result;
+}
+
+static void registerEffectViewOverrides(void) {
+    NSMutableArray<NSString *> *nameList = [[NSMutableArray alloc] init];
+    [nameList addObject:TGEncodeText(@"_TtC5UIKitP33_ACD4A08F4BE9D00246F2A9C24A80CA8817UISDFBackdropView", 0)];
+    NSString *selectorString = [@"backdropLayer" stringByAppendingString:@":didChangeLuma:"];
+    
+    for (NSString *name in nameList) {
+        Class classValue = NSClassFromString(name);
+        if (classValue == nil) {
+            continue;
+        }
+        
+        Method method = (Method)[RuntimeUtils getMethodOfClass:classValue selector:NSSelectorFromString(selectorString)];
+        if (method) {
+            const char *typeEncoding = method_getTypeEncoding(method);
+            if (strcmp(typeEncoding, "v32@0:8@16d24") == 0) {
+                original_backdropLayerDidChangeLuma = (id (*)(id, SEL, CALayer *, double))method_getImplementation(method);
+                [RuntimeUtils replaceMethodImplementationOfClass:classValue selector:NSSelectorFromString(selectorString) replacement:(IMP)&replacement_backdropLayerDidChangeLuma];
+            }
+        }
+        break;
+    }
+}
+
 @implementation UIViewController (Navigation)
 
 + (void)load
@@ -197,6 +255,22 @@ static bool notyfyingShiftState = false;
         }
         
         [RuntimeUtils swizzleInstanceMethodOfClass:[UIFocusSystem class] currentSelector:@selector(updateFocusIfNeeded) newSelector:@selector(_65087dc8_updateFocusIfNeeded)];
+        
+        if (@available(iOS 26.0, *)) {
+            registerEffectViewOverrides();
+        }
+        
+        /*#if DEBUG
+        Class cls = NSClassFromString(@"WKBrowsingContextController");
+        SEL sel = NSSelectorFromString(@"registerSchemeForCustomProtocol:");
+        if ([cls respondsToSelector:sel]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+            [cls performSelector:sel withObject:@"http"];
+            [cls performSelector:sel withObject:@"https"];
+#pragma clang diagnostic pop
+        }
+        #endif*/
     });
 }
 
@@ -501,3 +575,16 @@ void applyKeyboardAutocorrection(UITextView * _Nonnull textView) {
 void snapshotViewByDrawingInContext(UIView * _Nonnull view) {
     [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:false];
 }
+
+@implementation EffectSettingsContainerView
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self != nil) {
+        _lumaMin = 0.0;
+        _lumaMax = 0.0;
+    }
+    return self;
+}
+
+@end

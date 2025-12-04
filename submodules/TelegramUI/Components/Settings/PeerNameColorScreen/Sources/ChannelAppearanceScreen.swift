@@ -360,24 +360,24 @@ final class ChannelAppearanceScreenComponent: Component {
             let nameColor: PeerNameColor
             if let updatedPeerNameColor = self.updatedPeerNameColor {
                 nameColor = updatedPeerNameColor
-            } else if let peerNameColor = peer.nameColor {
-                nameColor = peerNameColor
+            } else if let peerNameColor = peer.nameColor, case let .preset(nameColorValue) = peerNameColor {
+                nameColor = nameColorValue
             } else {
                 nameColor = .blue
             }
-            if nameColor != peer.nameColor {
+            if .preset(nameColor) != peer.nameColor {
                 changes.insert(.nameColor)
             }
             
             let profileColor: PeerNameColor?
             if case let .some(value) = self.updatedPeerProfileColor {
                 profileColor = value
-            } else if let peerProfileColor = peer.profileColor {
+            } else if let peerProfileColor = peer.effectiveProfileColor {
                 profileColor = peerProfileColor
             } else {
                 profileColor = nil
             }
-            if profileColor != peer.profileColor {
+            if profileColor != peer.effectiveProfileColor {
                 changes.insert(.profileColor)
             }
             
@@ -962,7 +962,7 @@ final class ChannelAppearanceScreenComponent: Component {
             
             if case let .user(user) = peer {
                 peer = .user(user
-                    .withUpdatedNameColor(resolvedState.nameColor)
+                    .withUpdatedNameColor(.preset(resolvedState.nameColor))
                     .withUpdatedProfileColor(profileColor)
                     .withUpdatedEmojiStatus(emojiStatus)
                     .withUpdatedBackgroundEmojiId(replyFileId)
@@ -1054,6 +1054,7 @@ final class ChannelAppearanceScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(ListSectionComponent(
                     theme: environment.theme,
+                    style: .glass,
                     background: .none(clipped: false),
                     header: nil,
                     footer: nil,
@@ -1065,6 +1066,7 @@ final class ChannelAppearanceScreenComponent: Component {
                                 componentTheme: environment.theme,
                                 strings: environment.strings,
                                 topInset: environment.statusBarHeight,
+                                bottomInset: 0.0,
                                 sectionId: 0,
                                 peer: peer,
                                 subtitleString: contentsData.subscriberCount.flatMap {
@@ -1116,12 +1118,14 @@ final class ChannelAppearanceScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(ListSectionComponent(
                     theme: environment.theme,
+                    style: .glass,
                     background: .all,
                     header: nil,
                     footer: nil,
                     items: [
                         AnyComponentWithIdentity(id: 0, component: AnyComponent(ListActionItemComponent(
                             theme: environment.theme,
+                            style: .glass,
                             title: AnyComponent(HStack(boostContents, spacing: 12.0)),
                             icon: nil,
                             action: { [weak self] _ in
@@ -1164,6 +1168,7 @@ final class ChannelAppearanceScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(ListSectionComponent(
                     theme: environment.theme,
+                    style: .glass,
                     background: .all,
                     header: nil,
                     footer: AnyComponent(MultilineTextComponent(
@@ -1178,6 +1183,7 @@ final class ChannelAppearanceScreenComponent: Component {
                         AnyComponentWithIdentity(id: 1, component: AnyComponent(ListItemComponentAdaptor(
                             itemGenerator: PeerNameColorItem(
                                 theme: environment.theme,
+                                systemStyle: .glass,
                                 colors: component.context.peerNameColors,
                                 mode: .profile,
                                 currentColor: profileColor,
@@ -1194,6 +1200,7 @@ final class ChannelAppearanceScreenComponent: Component {
                         ))),
                         AnyComponentWithIdentity(id: 2, component: AnyComponent(ListActionItemComponent(
                             theme: environment.theme,
+                            style: .glass,
                             title: AnyComponent(HStack(profileLogoContents, spacing: 6.0)),
                             icon: ListActionItemComponent.Icon(component: AnyComponentWithIdentity(id: 0, component: AnyComponent(EmojiActionIconComponent(
                                 context: component.context,
@@ -1234,11 +1241,13 @@ final class ChannelAppearanceScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(ListSectionComponent(
                     theme: environment.theme,
+                    style: .glass,
                     header: nil,
                     footer: nil,
                     items: [
                         AnyComponentWithIdentity(id: 0, component: AnyComponent(ListActionItemComponent(
                             theme: environment.theme,
+                            style: .glass,
                             title: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: environment.strings.Channel_Appearance_ResetProfileColor,
@@ -1310,6 +1319,7 @@ final class ChannelAppearanceScreenComponent: Component {
                     transition: transition,
                     component: AnyComponent(ListSectionComponent(
                         theme: environment.theme,
+                        style: .glass,
                         header: nil,
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
@@ -1322,6 +1332,7 @@ final class ChannelAppearanceScreenComponent: Component {
                         items: [
                             AnyComponentWithIdentity(id: 0, component: AnyComponent(ListActionItemComponent(
                                 theme: environment.theme,
+                                style: .glass,
                                 title: AnyComponent(HStack(emojiPackContents, spacing: 6.0)),
                                 icon: ListActionItemComponent.Icon(component: AnyComponentWithIdentity(id: 0, component: AnyComponent(EmojiActionIconComponent(
                                     context: component.context,
@@ -1374,6 +1385,7 @@ final class ChannelAppearanceScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(ListSectionComponent(
                     theme: environment.theme,
+                    style: .glass,
                     header: nil,
                     footer: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
@@ -1386,6 +1398,7 @@ final class ChannelAppearanceScreenComponent: Component {
                     items: [
                         AnyComponentWithIdentity(id: 0, component: AnyComponent(ListActionItemComponent(
                             theme: environment.theme,
+                            style: .glass,
                             title: AnyComponent(HStack(emojiStatusContents, spacing: 6.0)),
                             icon: ListActionItemComponent.Icon(component: AnyComponentWithIdentity(id: 0, component: AnyComponent(EmojiActionIconComponent(
                                 context: component.context,
@@ -1438,6 +1451,7 @@ final class ChannelAppearanceScreenComponent: Component {
                     transition: transition,
                     component: AnyComponent(ListSectionComponent(
                         theme: environment.theme,
+                        style: .glass,
                         header: nil,
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
@@ -1450,6 +1464,7 @@ final class ChannelAppearanceScreenComponent: Component {
                         items: [
                             AnyComponentWithIdentity(id: 0, component: AnyComponent(ListActionItemComponent(
                                 theme: environment.theme,
+                                style: .glass,
                                 title: AnyComponent(HStack(stickerPackContents, spacing: 6.0)),
                                 icon: ListActionItemComponent.Icon(component: AnyComponentWithIdentity(id: 0, component: AnyComponent(EmojiActionIconComponent(
                                     context: component.context,
@@ -1502,9 +1517,9 @@ final class ChannelAppearanceScreenComponent: Component {
                     peerId: EnginePeer.Id(namespace: peer.id.namespace, id: PeerId.Id._internalFromInt64Value(0)),
                     author: peer.compactDisplayTitle,
                     photo: peer.profileImageRepresentations,
-                    nameColor: resolvedState.nameColor,
+                    nameColor: .preset(resolvedState.nameColor),
                     backgroundEmojiId: replyFileId,
-                    reply: (peer.compactDisplayTitle, environment.strings.Channel_Appearance_ExampleReplyText, resolvedState.nameColor),
+                    reply: (peer.compactDisplayTitle, environment.strings.Channel_Appearance_ExampleReplyText, .preset(resolvedState.nameColor)),
                     linkPreview: (environment.strings.Channel_Appearance_ExampleLinkWebsite, environment.strings.Channel_Appearance_ExampleLinkTitle, environment.strings.Channel_Appearance_ExampleLinkText),
                     text: environment.strings.Channel_Appearance_ExampleText
                 )
@@ -1558,6 +1573,7 @@ final class ChannelAppearanceScreenComponent: Component {
                             AnyComponentWithIdentity(id: 1, component: AnyComponent(ListItemComponentAdaptor(
                                 itemGenerator: PeerNameColorItem(
                                     theme: environment.theme,
+                                    systemStyle: .glass,
                                     colors: component.context.peerNameColors,
                                     mode: .name,
                                     currentColor: resolvedState.nameColor,
@@ -1574,6 +1590,7 @@ final class ChannelAppearanceScreenComponent: Component {
                             ))),
                             AnyComponentWithIdentity(id: 2, component: AnyComponent(ListActionItemComponent(
                                 theme: environment.theme,
+                                style: .glass,
                                 title: AnyComponent(HStack(replyLogoContents, spacing: 6.0)),
                                 icon: ListActionItemComponent.Icon(component: AnyComponentWithIdentity(id: 0, component: AnyComponent(EmojiActionIconComponent(
                                     context: component.context,
@@ -1639,9 +1656,9 @@ final class ChannelAppearanceScreenComponent: Component {
                         peerId: EnginePeer.Id(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(0)),
                         author: environment.strings.Group_Appearance_PreviewAuthor,
                         photo: [],
-                        nameColor: .red,
+                        nameColor: .preset(.red),
                         backgroundEmojiId: 5301072507598550489,
-                        reply: (environment.strings.Appearance_PreviewReplyAuthor, environment.strings.Appearance_PreviewReplyText, .violet),
+                        reply: (environment.strings.Appearance_PreviewReplyAuthor, environment.strings.Appearance_PreviewReplyText, .preset(.violet)),
                         linkPreview: nil,
                         text: environment.strings.Appearance_PreviewIncomingText
                     )
@@ -1651,7 +1668,7 @@ final class ChannelAppearanceScreenComponent: Component {
                         peerId: EnginePeer.Id(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(1)),
                         author: peer.compactDisplayTitle,
                         photo: peer.profileImageRepresentations,
-                        nameColor: .blue,
+                        nameColor: .preset(.blue),
                         backgroundEmojiId: nil,
                         reply: nil,
                         linkPreview: nil,
@@ -1730,6 +1747,7 @@ final class ChannelAppearanceScreenComponent: Component {
                     transition: transition,
                     component: AnyComponent(ListSectionComponent(
                         theme: environment.theme,
+                        style: .glass,
                         header: nil,
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
@@ -1773,10 +1791,12 @@ final class ChannelAppearanceScreenComponent: Component {
                 ))))
             }
             
+            let buttonSideInset: CGFloat = 36.0
             let buttonSize = self.actionButton.update(
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        style: .glass,
                         color: environment.theme.list.itemCheckColors.fillColor,
                         foreground: environment.theme.list.itemCheckColors.foregroundColor,
                         pressedColor: environment.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
@@ -1795,7 +1815,7 @@ final class ChannelAppearanceScreenComponent: Component {
                     }
                 )),
                 environment: {},
-                containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 50.0)
+                containerSize: CGSize(width: availableSize.width - buttonSideInset * 2.0, height: 52.0)
             )
             contentHeight += buttonSize.height
             
@@ -1804,7 +1824,7 @@ final class ChannelAppearanceScreenComponent: Component {
             
             let buttonY = availableSize.height - bottomInset - environment.safeInsets.bottom - buttonSize.height
             
-            let buttonFrame = CGRect(origin: CGPoint(x: sideInset, y: buttonY), size: buttonSize)
+            let buttonFrame = CGRect(origin: CGPoint(x: buttonSideInset, y: buttonY), size: buttonSize)
             if let buttonView = self.actionButton.view {
                 if buttonView.superview == nil {
                     self.addSubview(buttonView)

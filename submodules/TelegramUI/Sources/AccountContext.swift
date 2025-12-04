@@ -125,12 +125,12 @@ public final class AccountContextImpl: AccountContext {
     public let downloadedMediaStoreManager: DownloadedMediaStoreManager
     
     public let liveLocationManager: LiveLocationManager?
-    public let peersNearbyManager: PeersNearbyManager?
     public let wallpaperUploadManager: WallpaperUploadManager?
     private let themeUpdateManager: ThemeUpdateManager?
     public let inAppPurchaseManager: InAppPurchaseManager?
     public let starsContext: StarsContext?
     public let tonContext: StarsContext?
+public let giftAuctionsManager: GiftAuctionsManager?
 
     public let peerChannelMemberCategoriesContextsManager = PeerChannelMemberCategoriesContextsManager()
     
@@ -337,6 +337,7 @@ public final class AccountContextImpl: AccountContext {
             self.inAppPurchaseManager = nil//InAppPurchaseManager(engine: .authorized(self.engine))
             self.starsContext = self.engine.payments.peerStarsContext()
             self.tonContext = self.engine.payments.peerTonContext()
+            self.giftAuctionsManager = GiftAuctionsManager(account: account)
         } else {
             self.prefetchManager = nil
             self.wallpaperUploadManager = nil
@@ -344,13 +345,13 @@ public final class AccountContextImpl: AccountContext {
             self.inAppPurchaseManager = nil
             self.starsContext = nil
             self.tonContext = nil
+            self.giftAuctionsManager = nil
         }
         
         self.account.stateManager.starsContext = self.starsContext
         self.account.stateManager.tonContext = self.starsContext
 
-        self.peersNearbyManager = nil
-        
+
         self.cachedGroupCallContexts = AccountGroupCallContextCacheImpl()
         
         let cacheStorageBox = self.account.postbox.mediaBox.cacheStorageBox
@@ -409,8 +410,20 @@ public final class AccountContextImpl: AccountContext {
         |> deliverOnMainQueue).start(next: { value in
             let _ = currentAppConfiguration.swap(value)
 
-            if let data = appConfiguration.data, data["ios_killswitch_contact_diffing"] != nil {
+            guard let data = appConfiguration.data else {
+                return
+            }
+
+            if data["ios_killswitch_contact_diffing"] != nil {
                 sharedDisableDeviceContactDataDiffing = true
+            }
+
+            if let url = data["ios_update_url"] as? String, !url.isEmpty {
+                let _ = (sharedContext.accountManager.transaction { transaction -> Void in
+                    transaction.updateSharedData(ApplicationSpecificSharedDataKeys.updateSettings, { _ in
+                        return PreferencesEntry(UpdateSettings(url: url))
+                    })
+                }).start()
             }
         })
         

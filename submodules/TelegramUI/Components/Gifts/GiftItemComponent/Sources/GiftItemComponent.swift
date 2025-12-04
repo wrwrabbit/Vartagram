@@ -17,12 +17,19 @@ import PeerInfoCoverComponent
 import Markdown
 import CheckNode
 import BundleIconComponent
+import AnimatedTextComponent
 
 public final class GiftItemComponent: Component {
+    public enum Style {
+        case glass
+        case legacy
+    }
+    
     public enum Subject: Equatable {
         case premium(months: Int32, price: String)
         case starGift(gift: StarGift.Gift, price: String)
         case uniqueGift(gift: StarGift.UniqueGift, price: String?)
+        case auction(gift: StarGift.Gift, centerColor: UIColor, edgeColor: UIColor, endTime: Int32)
     }
     
     public struct Ribbon: Equatable {
@@ -135,9 +142,12 @@ public final class GiftItemComponent: Component {
         case grid
         case select
         case buttonIcon
+        case tableIcon
+        case header
     }
     
     let context: AccountContext
+    let style: Style
     let theme: PresentationTheme
     let strings: PresentationStrings
     let peer: GiftItemComponent.Peer?
@@ -161,6 +171,7 @@ public final class GiftItemComponent: Component {
     
     public init(
         context: AccountContext,
+        style: Style = .legacy,
         theme: PresentationTheme,
         strings: PresentationStrings,
         peer: GiftItemComponent.Peer? = nil,
@@ -183,6 +194,7 @@ public final class GiftItemComponent: Component {
         contextAction: ((UIView, ContextGesture) -> Void)? = nil
     ) {
         self.context = context
+        self.style = style
         self.theme = theme
         self.strings = strings
         self.peer = peer
@@ -207,6 +219,9 @@ public final class GiftItemComponent: Component {
 
     public static func ==(lhs: GiftItemComponent, rhs: GiftItemComponent) -> Bool {
         if lhs.context !== rhs.context {
+            return false
+        }
+        if lhs.style != rhs.style {
             return false
         }
         if lhs.theme !== rhs.theme {
@@ -286,6 +301,9 @@ public final class GiftItemComponent: Component {
         private let button = ComponentView<Empty>()
         private let label = ComponentView<Empty>()
         private let ton = ComponentView<Empty>()
+        
+        private let badgeText = ComponentView<Empty>()
+        private let badgeBackground = ComponentView<Empty>()
        
         private let ribbonOutline = UIImageView()
         private let ribbon = UIImageView()
@@ -308,6 +326,8 @@ public final class GiftItemComponent: Component {
         
         private var resellBackground: BlurredBackgroundView?
         private let reselLabel = ComponentView<Empty>()
+        
+        private var giftAuctionTimer: SwiftSignalKit.Timer?
         
         override init(frame: CGRect) {
             super.init(frame: frame)
@@ -336,6 +356,7 @@ public final class GiftItemComponent: Component {
         
         deinit {
             self.disposables.dispose()
+            self.giftAuctionTimer?.invalidate()
         }
         
         @objc private func buttonPressed() {
@@ -365,7 +386,12 @@ public final class GiftItemComponent: Component {
                     size.height += 23.0
                 }
                 iconSize = CGSize(width: 88.0, height: 88.0)
-                cornerRadius = 10.0
+                switch component.style {
+                case .glass:
+                    cornerRadius = 16.0
+                case .legacy:
+                    cornerRadius = 10.0
+                }
             case .profile, .select:
                 size = availableSize
                 let side = floor(88.0 * availableSize.height / 116.0)
@@ -387,6 +413,14 @@ public final class GiftItemComponent: Component {
                 size = CGSize(width: 26.0, height: 26.0)
                 iconSize = size
                 cornerRadius = 0.0
+            case .tableIcon:
+                size = CGSize(width: 18.0, height: 18.0)
+                iconSize = size
+                cornerRadius = 0.0
+            case .header:
+                size = availableSize
+                iconSize = CGSize(width: 106.0, height: 106.0)
+                cornerRadius = 16.0
             }
             var backgroundSize = size
             if case .grid = component.mode {
@@ -407,7 +441,7 @@ public final class GiftItemComponent: Component {
                 let _ = loadingBackground.update(
                     transition: transition,
                     component: AnyComponent(
-                        ItemShimmeringLoadingComponent(color: component.theme.list.itemAccentColor, cornerRadius: 10.0)
+                        ItemShimmeringLoadingComponent(color: component.theme.list.itemAccentColor, cornerRadius: cornerRadius)
                     ),
                     environment: {},
                     containerSize: size
@@ -432,10 +466,13 @@ public final class GiftItemComponent: Component {
             var patternFile: TelegramMediaFile?
             var files: [Int64: TelegramMediaFile] = [:]
             
+            var animatedBadgeItems: [AnimatedTextComponent.Item] = []
+            
             var placeholderColor = component.theme.list.mediaPlaceholderColor
             
             let emoji: ChatTextInputTextCustomEmojiAttribute?
             var animationOffset: CGFloat = 0.0
+            var explicitAnimationOffset: CGFloat = 0.0
             switch component.subject {
             case let .premium(months, _):
                 emoji = ChatTextInputTextCustomEmojiAttribute(
@@ -486,9 +523,51 @@ public final class GiftItemComponent: Component {
                 } else {
                     emoji = nil
                 }
+            case let .auction(gift, centerColor, edgeColor, endTime):
+                animationOffset = 16.0
+                explicitAnimationOffset = -16.0
+                animationFile = gift.file
+                backgroundColor = edgeColor
+                secondBackgroundColor = centerColor
+                
+                emoji = ChatTextInputTextCustomEmojiAttribute(
+                    interactivelySelectedFromPackId: nil,
+                    fileId: gift.file.fileId.id,
+                    file: gift.file
+                )
+                
+                let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
+                let endTimeout = max(0, endTime - currentTime)
+                
+                if endTimeout > 0 {
+                    let hours = Int(endTimeout / 3600)
+                    let minutes = Int((endTimeout % 3600) / 60)
+                    let seconds = Int(endTimeout % 60)
+                    
+                    if hours > 0 {
+                        animatedBadgeItems.append(AnimatedTextComponent.Item(id: "h", content: .number(hours, minDigits: 1)))
+                        animatedBadgeItems.append(AnimatedTextComponent.Item(id: "colon1", content: .text(":")))
+                        animatedBadgeItems.append(AnimatedTextComponent.Item(id: "m", content: .number(minutes, minDigits: 2)))
+                        animatedBadgeItems.append(AnimatedTextComponent.Item(id: "colon2", content: .text(":")))
+                        animatedBadgeItems.append(AnimatedTextComponent.Item(id: "s", content: .number(seconds, minDigits: 2)))
+                    } else {
+                        animatedBadgeItems.append(AnimatedTextComponent.Item(id: "m", content: .number(minutes, minDigits: 2)))
+                        animatedBadgeItems.append(AnimatedTextComponent.Item(id: "colon2", content: .text(":")))
+                        animatedBadgeItems.append(AnimatedTextComponent.Item(id: "s", content: .number(seconds, minDigits: 2)))
+                    }
+                } else {
+                    animatedBadgeItems.append(AnimatedTextComponent.Item(id: "finished", content: .text(component.strings.Chat_Auction_Finished)))
+                }
+                
+                if self.giftAuctionTimer == nil {
+                    self.giftAuctionTimer = SwiftSignalKit.Timer(timeout: 0.5, repeat: true, completion: { [weak self] in
+                        self?.componentState?.updated()
+                    }, queue: Queue.mainQueue())
+                    self.giftAuctionTimer?.start()
+                }
             }
             
-            if case .buttonIcon = component.mode {
+            if [.buttonIcon, .tableIcon].contains(component.mode) {
                 backgroundColor = nil
                 secondBackgroundColor = nil
                 patternColor = nil
@@ -526,7 +605,7 @@ public final class GiftItemComponent: Component {
                 }
             }
             
-            let animationFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - iconSize.width) / 2.0), y: component.mode == .generic ? animationOffset : floorToScreenPixels((size.height - iconSize.height) / 2.0)), size: iconSize)
+            let animationFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - iconSize.width) / 2.0), y: component.mode == .generic ? animationOffset : (floorToScreenPixels((size.height - iconSize.height) / 2.0) + explicitAnimationOffset)), size: iconSize)
             if let animationLayer = self.animationLayer {
                 animationTransition.setFrame(layer: animationLayer, frame: animationFrame)
             }
@@ -561,7 +640,84 @@ public final class GiftItemComponent: Component {
                 }
             }
             
-            if case .generic = component.mode {
+            if case .preview = component.mode {
+                if let title = component.title {
+                    let titleSize = self.title.update(
+                        transition: transition,
+                        component: AnyComponent(
+                            MultilineTextComponent(
+                                text: .plain(NSAttributedString(string: title, font: Font.semibold(14.0), textColor: .white)),
+                                horizontalAlignment: .center
+                            )
+                        ),
+                        environment: {},
+                        containerSize: availableSize
+                    )
+                    let titleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - titleSize.width) / 2.0), y: size.height - 52.0), size: titleSize)
+                    if let titleView = self.title.view {
+                        if titleView.superview == nil {
+                            self.addSubview(titleView)
+                        }
+                        transition.setFrame(view: titleView, frame: titleFrame)
+                    }
+                }
+                
+                if let subtitle = component.subtitle {
+                    let subtitleSize = self.subtitle.update(
+                        transition: transition,
+                        component: AnyComponent(
+                            MultilineTextComponent(
+                                text: .plain(NSAttributedString(string: subtitle, font: Font.regular(14.0), textColor: .white.withAlphaComponent(0.5))),
+                                horizontalAlignment: .center
+                            )
+                        ),
+                        environment: {},
+                        containerSize: availableSize
+                    )
+                    let subtitleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - subtitleSize.width) / 2.0), y: size.height - 33.0), size: subtitleSize)
+                    if let subtitleView = self.subtitle.view {
+                        if subtitleView.superview == nil {
+                            self.addSubview(subtitleView)
+                        }
+                        transition.setFrame(view: subtitleView, frame: subtitleFrame)
+                    }
+                }
+                
+                if !animatedBadgeItems.isEmpty {
+                    let badgeTextSize = self.badgeText.update(
+                        transition: .spring(duration: 0.2),
+                        component: AnyComponent(
+                            AnimatedTextComponent(
+                                font: Font.with(size: 11.0, weight: .regular, traits: .monospacedNumbers),
+                                color: .white,
+                                items: animatedBadgeItems,
+                                noDelay: true
+                            )
+                        ),
+                        environment: {},
+                        containerSize: availableSize
+                    )
+                    
+                    let badgeBackgroundSize = CGSize(width: badgeTextSize.width + 12.0, height: 18.0)
+                    let _ = self.badgeBackground.update(
+                        transition: .spring(duration: 0.2),
+                        component: AnyComponent(
+                            RoundedRectangle(color: UIColor(white: 0.0, alpha: 0.2), cornerRadius: 9.0)
+                        ),
+                        environment: {},
+                        containerSize: badgeBackgroundSize
+                    )
+                    
+                    if let badgeBackgroundView = self.badgeBackground.view, let badgeTextView = self.badgeText.view {
+                        if badgeBackgroundView.superview == nil {
+                            self.addSubview(badgeBackgroundView)
+                            self.addSubview(badgeTextView)
+                        }
+                        badgeTextView.frame = CGRect(origin: CGPoint(x: 10.0, y: 10.0), size: badgeTextSize)
+                        badgeBackgroundView.frame = CGRect(origin: CGPoint(x: floorToScreenPixels(badgeTextView.frame.center.x - badgeBackgroundSize.width / 2.0), y: floorToScreenPixels(badgeTextView.frame.center.y - badgeBackgroundSize.height / 2.0)), size: badgeBackgroundSize)
+                    }
+                }
+            } else if case .generic = component.mode {
                 if let title = component.title {
                     let titleSize = self.title.update(
                         transition: transition,
@@ -610,15 +766,20 @@ public final class GiftItemComponent: Component {
                 let price: String
                 switch component.subject {
                 case let .premium(_, priceValue), let .starGift(_, priceValue):
-                    if priceValue.contains("#") {
+                    if case let .starGift(gift, priceValue) = component.subject, gift.flags.contains(.isAuction) {
                         buttonColor = component.theme.overallDarkAppearance ? UIColor(rgb: 0xffc337) : UIColor(rgb: 0xd3720a)
-                        if !component.isSoldOut {
-                            starsColor = UIColor(rgb: 0xffbe27)
-                        }
+                        price = priceValue
                     } else {
-                        buttonColor = component.theme.list.itemAccentColor
+                        if priceValue.contains("#") {
+                            buttonColor = component.theme.overallDarkAppearance ? UIColor(rgb: 0xffc337) : UIColor(rgb: 0xd3720a)
+                            if !component.isSoldOut {
+                                starsColor = UIColor(rgb: 0xffbe27)
+                            }
+                        } else {
+                            buttonColor = component.theme.list.itemAccentColor
+                        }
+                        price = priceValue
                     }
-                    price = priceValue
                 case let .uniqueGift(_, priceValue):
                     if let ribbon = component.ribbon, case let .custom(bottomValue, topValue) = ribbon.color {
                         let topColor = UIColor(rgb: UInt32(bitPattern: topValue)).withMultiplied(hue: 1.01, saturation: 1.22, brightness: 1.04)
@@ -629,6 +790,10 @@ public final class GiftItemComponent: Component {
                     }
                     price = priceValue ?? component.strings.Gift_Options_Gift_Transfer
                     tinted = true
+                case .auction:
+                    buttonColor = .clear
+                    price = ""
+                    break
                 }
                 
                 let buttonSize = self.button.update(
@@ -655,29 +820,6 @@ public final class GiftItemComponent: Component {
                         self.addSubview(buttonView)
                     }
                     transition.setFrame(view: buttonView, frame: buttonFrame)
-                }
-                
-                if case let .uniqueGift(gift, _) = component.subject, gift.resellForTonOnly {
-                    let tonSize = self.ton.update(
-                        transition: .immediate,
-                        component: AnyComponent(
-                            ZStack([
-                                AnyComponentWithIdentity(id: "background", component: AnyComponent(RoundedRectangle(color: buttonColor, cornerRadius: 12.0))),
-                                AnyComponentWithIdentity(id: "icon", component: AnyComponent(BundleIconComponent(name: "Premium/TonGift", tintColor: .white)))
-                            ])
-                        ),
-                        environment: {},
-                        containerSize: CGSize(width: 24.0, height: 24.0)
-                    )
-                    let tonFrame = CGRect(origin: CGPoint(x: 4.0, y: 4.0), size: tonSize)
-                    if let tonView = self.ton.view {
-                        if tonView.superview == nil {
-                            self.addSubview(tonView)
-                        }
-                        transition.setFrame(view: tonView, frame: tonFrame)
-                    }
-                } else if let tonView = self.ton.view, tonView.superview != nil {
-                    tonView.removeFromSuperview()
                 }
                 
                 if let label = component.label {
@@ -717,6 +859,29 @@ public final class GiftItemComponent: Component {
                         }
                         transition.setFrame(view: labelView, frame: labelFrame)
                     }
+                }
+                
+                if case let .uniqueGift(gift, _) = component.subject, gift.resellForTonOnly {
+                    let tonSize = self.ton.update(
+                        transition: .immediate,
+                        component: AnyComponent(
+                            ZStack([
+                                AnyComponentWithIdentity(id: "background", component: AnyComponent(RoundedRectangle(color: buttonColor, cornerRadius: 12.0))),
+                                AnyComponentWithIdentity(id: "icon", component: AnyComponent(BundleIconComponent(name: "Premium/TonGift", tintColor: .white)))
+                            ])
+                        ),
+                        environment: {},
+                        containerSize: CGSize(width: 24.0, height: 24.0)
+                    )
+                    let tonFrame = CGRect(origin: CGPoint(x: 4.0, y: 4.0), size: tonSize)
+                    if let tonView = self.ton.view {
+                        if tonView.superview == nil {
+                            self.addSubview(tonView)
+                        }
+                        transition.setFrame(view: tonView, frame: tonFrame)
+                    }
+                } else if let tonView = self.ton.view, tonView.superview != nil {
+                    tonView.removeFromSuperview()
                 }
             }
             
@@ -824,7 +989,11 @@ public final class GiftItemComponent: Component {
             if let backgroundColor, let _ = secondBackgroundColor {
                 self.backgroundLayer.backgroundColor = backgroundColor.cgColor
             } else {
-                self.backgroundLayer.backgroundColor = component.theme.list.itemBlocksBackgroundColor.cgColor
+                if [.buttonIcon, .tableIcon].contains(component.mode) {
+                    
+                } else {
+                    self.backgroundLayer.backgroundColor = component.theme.list.itemBlocksBackgroundColor.cgColor
+                }
             }
             
             let backgroundFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - backgroundSize.width) / 2.0), y: floorToScreenPixels((size.height - backgroundSize.height) / 2.0)), size: backgroundSize)
@@ -995,7 +1164,7 @@ public final class GiftItemComponent: Component {
                 } else {
                     resellBackgroundTransition = .immediate
                     
-                    resellBackground = BlurredBackgroundView(color: UIColor(rgb: 0x000000, alpha: 0.3), enableBlur: true) //UIVisualEffectView(effect: blurEffect)
+                    resellBackground = BlurredBackgroundView(color: UIColor(rgb: 0x000000, alpha: 0.3), enableBlur: true)
                     resellBackground.clipsToBounds = true
                     self.resellBackground = resellBackground
                     
@@ -1019,7 +1188,8 @@ public final class GiftItemComponent: Component {
                 }
             }
             
-            if case .grid = component.mode {
+            switch component.mode {
+            case .generic, .grid:
                 let lineWidth: CGFloat = 2.0
                 let selectionFrame = backgroundFrame.insetBy(dx: 3.0, dy: 3.0)
                 
@@ -1058,6 +1228,8 @@ public final class GiftItemComponent: Component {
                         selectionLayer.removeFromSuperlayer()
                     })
                 }
+            default:
+                break
             }
             
             if case .select = component.mode {
@@ -1105,8 +1277,8 @@ public final class GiftItemComponent: Component {
                     let image = generateImage(outlineFrame.size, rotatedContext: { size, context in
                         context.clear(CGRect(origin: .zero, size: size))
                         
-                        context.addPath(CGPath(roundedRect: CGRect(origin: .zero, size: outlineFrame.size), cornerWidth: 10.0, cornerHeight: 10.0, transform: nil))
-                        context.addPath(CGPath(roundedRect: CGRect(origin: .zero, size: outlineFrame.size).insetBy(dx: lineWidth, dy: lineWidth), cornerWidth: 8.0, cornerHeight: 8.0, transform: nil))
+                        context.addPath(CGPath(roundedRect: CGRect(origin: .zero, size: outlineFrame.size), cornerWidth: cornerRadius, cornerHeight: cornerRadius, transform: nil))
+                        context.addPath(CGPath(roundedRect: CGRect(origin: .zero, size: outlineFrame.size).insetBy(dx: lineWidth, dy: lineWidth), cornerWidth: cornerRadius - 2.0, cornerHeight: cornerRadius - 2.0, transform: nil))
                         
                         context.clip(using: .evenOdd)
                         
@@ -1126,7 +1298,12 @@ public final class GiftItemComponent: Component {
                             context.translateBy(x: 0.0, y: size.height)
                             context.scaleBy(x: 1.0, y: -1.0)
                             
-                            context.clip(to: CGRect(origin: CGPoint(x: size.width - 58.0, y: 91.0 - UIScreenPixel), size: ribbonOutline.size), mask: cgImage)
+                            var maskY = 91.0 - UIScreenPixel
+                            if size.height < 121.0 {
+                                maskY = 57.0 - UIScreenPixel
+                            }
+                            
+                            context.clip(to: CGRect(origin: CGPoint(x: size.width - 58.0 - UIScreenPixel, y: maskY), size: ribbonOutline.size), mask: cgImage)
                             context.setBlendMode(.clear)
                             context.setFillColor(UIColor.clear.cgColor)
                             context.fill(CGRect(origin: .zero, size: size))
@@ -1138,7 +1315,6 @@ public final class GiftItemComponent: Component {
 
                     outlineLayer.frame = outlineFrame
                 }
-                
             } else if let outlineLayer = self.outlineLayer {
                 self.outlineLayer = nil
                 outlineLayer.removeFromSuperlayer()

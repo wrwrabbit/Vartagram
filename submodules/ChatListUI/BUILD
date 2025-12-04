@@ -119,6 +119,7 @@ swift_library(
         "//submodules/TelegramUI/Components/Ads/AdsReportScreen",
         "//submodules/TelegramUI/Components/ButtonComponent",
         "//submodules/TelegramUI/Components/AnimatedTextComponent",
+        "//submodules/TelegramUI/Components/EdgeEffect",
     ],
     visibility = [
         "//visibility:public",

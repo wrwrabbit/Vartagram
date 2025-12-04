@@ -39,6 +39,10 @@ import LegacyMediaPickerUI
 import GenerateStickerPlaceholderImage
 import PassKit
 import Photos
+import GlassBarButtonComponent
+import BundleIconComponent
+import LottieComponent
+import CryptoKit
 
 private let durgerKingBotIds: [Int64] = [5104055776, 2200339955]
 
@@ -135,6 +139,53 @@ public func generateWebAppThemeParams(_ theme: PresentationTheme) -> [String: An
     ]
 }
 
+#if DEBUG
+private let registeredProtocols: Void = {
+    class AppURLProtocol: URLProtocol {
+        var urlTask: URLSessionDataTask?
+        
+        override class func canInit(with request: URLRequest) -> Bool {
+            if request.url?.scheme == "https" {
+                return false
+            }
+            return false
+        }
+        
+        override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+            return request
+        }
+        
+        override func startLoading() {
+            super.startLoading()
+            
+            /*if self.urlTask != nil {
+                return
+            }
+            self.urlTask = URLSession.shared.dataTask(with: self.request, completionHandler: { [weak self] _, response, error in
+                guard let self else {
+                    return
+                }
+                if let error {
+                    self.client?.urlProtocol(self, didFailWithError: error)
+                } else {
+                    if let response = response as? HTTPURLResponse {
+                        self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+                    } else {
+                    }
+                    self.client?.urlProtocolDidFinishLoading(self)
+                }
+            })
+            self.urlTask?.resume()*/
+        }
+        
+        override func stopLoading() {
+            self.urlTask?.cancel()
+        }
+    }
+    URLProtocol.registerClass(AppURLProtocol.self)
+}()
+#endif
+
 public final class WebAppController: ViewController, AttachmentContainable {
     public var requestAttachmentMenuExpansion: () -> Void = { }
     public var updateNavigationStack: (@escaping ([AttachmentContainable]) -> ([AttachmentContainable], AttachmentMediaPickerContext?)) -> Void = { _ in }
@@ -182,7 +233,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
         private var queryId: Int64?
         fileprivate let canMinimize = true
         
-        private var hasBackButton = false
+        fileprivate var hasBackButton = false
         
         private var placeholderDisposable = MetaDisposable()
         private var keepAliveDisposable: Disposable?
@@ -199,6 +250,10 @@ public final class WebAppController: ViewController, AttachmentContainable {
         private var validLayout: (ContainerViewLayout, CGFloat)?
         
         init(context: AccountContext, controller: WebAppController) {
+            #if DEBUG
+            let _ = registeredProtocols
+            #endif
+            
             self.context = context
             self.controller = controller
             self.presentationData = controller.presentationData
@@ -423,6 +478,47 @@ public final class WebAppController: ViewController, AttachmentContainable {
             webView.scrollView.insertSubview(self.topOverscrollNode.view, at: 0)
         }
         
+        private func load(url: URL) {
+            /*#if DEBUG
+            if "".isEmpty {
+                if #available(iOS 16.0, *) {
+                    let documentsPath = URL.documentsDirectory.path(percentEncoded: false)
+                    
+                    var hasher = SHA256()
+                    var urlString = url.absoluteString
+                    if let range = urlString.firstRange(of: "#") {
+                        urlString.removeSubrange(range.lowerBound...)
+                    }
+                    hasher.update(data: urlString.data(using: .utf8)!)
+                    let digest = Data(hasher.finalize())
+                    let urlHash = hexString(digest)
+                    
+                    let cachedFilePath = documentsPath.appending("\(urlHash).bin")
+                    
+                    Task {
+                        do {
+                            let data: Data
+                            if let cachedData = try? Data(contentsOf: URL(fileURLWithPath: cachedFilePath)) {
+                                data = cachedData
+                                print("Loaded from cache at \(cachedFilePath)")
+                            } else {
+                                let (loadedData, _) = try await URLSession.shared.data(from: url)
+                                data = loadedData
+                                try loadedData.write(to: URL(fileURLWithPath: cachedFilePath), options: .atomic)
+                            }
+                            self.webView?.load(data, mimeType: "text/html", characterEncodingName: "utf-8", baseURL: url)
+                        } catch let e {
+                            print("\(e)")
+                        }
+                    }
+                }
+                
+                return
+            }
+            #endif*/
+            self.webView?.load(URLRequest(url: url))
+        }
+        
         func setupWebView() {
             guard let controller = self.controller else {
                 return
@@ -431,7 +527,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
             if let url = controller.url, controller.source != .menu {
                 self.queryId = controller.queryId
                 if let parsedUrl = URL(string: url) {
-                    self.webView?.load(URLRequest(url: parsedUrl))
+                    self.load(url: parsedUrl)
                 }
                 if let keepAliveSignal = controller.keepAliveSignal {
                     self.keepAliveDisposable = (keepAliveSignal
@@ -454,7 +550,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
                         }
                         if let parsedUrl = URL(string: result.url) {
                             strongSelf.queryId = result.queryId
-                            strongSelf.webView?.load(URLRequest(url: parsedUrl))
+                            strongSelf.load(url: parsedUrl)
                         }
                     })
                 } else {
@@ -474,7 +570,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
                                     return
                                 }
                                 self.controller?.titleView?.title = WebAppTitle(title: botApp.title, counter: self.presentationData.strings.WebApp_Miniapp, isVerified: controller.botVerified)
-                                self.webView?.load(URLRequest(url: parsedUrl))
+                                self.load(url: parsedUrl)
                             })
                         })
                     } else {
@@ -484,7 +580,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
                                 return
                             }
                             strongSelf.queryId = result.queryId
-                            strongSelf.webView?.load(URLRequest(url: parsedUrl))
+                            strongSelf.load(url: parsedUrl)
                                                         
                             if let keepAliveSignal = result.keepAliveSignal {
                                 strongSelf.keepAliveDisposable = (keepAliveSignal
@@ -808,7 +904,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
                                 guard let self else {
                                     return
                                 }
-                                self.controller?.morePressed(node: node, gesture: gesture)
+                                self.controller?.morePressed(view: node.view, gesture: gesture)
                             }
                         )
                     ),
@@ -1218,7 +1314,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
             case "web_app_setup_back_button":
                 if let json = json, let isVisible = json["is_visible"] as? Bool {
                     self.hasBackButton = isVisible
-                    self.controller?.cancelButtonNode.setState(isVisible ? .back : .cancel, animated: true)
+                    self.controller?.updateNavigationButtons()
                     if controller.isFullscreen {
                         self.requestLayout(transition: .immediate)
                     }
@@ -1375,14 +1471,14 @@ public final class WebAppController: ViewController, AttachmentContainable {
                     let _ = (self.context.engine.messages.attachMenuBots()
                     |> take(1)
                     |> deliverOnMainQueue).startStandalone(next: { [weak self] attachMenuBots in
-                        guard let self else {
+                        guard let self, let controller = self.controller else {
                             return
                         }
                         let currentTimestamp = CACurrentMediaTime()
                         var fillData = false
                         
                         let attachMenuBot = attachMenuBots.first(where: { $0.peer.id == botId && !$0.flags.contains(.notActivated) })
-                        if isAttachMenu || attachMenuBot != nil {
+                        if isAttachMenu || attachMenuBot != nil || controller.isWhiteListedBot {
                             if let lastTouchTimestamp = self.webView?.lastTouchTimestamp, currentTimestamp < lastTouchTimestamp + 10.0 {
                                 self.webView?.lastTouchTimestamp = nil
                                 fillData = true
@@ -3260,6 +3356,9 @@ public final class WebAppController: ViewController, AttachmentContainable {
     private var titleView: WebAppTitleView?
     fileprivate let cancelButtonNode: WebAppCancelButtonNode
     fileprivate let moreButtonNode: MoreButtonNode
+    private var cancelBarButtonNode: BarComponentHostNode?
+    private var moreBarButtonNode: BarComponentHostNode?
+    private let moreButtonPlayOnce = ActionSlot<Void>()
     
     private let context: AccountContext
     public let source: WebAppParameters.Source
@@ -3331,20 +3430,24 @@ public final class WebAppController: ViewController, AttachmentContainable {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
         self.automaticallyControlPresentationContextLayout = false
         
-        self.navigationItem.leftBarButtonItem = UIBarButtonItem(customDisplayNode: self.cancelButtonNode)
-        self.navigationItem.leftBarButtonItem?.action = #selector(self.cancelPressed)
-        self.navigationItem.leftBarButtonItem?.target = self
-        
-        if !self.isVerifyAgeBot {
-            self.navigationItem.rightBarButtonItem = UIBarButtonItem(customDisplayNode: self.moreButtonNode)
-            self.navigationItem.rightBarButtonItem?.action = #selector(self.moreButtonPressed)
-            self.navigationItem.rightBarButtonItem?.target = self
+        if case .attachMenu = self.source {
+            
+        } else {
+            self.navigationItem.leftBarButtonItem = UIBarButtonItem(customDisplayNode: self.cancelButtonNode)
+            self.navigationItem.leftBarButtonItem?.action = #selector(self.cancelPressed)
+            self.navigationItem.leftBarButtonItem?.target = self
+            
+            if !self.isVerifyAgeBot {
+                self.navigationItem.rightBarButtonItem = UIBarButtonItem(customDisplayNode: self.moreButtonNode)
+                self.navigationItem.rightBarButtonItem?.action = #selector(self.moreButtonPressed)
+                self.navigationItem.rightBarButtonItem?.target = self
+            }
         }
         
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
         
         if !self.isVerifyAgeBot {
-            let titleView = WebAppTitleView(context: self.context, theme: self.presentationData.theme)
+            let titleView = WebAppTitleView(context: self.context, theme: self.presentationData.theme, isAttachMenu: self.source == .attachMenu)
             titleView.title = WebAppTitle(title: params.botName, counter: self.presentationData.strings.WebApp_Miniapp, isVerified: params.botVerified)
             self.navigationItem.titleView = titleView
             self.titleView = titleView
@@ -3352,7 +3455,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
         
         self.moreButtonNode.action = { [weak self] _, gesture in
             if let strongSelf = self {
-                strongSelf.morePressed(node: strongSelf.moreButtonNode.contextSourceNode, gesture: gesture)
+                strongSelf.morePressed(view: strongSelf.moreButtonNode.contextSourceNode.view, gesture: gesture)
             }
         }
         
@@ -3392,6 +3495,8 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 }
             })
         }
+        
+        self.updateNavigationButtons()
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -3403,9 +3508,91 @@ public final class WebAppController: ViewController, AttachmentContainable {
         self.presentationDataDisposable?.dispose()
     }
     
+    private func updateNavigationButtons() {
+        if case .attachMenu = self.source {
+            let barButtonSize = CGSize(width: 40.0, height: 40.0)
+            let closeComponent: AnyComponentWithIdentity<Empty> = AnyComponentWithIdentity(
+                id: "close",
+                component: AnyComponent(GlassBarButtonComponent(
+                    size: barButtonSize,
+                    backgroundColor: self.presentationData.theme.rootController.navigationBar.glassBarButtonBackgroundColor,
+                    isDark: self.presentationData.theme.overallDarkAppearance,
+                    state: .generic,
+                    component: AnyComponentWithIdentity(id: self.controllerNode.hasBackButton ? "back" : "close", component: AnyComponent(
+                        BundleIconComponent(
+                            name: self.controllerNode.hasBackButton ? "Navigation/Back" : "Navigation/Close",
+                            tintColor: self.presentationData.theme.rootController.navigationBar.glassBarButtonForegroundColor
+                        )
+                    )),
+                    action: { [weak self] _ in
+                        self?.cancelPressed()
+                    }
+                ))
+            )
+            
+            let moreComponent: AnyComponentWithIdentity<Empty> = AnyComponentWithIdentity(
+                id: "more",
+                component: AnyComponent(GlassBarButtonComponent(
+                    size: barButtonSize,
+                    backgroundColor: self.presentationData.theme.rootController.navigationBar.glassBarButtonBackgroundColor,
+                    isDark: self.presentationData.theme.overallDarkAppearance,
+                    state: .generic,
+                    component: AnyComponentWithIdentity(id: "more", component: AnyComponent(
+                        LottieComponent(
+                            content: LottieComponent.AppBundleContent(
+                                name: "anim_morewide"
+                            ),
+                            color: self.presentationData.theme.rootController.navigationBar.glassBarButtonForegroundColor,
+                            size: CGSize(width: 34.0, height: 34.0),
+                            playOnce: self.moreButtonPlayOnce
+                        )
+                    )),
+                    action: { [weak self] view in
+                        self?.morePressed(view: view, gesture: nil)
+                        self?.moreButtonPlayOnce.invoke(Void())
+                    }
+                ))
+            )
+            
+            let cancelButtonNode: BarComponentHostNode
+            if let current = self.cancelBarButtonNode {
+                cancelButtonNode = current
+                cancelButtonNode.component = closeComponent
+            } else {
+                cancelButtonNode = BarComponentHostNode(component: closeComponent, size: barButtonSize)
+                self.cancelBarButtonNode = cancelButtonNode
+                self.navigationItem.leftBarButtonItem = UIBarButtonItem(customDisplayNode: cancelButtonNode)
+            }
+            
+            let morehButtonNode: BarComponentHostNode
+            if let current = self.moreBarButtonNode {
+                morehButtonNode = current
+                morehButtonNode.component = moreComponent
+            } else {
+                morehButtonNode = BarComponentHostNode(component: moreComponent, size: barButtonSize)
+                self.moreBarButtonNode = morehButtonNode
+                self.navigationItem.rightBarButtonItem = UIBarButtonItem(customDisplayNode: morehButtonNode)
+            }
+        }
+            
+        self.cancelButtonNode.setState(self.controllerNode.hasBackButton ? .back : .cancel, animated: true)
+    }
+    
     private var isVerifyAgeBot: Bool {
         if let ageBotUsername = self.context.currentAppConfiguration.with({ $0 }).data?["verify_age_bot_username"] as? String {
             return self.botAddress == ageBotUsername
+        }
+        return false
+    }
+    
+    private var isWhiteListedBot: Bool {
+        if let whiteListedBots = self.context.currentAppConfiguration.with({ $0 }).data?["whitelisted_bots"] as? [Double] {
+            let botId = self.botId.id._internalGetInt64Value()
+            for bot in whiteListedBots {
+                if Int64(bot) == botId {
+                    return true
+                }
+            }
         }
         return false
     }
@@ -3469,10 +3656,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
         self.moreButtonNode.buttonPressed()
     }
     
-    @objc fileprivate func morePressed(node: ASDisplayNode, gesture: ContextGesture?) {
-        guard let node = node as? ContextReferenceContentNode else {
-            return
-        }
+    @objc fileprivate func morePressed(view: UIView, gesture: ContextGesture?) {
         let context = self.context
         var presentationData = self.presentationData
         if !presentationData.theme.overallDarkAppearance, let headerColor = self.controllerNode.headerColor {
@@ -3667,7 +3851,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
             return ContextController.Items(content: .list(items))
         }
         
-        let contextController = ContextController(presentationData: presentationData, source: .reference(WebAppContextReferenceContentSource(controller: self, sourceNode: node)), items: items, gesture: gesture)
+        let contextController = ContextController(presentationData: presentationData, source: .reference(WebAppContextReferenceContentSource(controller: self, sourceView: view)), items: items, gesture: gesture)
         self.presentInGlobalOverlay(contextController)
     }
     
@@ -3698,15 +3882,17 @@ public final class WebAppController: ViewController, AttachmentContainable {
         self.validLayout = layout
         super.containerLayoutUpdated(layout, transition: transition)
         
+        let navigationBarHeight = self.navigationLayout(layout: layout).navigationFrame.maxY
+        
         var presentationLayout = layout
         if self.isFullscreen {
             presentationLayout.intrinsicInsets.top = (presentationLayout.statusBarHeight ?? 0.0) + 36.0
         } else {
-            presentationLayout.intrinsicInsets.top = 56.0
+            presentationLayout.intrinsicInsets.top = navigationBarHeight
         }
         self.presentationContext.containerLayoutUpdated(presentationLayout, transition: transition)
         
-        self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+        self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: transition)
     }
     
     override public var presentationController: UIPresentationController? {
@@ -3856,15 +4042,15 @@ final class WebAppPickerContext: AttachmentMediaPickerContext {
 
 private final class WebAppContextReferenceContentSource: ContextReferenceContentSource {
     private let controller: ViewController
-    private let sourceNode: ContextReferenceContentNode
+    private let sourceView: UIView
     
-    init(controller: ViewController, sourceNode: ContextReferenceContentNode) {
+    init(controller: ViewController, sourceView: UIView) {
         self.controller = controller
-        self.sourceNode = sourceNode
+        self.sourceView = sourceView
     }
     
     func transitionInfo() -> ContextControllerReferenceViewInfo? {
-        return ContextControllerReferenceViewInfo(referenceView: self.sourceNode.view, contentAreaInScreenSpace: UIScreen.main.bounds)
+        return ContextControllerReferenceViewInfo(referenceView: self.sourceView, contentAreaInScreenSpace: UIScreen.main.bounds)
     }
 }
 

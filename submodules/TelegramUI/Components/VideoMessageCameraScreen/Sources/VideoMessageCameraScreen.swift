@@ -30,6 +30,7 @@ import TelegramAudio
 import ChatSendMessageActionUI
 import ChatControllerInteraction
 import LottieComponent
+import GlassBackgroundComponent
 
 struct CameraState: Equatable {
     enum Recording: Equatable {
@@ -116,7 +117,9 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
     
     let context: AccountContext
     let cameraState: CameraState
+    let containerSize: CGSize
     let previewFrame: CGRect
+    let safeInsets: UIEdgeInsets
     let isPreviewing: Bool
     let isMuted: Bool
     let totalDuration: Double
@@ -131,7 +134,9 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
     init(
         context: AccountContext,
         cameraState: CameraState,
+        containerSize: CGSize,
         previewFrame: CGRect,
+        safeInsets: UIEdgeInsets,
         isPreviewing: Bool,
         isMuted: Bool,
         totalDuration: Double,
@@ -145,7 +150,9 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
     ) {
         self.context = context
         self.cameraState = cameraState
+        self.containerSize = containerSize
         self.previewFrame = previewFrame
+        self.safeInsets = safeInsets
         self.isPreviewing = isPreviewing
         self.isMuted = isMuted
         self.totalDuration = totalDuration
@@ -165,7 +172,13 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
         if lhs.previewFrame != rhs.previewFrame {
             return false
         }
+        if lhs.safeInsets != rhs.safeInsets {
+            return false
+        }
         if lhs.cameraState != rhs.cameraState {
+            return false
+        }
+        if lhs.containerSize != rhs.containerSize {
             return false
         }
         if lhs.isPreviewing != rhs.isPreviewing {
@@ -184,7 +197,6 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
         enum ImageKey: Hashable {
             case flip
             case flash
-            case buttonBackground
             case flashImage
         }
         private var cachedImages: [ImageKey: UIImage] = [:]
@@ -198,9 +210,6 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                     image = UIImage(bundleImageName: "Camera/VideoMessageFlip")!.withRenderingMode(.alwaysTemplate)
                 case .flash:
                     image = UIImage(bundleImageName: "Camera/VideoMessageFlash")!.withRenderingMode(.alwaysTemplate)
-                case .buttonBackground:
-                    let innerSize = CGSize(width: 40.0, height: 40.0)
-                    image = generateFilledCircleImage(diameter: innerSize.width, color: theme.rootController.navigationBar.opaqueBackgroundColor, strokeColor: theme.chat.inputPanel.panelSeparatorColor, strokeWidth: 0.5, backgroundColor: nil)!
                 case .flashImage:
                     image = generateImage(CGSize(width: 393.0, height: 852.0), rotatedContext: { size, context in
                         context.clear(CGRect(origin: .zero, size: size))
@@ -413,10 +422,13 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
         
             controller.updatePreviewState({ _ in return nil }, transition: .spring(duration: 0.4))
             
-            controller.node.withReadyCamera(isFirstTime: !controller.node.cameraIsActive) {
+            controller.node.withReadyCamera(isFirstTime: !controller.node.cameraIsActive) { [weak self] in
                 Queue.mainQueue().after(0.15) {
+                    guard let self else {
+                        return
+                    }
                     self.resultDisposable.set((camera.startRecording()
-                    |> deliverOnMainQueue).start(next: { [weak self] recordingData in
+                    |> deliverOnMainQueue).startStrict(next: { [weak self] recordingData in
                         let duration = initialDuration + recordingData.duration
                         if let self, let controller = self.getController() {
                             controller.updateCameraState({ $0.updatedDuration(duration) }, transition: .easeInOut(duration: 0.1))
@@ -455,7 +467,7 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
             controller.lastActionTimestamp = currentTimestamp
             
             self.resultDisposable.set((camera.stopRecording()
-            |> deliverOnMainQueue).start(next: { [weak self] result in
+            |> deliverOnMainQueue).startStrict(next: { [weak self] result in
                 if let self, let controller = self.getController(), case let .finished(mainResult, _, duration, _, _) = result {
                     self.completion.invoke(
                         .video(VideoMessageCameraScreen.CaptureResult.Video(
@@ -505,7 +517,9 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
     
     static var body: Body {
         let frontFlash = Child(Image.self)
+        let flipButtonBackground = Child(GlassBackgroundComponent.self)
         let flipButton = Child(CameraButton.self)
+        let flashButtonBackground = Child(GlassBackgroundComponent.self)
         let flashButton = Child(CameraButton.self)
         
         let viewOnceButton = Child(PlainButtonComponent.self)
@@ -519,7 +533,12 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
             let environment = context.environment[ViewControllerComponentContainer.Environment.self].value
             let component = context.component
             let state = context.state
-            let availableSize = context.availableSize
+            let availableSize = context.component.containerSize
+            
+            var sideInset: CGFloat = 8.0
+            if component.safeInsets.bottom <= 32.0 {
+                sideInset += 18.0
+            }
             
             state.cameraState = component.cameraState
             
@@ -558,11 +577,12 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                 if case .on = component.cameraState.flashMode, case .front = component.cameraState.position {
                     let frontFlash = frontFlash.update(
                         component: Image(image: state.image(.flashImage, theme: environment.theme), tintColor: component.cameraState.flashTint.color),
-                        availableSize: availableSize,
+                        availableSize: context.availableSize,
                         transition: .easeInOut(duration: 0.2)
                     )
+                    let frontFlashFrame = CGRect(origin: CGPoint(), size: context.availableSize)
                     context.add(frontFlash
-                        .position(CGPoint(x: context.availableSize.width / 2.0, y: context.availableSize.height / 2.0))
+                        .position(frontFlashFrame.center)
                         .scale(1.5 - component.cameraState.flashTintSize * 0.5)
                         .appear(.default(alpha: true))
                         .disappear(ComponentTransition.Disappear({ view, transition, completion in
@@ -574,6 +594,17 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                     )
                 }
                 
+                let flipButtonBackground = flipButtonBackground.update(
+                    component: GlassBackgroundComponent(
+                        size: CGSize(width: 40.0, height: 40.0),
+                        cornerRadius: 40.0 * 0.5,
+                        isDark: environment.theme.overallDarkAppearance,
+                        tintColor: .init(kind: .panel, color: environment.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7))
+                    ),
+                    availableSize: CGSize(width: 40.0, height: 40.0),
+                    transition: .immediate
+                )
+                
                 let flipButton = flipButton.update(
                     component: CameraButton(
                         content: AnyComponentWithIdentity(
@@ -581,12 +612,12 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                             component: AnyComponent(
                                 Image(
                                     image: state.image(.flip, theme: environment.theme),
-                                    tintColor: environment.theme.list.itemAccentColor,
+                                    tintColor: environment.theme.chat.inputPanel.panelControlColor,
                                     size: CGSize(width: 30.0, height: 30.0)
                                 )
                             )
                         ),
-                        minSize: CGSize(width: 44.0, height: 44.0),
+                        minSize: CGSize(width: 40.0, height: 40.0),
                         isExclusive: false,
                         action: { [weak state] in
                             if let state {
@@ -597,8 +628,14 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                     availableSize: availableSize,
                     transition: context.transition
                 )
+                
+                context.add(flipButtonBackground
+                    .position(CGPoint(x: flipButton.size.width / 2.0 + sideInset, y: availableSize.height - flipButton.size.height / 2.0 - 8.0))
+                    .appear(.default(scale: true, alpha: true))
+                    .disappear(.default(scale: true, alpha: true))
+                )
                 context.add(flipButton
-                    .position(CGPoint(x: flipButton.size.width / 2.0 + 8.0, y: availableSize.height - flipButton.size.height / 2.0 - 8.0))
+                    .position(CGPoint(x: flipButton.size.width / 2.0 + sideInset, y: availableSize.height - flipButton.size.height / 2.0 - 8.0))
                     .appear(.default(scale: true, alpha: true))
                     .disappear(.default(scale: true, alpha: true))
                 )
@@ -620,7 +657,7 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                         component: AnyComponent(
                             LottieComponent(
                                 content: LottieComponent.AppBundleContent(name: flashIconName),
-                                color: environment.theme.list.itemAccentColor,
+                                color: environment.theme.chat.inputPanel.panelControlColor,
                                 startingPosition: !component.cameraState.flashModeDidChange ? .end : .begin,
                                 size: CGSize(width: 40.0, height: 40.0),
                                 loop: false,
@@ -634,7 +671,7 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                         component: AnyComponent(
                             Image(
                                 image: state.image(.flash, theme: environment.theme),
-                                tintColor: environment.theme.list.itemAccentColor,
+                                tintColor: environment.theme.chat.inputPanel.panelControlColor,
                                 size: CGSize(width: 30.0, height: 30.0)
                             )
                         )
@@ -645,7 +682,7 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                     let flashButton = flashButton.update(
                         component: CameraButton(
                             content: flashContentComponent,
-                            minSize: CGSize(width: 44.0, height: 44.0),
+                            minSize: CGSize(width: 40.0, height: 40.0),
                             isExclusive: false,
                             action: { [weak state] in
                                 if let state {
@@ -659,8 +696,26 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                         availableSize: availableSize,
                         transition: context.transition
                     )
+                    
+                    let flashButtonBackground = flashButtonBackground.update(
+                        component: GlassBackgroundComponent(
+                            size: CGSize(width: 40.0, height: 40.0),
+                            cornerRadius: 40.0 * 0.5,
+                            isDark: environment.theme.overallDarkAppearance,
+                            tintColor: .init(kind: .panel, color: environment.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7))
+                        ),
+                        availableSize: CGSize(width: 40.0, height: 40.0),
+                        transition: .immediate
+                    )
+                    
+                    context.add(flashButtonBackground
+                        .position(CGPoint(x: flipButton.size.width + sideInset + flashButton.size.width / 2.0 + 11.0, y: availableSize.height - flashButton.size.height / 2.0 - 8.0))
+                        .appear(.default(scale: true, alpha: true))
+                        .disappear(.default(scale: true, alpha: true))
+                    )
+                    
                     context.add(flashButton
-                        .position(CGPoint(x: flipButton.size.width + 8.0 + flashButton.size.width / 2.0 + 11.0, y: availableSize.height - flashButton.size.height / 2.0 - 8.0))
+                        .position(CGPoint(x: flipButton.size.width + sideInset + flashButton.size.width / 2.0 + 11.0, y: availableSize.height - flashButton.size.height / 2.0 - 8.0))
                         .appear(.default(scale: true, alpha: true))
                         .disappear(.default(scale: true, alpha: true))
                     )
@@ -675,9 +730,11 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                                 AnyComponentWithIdentity(
                                     id: "background",
                                     component: AnyComponent(
-                                        Image(
-                                            image: state.image(.buttonBackground, theme: environment.theme),
-                                            size: CGSize(width: 40.0, height: 40.0)
+                                        GlassBackgroundComponent(
+                                            size: CGSize(width: 40.0, height: 40.0),
+                                            cornerRadius: 40.0 * 0.5,
+                                            isDark: environment.theme.overallDarkAppearance,
+                                            tintColor: .init(kind: .panel, color: environment.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7))
                                         )
                                     )
                                 ),
@@ -686,7 +743,7 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                                     component: AnyComponent(
                                         BundleIconComponent(
                                             name: component.cameraState.isViewOnceEnabled ? "Media Gallery/ViewOnceEnabled" : "Media Gallery/ViewOnce",
-                                            tintColor: environment.theme.list.itemAccentColor
+                                            tintColor: environment.theme.chat.inputPanel.panelControlColor
                                         )
                                     )
                                 )
@@ -705,7 +762,7 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                     transition: context.transition
                 )
                 context.add(viewOnceButton
-                    .position(CGPoint(x: availableSize.width - viewOnceButton.size.width / 2.0 - 2.0 - UIScreenPixel, y: availableSize.height - viewOnceButton.size.height / 2.0 - 8.0 - viewOnceOffset))
+                    .position(CGPoint(x: availableSize.width - viewOnceButton.size.width / 2.0 - sideInset, y: availableSize.height - viewOnceButton.size.height / 2.0 - 8.0 - viewOnceOffset))
                     .appear(.default(scale: true, alpha: true))
                     .disappear(.default(scale: true, alpha: true))
                 )
@@ -718,19 +775,19 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                             ZStack([
                                 AnyComponentWithIdentity(
                                     id: "background",
-                                    component: AnyComponent(
-                                        Image(
-                                            image: state.image(.buttonBackground, theme: environment.theme),
-                                            size: CGSize(width: 40.0, height: 40.0)
-                                        )
-                                    )
+                                    component: AnyComponent(GlassBackgroundComponent(
+                                        size: CGSize(width: 40.0, height: 40.0),
+                                        cornerRadius: 40.0 * 0.5,
+                                        isDark: environment.theme.overallDarkAppearance,
+                                        tintColor: .init(kind: .panel, color: environment.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7))
+                                    ))
                                 ),
                                 AnyComponentWithIdentity(
                                     id: "icon",
                                     component: AnyComponent(
                                         BundleIconComponent(
                                             name: "Chat/Input/Text/IconVideo",
-                                            tintColor: environment.theme.list.itemAccentColor
+                                            tintColor: environment.theme.chat.inputPanel.panelControlColor
                                         )
                                     )
                                 )
@@ -745,7 +802,7 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                     transition: context.transition
                 )
                 context.add(recordMoreButton
-                    .position(CGPoint(x: availableSize.width - recordMoreButton.size.width / 2.0 - 2.0 - UIScreenPixel, y: availableSize.height - recordMoreButton.size.height / 2.0 - 22.0))
+                    .position(CGPoint(x: availableSize.width - recordMoreButton.size.width / 2.0 - sideInset, y: availableSize.height - recordMoreButton.size.height / 2.0 - 22.0))
                     .appear(.default(scale: true, alpha: true))
                     .disappear(.default(scale: true, alpha: true))
                 )
@@ -780,7 +837,7 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                 )
             }
             
-            return availableSize
+            return context.availableSize
         }
     }
 }
@@ -880,7 +937,6 @@ public class VideoMessageCameraScreen: ViewController {
             self.backgroundView = UIVisualEffectView(effect: UIBlurEffect(style: self.presentationData.theme.overallDarkAppearance ? .dark : .light))
             
             self.containerView = UIView()
-            self.containerView.clipsToBounds = true
             
             self.componentHost = ComponentView<ViewControllerComponentContainer.Environment>()
             
@@ -928,7 +984,6 @@ public class VideoMessageCameraScreen: ViewController {
             
             self.backgroundColor = .clear
             
-            self.view.addSubview(self.backgroundView)
             self.view.addSubview(self.containerView)
             
             self.containerView.addSubview(self.previewContainerView)
@@ -949,7 +1004,10 @@ public class VideoMessageCameraScreen: ViewController {
             if isDualCameraEnabled {
                 self.mainPreviewView.removePlaceholder(delay: 0.0)
             }
-            self.withReadyCamera(isFirstTime: true, {
+            self.withReadyCamera(isFirstTime: true, { [weak self] in
+                guard let self else {
+                    return
+                }
                 if !isDualCameraEnabled {
                     self.mainPreviewView.removePlaceholder(delay: 0.0)
                 }
@@ -963,6 +1021,7 @@ public class VideoMessageCameraScreen: ViewController {
         deinit {
             self.cameraStateDisposable?.dispose()
             self.idleTimerExtensionDisposable.dispose()
+            self.backgroundView.removeFromSuperview()
         }
         
         func withReadyCamera(isFirstTime: Bool = false, _ f: @escaping () -> Void) {
@@ -1025,7 +1084,7 @@ public class VideoMessageCameraScreen: ViewController {
                 queue: Queue.mainQueue(),
                 camera.flashMode,
                 camera.position
-            ).start(next: { [weak self] flashMode, position in
+            ).startStrict(next: { [weak self] flashMode, position in
                 guard let self else {
                     return
                 }
@@ -1068,10 +1127,6 @@ public class VideoMessageCameraScreen: ViewController {
         func animateIn() {
             self.animatingIn = true
             
-//            if let chatNode = self.controller?.chatNode {
-//                chatNode.supernode?.view.insertSubview(self.backgroundView, aboveSubview: chatNode.view)
-//            }
-            
             self.backgroundView.alpha = 0.0
             UIView.animate(withDuration: 0.4, animations: {
                 self.backgroundView.alpha = 1.0
@@ -1082,8 +1137,8 @@ public class VideoMessageCameraScreen: ViewController {
             
             UIView.animate(withDuration: 0.5, delay: 0.0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.2, animations: {
                 self.previewContainerView.center = targetPosition
-            }, completion: { _ in
-                self.animatingIn = false
+            }, completion: { [weak self] _ in
+                self?.animatingIn = false
             })
             
             if let view = self.componentHost.view {
@@ -1096,8 +1151,8 @@ public class VideoMessageCameraScreen: ViewController {
                                     
             UIView.animate(withDuration: 0.25, animations: {
                 self.backgroundView.alpha = 0.0
-            }, completion: { _ in
-                self.backgroundView.removeFromSuperview()
+            }, completion: { [weak self] _ in
+                self?.backgroundView.removeFromSuperview()
                 completion()
             })
             
@@ -1116,9 +1171,9 @@ public class VideoMessageCameraScreen: ViewController {
                     }
                     UIView.animate(withDuration: 0.2, animations: {
                         self.previewSnapshotView?.alpha = 0.0
-                    }, completion: { _ in
-                        self.previewSnapshotView?.removeFromSuperview()
-                        self.previewSnapshotView = nil
+                    }, completion: { [weak self] _ in
+                        self?.previewSnapshotView?.removeFromSuperview()
+                        self?.previewSnapshotView = nil
                     })
                 }
                 
@@ -1161,22 +1216,16 @@ public class VideoMessageCameraScreen: ViewController {
                     UIView.animate(withDuration: 0.4, animations: {
                         self.previewBlurView.effect = nil
                         self.previewSnapshotView?.alpha = 0.0
-                    }, completion: { _ in
-                        self.previewSnapshotView?.removeFromSuperview()
-                        self.previewSnapshotView = nil
+                    }, completion: { [weak self] _ in
+                        self?.previewSnapshotView?.removeFromSuperview()
+                        self?.previewSnapshotView = nil
                     })
                 }
-                if #available(iOS 13.0, *) {
-                    let _ = (self.mainPreviewView.isPreviewing
-                    |> filter { $0 }
-                    |> take(1)).startStandalone(next: { _ in
-                        action()
-                    })
-                } else {
-                    Queue.mainQueue().after(1.0) {
-                        action()
-                    }
-                }
+                let _ = (self.mainPreviewView.isPreviewing
+                |> filter { $0 }
+                |> take(1)).startStandalone(next: { _ in
+                    action()
+                })
                 
                 self.cameraIsActive = true
                 self.requestUpdateLayout(transition: .immediate)
@@ -1226,7 +1275,7 @@ public class VideoMessageCameraScreen: ViewController {
             let file = TelegramMediaFile(fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "video/mp4", size: Int64(data.count), attributes: [.FileName(fileName: "video.mp4")], alternativeRepresentations: [])
             let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
 
-            let _ = enqueueMessages(account: self.context.engine.account, peerId: self.context.engine.account.peerId, messages: [message]).start()
+            let _ = enqueueMessages(account: self.context.engine.account, peerId: self.context.engine.account.peerId, messages: [message]).startStandalone()
         }
         
         override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
@@ -1430,12 +1479,13 @@ public class VideoMessageCameraScreen: ViewController {
             }
 
             var backgroundFrame = CGRect(origin: .zero, size: CGSize(width: layout.size.width, height: controller.inputPanelFrame.0.minY))
+            let actualBackgroundFrame = CGRect(origin: .zero, size: CGSize(width: layout.size.width, height: layout.size.height))
             if backgroundFrame.maxY < layout.size.height - 100.0 && (layout.inputHeight ?? 0.0).isZero && !controller.inputPanelFrame.1 && layout.additionalInsets.bottom.isZero {
-                backgroundFrame = CGRect(origin: .zero, size: CGSize(width: layout.size.width, height: layout.size.height - layout.intrinsicInsets.bottom - controller.inputPanelFrame.0.height))
+                backgroundFrame = CGRect(origin: .zero, size: CGSize(width: layout.size.width, height: layout.size.height - layout.intrinsicInsets.bottom - controller.inputPanelFrame.0.height - 8.0))
             }
                         
-            transition.setPosition(view: self.backgroundView, position: backgroundFrame.center)
-            transition.setBounds(view: self.backgroundView, bounds: CGRect(origin: .zero, size: backgroundFrame.size))
+            transition.setPosition(view: self.backgroundView, position: actualBackgroundFrame.center)
+            transition.setBounds(view: self.backgroundView, bounds: CGRect(origin: .zero, size: actualBackgroundFrame.size))
             
             transition.setPosition(view: self.containerView, position: backgroundFrame.center)
             transition.setBounds(view: self.containerView, bounds: CGRect(origin: .zero, size: backgroundFrame.size))
@@ -1505,7 +1555,9 @@ public class VideoMessageCameraScreen: ViewController {
                     VideoMessageCameraScreenComponent(
                         context: self.context,
                         cameraState: self.cameraState,
+                        containerSize: backgroundFrame.size,
                         previewFrame: previewFrame,
+                        safeInsets: layout.safeInsets,
                         isPreviewing: self.previewState != nil || self.transitioningToPreview,
                         isMuted: self.previewState?.isMuted ?? true,
                         totalDuration: self.previewState?.composition.duration.seconds ?? 0.0,
@@ -1528,12 +1580,11 @@ public class VideoMessageCameraScreen: ViewController {
                     environment
                 },
                 forceUpdate: forceUpdate,
-                containerSize: backgroundFrame.size
+                containerSize: actualBackgroundFrame.size
             )
             if let componentView = self.componentHost.view {
                 if componentView.superview == nil {
                     self.containerView.addSubview(componentView)
-                    componentView.clipsToBounds = true
                 }
             
                 let componentFrame = CGRect(origin: .zero, size: componentSize)
@@ -1635,6 +1686,10 @@ public class VideoMessageCameraScreen: ViewController {
     }
     
     public var onResume: () -> Void = {
+    }
+    
+    public var backgroundView: UIVisualEffectView {
+        return self.node.backgroundView
     }
     
     public struct RecordedVideoData {

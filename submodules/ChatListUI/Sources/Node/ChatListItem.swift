@@ -126,14 +126,16 @@ public enum ChatListItemContent {
         public var hideSeparator: Bool
         public var hideDate: Bool
         public var hidePeerStatus: Bool
+public var isInTransparentContainer: Bool
 
-        public init(commandPrefix: String?, searchQuery: String?, messageCount: Int?, hideSeparator: Bool, hideDate: Bool, hidePeerStatus: Bool) {
+        public init(commandPrefix: String?, searchQuery: String?, messageCount: Int?, hideSeparator: Bool, hideDate: Bool, hidePeerStatus: Bool, isInTransparentContainer: Bool = false) {
             self.commandPrefix = commandPrefix
             self.searchQuery = searchQuery
             self.messageCount = messageCount
             self.hideSeparator = hideSeparator
             self.hideDate = hideDate
             self.hidePeerStatus = hidePeerStatus
+            self.isInTransparentContainer = isInTransparentContainer
         }
     }
 
@@ -1353,6 +1355,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     let onlineNode: PeerOnlineMarkerNode
     var avatarTimerBadge: AvatarBadgeView?
     private var starView: StarView?
+    var avatarLiveBadge: (outline: UIImageView, foreground: UIImageView)?
     let pinnedIconNode: ASImageNode
     var secretIconNode: ASImageNode?
     var verifiedIconView: ComponentHostView<Empty>?
@@ -1834,7 +1837,8 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             return AvatarNode.StoryStats(
                 totalCount: storyState.stats.totalCount,
                 unseenCount: storyState.stats.unseenCount,
-                hasUnseenCloseFriendsItems: storyState.hasUnseenCloseFriends
+                hasUnseenCloseFriendsItems: storyState.hasUnseenCloseFriends,
+                hasLiveItems: storyState.stats.hasLiveItems
             )
         }, presentationParams: AvatarNode.StoryPresentationParams(
             colors: AvatarNode.Colors(theme: item.presentationData.theme),
@@ -1843,6 +1847,91 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         ), transition: .immediate)
         self.avatarNode.isUserInteractionEnabled = storyState != nil
         
+        if let stats = storyState?.stats, stats.hasLiveItems {
+            if self.avatarLiveBadge == nil {
+                let avatarLiveBadge: (outline: UIImageView, foreground: UIImageView) = (UIImageView(), UIImageView())
+                self.avatarLiveBadge = avatarLiveBadge
+                self.avatarNode.view.addSubview(avatarLiveBadge.outline)
+                self.avatarNode.view.addSubview(avatarLiveBadge.foreground)
+
+                let liveString = NSAttributedString(string: item.presentationData.strings.Story_LiveBadge, font: Font.semibold(10.0), textColor: .white)
+                let liveStringBounds = liveString.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
+                let liveBadgeSize = CGSize(width: ceil(liveStringBounds.width) + 4.0 * 2.0, height: ceil(liveStringBounds.height) + 2.0 * 2.0)
+                avatarLiveBadge.foreground.image = generateImage(liveBadgeSize, rotatedContext: { size, context in
+                    UIGraphicsPushContext(context)
+                    defer {
+                        UIGraphicsPopContext()
+                    }
+
+                    context.clear(CGRect(origin: CGPoint(), size: size))
+                    context.setFillColor(UIColor(rgb: 0xFF2D55).cgColor)
+
+                    func roundedRectCgPath(roundRect rect: CGRect, topLeftRadius: CGFloat, topRightRadius: CGFloat, bottomLeftRadius: CGFloat, bottomRightRadius: CGFloat) -> CGPath {
+                        let path = CGMutablePath()
+
+                        let topLeft = rect.origin
+                        let topRight = CGPoint(x: rect.maxX, y: rect.minY)
+                        let bottomRight = CGPoint(x: rect.maxX, y: rect.maxY)
+                        let bottomLeft = CGPoint(x: rect.minX, y: rect.maxY)
+
+                        if topLeftRadius != .zero {
+                            path.move(to: CGPoint(x: topLeft.x+topLeftRadius, y: topLeft.y))
+                        } else {
+                            path.move(to: CGPoint(x: topLeft.x, y: topLeft.y))
+                        }
+
+                        if topRightRadius != .zero {
+                            path.addLine(to: CGPoint(x: topRight.x-topRightRadius, y: topRight.y))
+                            path.addCurve(to:  CGPoint(x: topRight.x, y: topRight.y+topRightRadius), control1: CGPoint(x: topRight.x, y: topRight.y), control2:CGPoint(x: topRight.x, y: topRight.y + topRightRadius))
+                        } else {
+                             path.addLine(to: CGPoint(x: topRight.x, y: topRight.y))
+                        }
+
+                        if bottomRightRadius != .zero {
+                            path.addLine(to: CGPoint(x: bottomRight.x, y: bottomRight.y-bottomRightRadius))
+                            path.addCurve(to: CGPoint(x: bottomRight.x-bottomRightRadius, y: bottomRight.y), control1: CGPoint(x: bottomRight.x, y: bottomRight.y), control2: CGPoint(x: bottomRight.x-bottomRightRadius, y: bottomRight.y))
+                        } else {
+                            path.addLine(to: CGPoint(x: bottomRight.x, y: bottomRight.y))
+                        }
+
+                        if bottomLeftRadius != .zero {
+                            path.addLine(to: CGPoint(x: bottomLeft.x+bottomLeftRadius, y: bottomLeft.y))
+                            path.addCurve(to: CGPoint(x: bottomLeft.x, y: bottomLeft.y-bottomLeftRadius), control1: CGPoint(x: bottomLeft.x, y: bottomLeft.y), control2: CGPoint(x: bottomLeft.x, y: bottomLeft.y-bottomLeftRadius))
+                        } else {
+                            path.addLine(to: CGPoint(x: bottomLeft.x, y: bottomLeft.y))
+                        }
+
+                        if topLeftRadius != .zero {
+                            path.addLine(to: CGPoint(x: topLeft.x, y: topLeft.y+topLeftRadius))
+                            path.addCurve(to: CGPoint(x: topLeft.x+topLeftRadius, y: topLeft.y) , control1: CGPoint(x: topLeft.x, y: topLeft.y) , control2: CGPoint(x: topLeft.x+topLeftRadius, y: topLeft.y))
+                        } else {
+                            path.addLine(to: CGPoint(x: topLeft.x, y: topLeft.y))
+                        }
+
+                        path.closeSubpath()
+
+                        return path
+                    }
+
+                    let radius = size.height * 0.5
+                    context.addPath(roundedRectCgPath(roundRect: CGRect(origin: CGPoint(), size: size), topLeftRadius: radius, topRightRadius: radius, bottomLeftRadius: radius, bottomRightRadius: radius))
+                    context.fillPath()
+
+                    liveString.draw(at: CGPoint(x: floorToScreenPixels((size.width - liveStringBounds.width) * 0.5), y: floorToScreenPixels((size.height - liveStringBounds.height) * 0.5)))
+                })
+
+                if let image = avatarLiveBadge.foreground.image {
+                    avatarLiveBadge.outline.image = generateStretchableFilledCircleImage(diameter: image.size.height + 2.0 * 2.0, color: .white)?.withRenderingMode(.alwaysTemplate)
+                }
+            }
+        } else {
+            if let avatarLiveBadge = self.avatarLiveBadge {
+                self.avatarLiveBadge = nil
+                avatarLiveBadge.outline.removeFromSuperview()
+                avatarLiveBadge.foreground.removeFromSuperview()
+            }
+        }
+
         if let peer = peer {
             var overrideImage: AvatarNodeImageOverride?
             if case let .peer(peerData) = item.content, peerData.customMessageListData != nil {
@@ -2011,6 +2100,11 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     reallyHighlighted = true
                 }
             }
+            if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData {
+                if customMessageListData.isInTransparentContainer {
+                    reallyHighlighted = false
+                }
+            }
         }
         return reallyHighlighted
     }
@@ -2061,6 +2155,21 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 }
                 self.onlineNode.setImage(onlineIcon, color: nil, transition: transition)
                 self.starView?.setOutlineColor(effectiveBackgroundColor, transition: transition)
+            }
+        }
+
+        if let item = self.item {
+            if let avatarLiveBadge = self.avatarLiveBadge {
+                let effectiveBackgroundColor: UIColor
+                if item.isPinned {
+                    effectiveBackgroundColor = item.presentationData.theme.chatList.pinnedItemBackgroundColor
+                } else {
+                    effectiveBackgroundColor = item.presentationData.theme.chatList.itemBackgroundColor
+                }
+
+                let highlightAlpha = self.highlightedBackgroundNode.supernode == nil ? 0.0 : self.highlightedBackgroundNode.alpha
+                let outlineColor = item.presentationData.theme.chatList.itemHighlightedBackgroundColor.mixedWith(effectiveBackgroundColor, alpha: 1.0 - highlightAlpha)
+                transition.updateTintColor(view: avatarLiveBadge.outline, color: outlineColor)
             }
         }
     }
@@ -3535,7 +3644,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 textMaxWidth -= 18.0
             }
             
-            let (textLayout, textApply) = textLayout(TextNodeLayoutArguments(attributedString: textAttributedString, backgroundColor: nil, maximumNumberOfLines: (authorAttributedString == nil && itemTags.isEmpty && forumThread == nil) ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: textMaxWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: textCutout, insets: UIEdgeInsets(top: 2.0, left: 1.0, bottom: 2.0, right: 1.0)))
+            let (textLayout, textApply) = textLayout(TextNodeLayoutArguments(attributedString: textAttributedString, backgroundColor: nil, maximumNumberOfLines: (authorAttributedString == nil && itemTags.isEmpty && forumThread == nil && topForumTopicItems.isEmpty) ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: textMaxWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: textCutout, insets: UIEdgeInsets(top: 2.0, left: 1.0, bottom: 2.0, right: 1.0)))
             
             let maxTitleLines: Int
             switch item.index {
@@ -4074,6 +4183,24 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     }
                     transition.updateFrame(node: strongSelf.onlineNode, frame: onlineFrame)
                     
+                    if let avatarLiveBadge = strongSelf.avatarLiveBadge, let iconImage = avatarLiveBadge.foreground.image, let outlineImage = avatarLiveBadge.outline.image {
+                        let outlineInset = (outlineImage.size.height - iconImage.size.height) * 0.5
+                        let liveBadgeFrame = CGRect(origin: CGPoint(x: floor((avatarFrame.width - iconImage.size.width) * 0.5), y: avatarFrame.height + 5.0 - iconImage.size.height), size: iconImage.size)
+                        transition.updateFrame(view: avatarLiveBadge.foreground, frame: liveBadgeFrame)
+                        transition.updateFrame(view: avatarLiveBadge.outline, frame: liveBadgeFrame.insetBy(dx: -outlineInset, dy: -outlineInset))
+
+                        let effectiveBackgroundColor: UIColor
+                        if item.isPinned {
+                            effectiveBackgroundColor = item.presentationData.theme.chatList.pinnedItemBackgroundColor
+                        } else {
+                            effectiveBackgroundColor = item.presentationData.theme.chatList.itemBackgroundColor
+                        }
+
+                        let highlightAlpha = strongSelf.highlightedBackgroundNode.supernode == nil ? 0.0 : strongSelf.highlightedBackgroundNode.alpha
+                        let outlineColor = item.presentationData.theme.chatList.itemHighlightedBackgroundColor.mixedWith(effectiveBackgroundColor, alpha: 1.0 - highlightAlpha)
+                        transition.updateTintColor(view: avatarLiveBadge.outline, color: outlineColor)
+                    }
+
                     let onlineInlineNavigationFraction: CGFloat = item.interaction.inlineNavigationLocation?.progress ?? 0.0
                     transition.updateAlpha(node: strongSelf.onlineNode, alpha: 1.0 - onlineInlineNavigationFraction)
                     transition.updateSublayerTransformScale(node: strongSelf.onlineNode, scale: (1.0 - onlineInlineNavigationFraction) * 1.0 + onlineInlineNavigationFraction * 0.00001)
