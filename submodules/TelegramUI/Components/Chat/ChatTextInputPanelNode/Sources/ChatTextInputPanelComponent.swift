@@ -424,6 +424,10 @@ public final class ChatTextInputPanelComponent: Component {
                     },
                     forwardMessages: { _ in
                     },
+                    saveMessages: { _ in
+                    },
+                    shareMessages: { _ in
+                    },
                     updateForwardOptionsState: { _ in
                     },
                     presentForwardOptions: { _ in

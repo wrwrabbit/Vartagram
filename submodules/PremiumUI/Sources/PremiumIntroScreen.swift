@@ -3879,7 +3879,7 @@ private final class PremiumIntroScreenComponent: CombinedComponent {
                 )
                 context.add(bottomEdgeEffect
                     .position(CGPoint(x: context.availableSize.width / 2.0, y: context.availableSize.height - bottomEdgeEffect.size.height / 2.0))
-                    .disappear(ComponentTransition.Disappear { [weak bottomPanel] view, transition, completion in
+                    .disappear(ComponentTransition.Disappear { view, transition, completion in
                         if case .none = transition.animation {
                             completion()
                             return
