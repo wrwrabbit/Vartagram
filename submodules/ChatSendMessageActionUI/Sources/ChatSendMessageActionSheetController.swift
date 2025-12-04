@@ -25,7 +25,7 @@ public enum SendMessageActionSheetControllerParams {
         public let hasTimers: Bool
         public let sendPaidMessageStars: StarsAmount?
         public let isMonoforum: Bool
-
+        
         public init(
             isScheduledMessages: Bool,
             mediaPreview: ChatSendMessageContextScreenMediaPreview?,
@@ -66,7 +66,7 @@ public enum SendMessageActionSheetControllerParams {
             self.mediaCaptionIsAbove = mediaCaptionIsAbove
         }
     }
-
+    
     case sendMessage(SendMessage)
     case editMessage(EditMessage)
 }

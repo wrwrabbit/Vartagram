@@ -166,7 +166,7 @@ final class StorageKeepSizeComponent: Component {
                 }
                 transition.setFrame(view: sliderView, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - sliderSize.width) / 2.0), y: 41.0), size: sliderSize))
             }
-
+                        
             return CGSize(width: availableSize.width, height: height)
         }
     }

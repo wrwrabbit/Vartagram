@@ -209,12 +209,12 @@ private var giftEmojiLayer: InlineStickerItemLayer?
             var secondaryColor: UIColor?
             var tertiaryColor: UIColor?
             
-
+            
             var authorNameColor: UIColor?
             var dashSecondaryColor: UIColor?
             var dashTertiaryColor: UIColor?
             let placeholderColor: UIColor
-
+            
             var author = arguments.message?.effectiveAuthor
             
             if let forwardInfo = arguments.message?.forwardInfo {
@@ -429,7 +429,7 @@ private var giftEmojiLayer: InlineStickerItemLayer?
                 isMedia = true
                 isText = false
             }
-
+            
             let textColor: UIColor
             
             switch arguments.type {
@@ -451,7 +451,7 @@ private var giftEmojiLayer: InlineStickerItemLayer?
             if let todoItemId = arguments.todoItemId, let todo = arguments.message?.media.first(where: { $0 is TelegramMediaTodo }) as? TelegramMediaTodo, let todoItem = todo.items.first(where: { $0.id == todoItemId }) {
                 messageText = stringWithAppliedEntities(todoItem.text, entities: todoItem.entities, baseColor: textColor, linkColor: textColor, baseFont: textFont, linkFont: textFont, boldFont: textFont, italicFont: textFont, boldItalicFont: textFont, fixedFont: textFont, blockQuoteFont: textFont, underlineLinks: false, message: nil)
                 textLeftInset += 16.0
-
+                
                 todoItemCompleted = todo.completions.contains(where: { $0.id == todoItemId })
             } else if isText, let message = arguments.message, let message_ {
                 var text: String
@@ -615,7 +615,7 @@ private var giftEmojiLayer: InlineStickerItemLayer?
                 additionalTitleWidth += 16.0
             }
             adjustedConstrainedTextSize.width -= textLeftInset
-
+            
             let (titleLayout, titleApply) = titleNodeLayout(TextNodeLayoutArguments(attributedString: titleString, backgroundColor: nil, maximumNumberOfLines: maxTitleNumberOfLines, truncationType: .end, constrainedSize: CGSize(width: contrainedTextSize.width - additionalTitleWidth, height: contrainedTextSize.height), alignment: .natural, cutout: nil, insets: textInsets))
             if isExpiredStory || isStory {
                 contrainedTextSize.width -= 26.0
@@ -884,22 +884,22 @@ private var giftEmojiLayer: InlineStickerItemLayer?
                     node.quoteIconView = nil
                     quoteIconView.removeFromSuperview()
                 }
-
+                
                 if let todoItemCompleted {
                     let checkLayerFrame = CGRect(origin: CGPoint(x: textFrame.minX - 16.0, y: textFrame.minY + 5.0), size: CGSize(width: 12.0, height: 12.0))
                     let checkTheme = CheckNodeTheme(backgroundColor: titleColor, strokeColor: .clear, borderColor: titleColor, overlayBorder: false, hasInset: true, hasShadow: false, borderWidth: 1.0)
-
+                    
                     let checkLayer: CheckLayer
                     if let current = node.checkLayer {
                         checkLayer = current
-
+                        
                         checkLayer.setSelected(todoItemCompleted, animated: true)
                         animation.animator.updateFrame(layer: checkLayer, frame: checkLayerFrame, completion: nil)
                     } else {
                         checkLayer = CheckLayer(theme: checkTheme)
                         node.checkLayer = checkLayer
                         node.contentNode.layer.addSublayer(checkLayer)
-
+                        
                         checkLayer.setSelected(todoItemCompleted, animated: false)
                         checkLayer.frame = checkLayerFrame
                     }
@@ -912,7 +912,7 @@ private var giftEmojiLayer: InlineStickerItemLayer?
                 if let giftEmojiFileId {
                     let giftLayerSize = CGSize(width: 18.0, height: 18.0)
                     let giftLayerFrame = CGRect(origin: CGPoint(x: realSize.width - giftLayerSize.width - 4.0, y: 3.0), size: giftLayerSize)
-
+                    
                     let giftEmojiLayer: InlineStickerItemLayer
                     if let current = node.giftEmojiLayer, current.file?.fileId.id == giftEmojiFileId {
                         giftEmojiLayer = current
@@ -925,15 +925,15 @@ private var giftEmojiLayer: InlineStickerItemLayer?
                         giftEmojiLayer = InlineStickerItemLayer(context: arguments.context, userLocation: .other, attemptSynchronousLoad: true, emoji: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: giftEmojiFileId, file: nil, custom: nil, enableAnimation: true), file: nil, cache: arguments.context.animationCache, renderer: arguments.context.animationRenderer, unique: false, placeholderColor: placeholderColor, pointSize: CGSize(width: giftLayerSize.width * 2.0, height: giftLayerSize.height * 2.0), dynamicColor: nil, loopCount: 2)
                         node.giftEmojiLayer = giftEmojiLayer
                         node.contentNode.layer.addSublayer(giftEmojiLayer)
-
+                        
                         giftEmojiLayer.frame = giftLayerFrame
                     }
-
+                    
                 } else if let giftEmojiLayer = node.giftEmojiLayer {
                     node.giftEmojiLayer = nil
                     giftEmojiLayer.removeFromSuperlayer()
                 }
-
+                
                 node.contentNode.frame = CGRect(origin: CGPoint(), size: size)
                 
                 return node
@@ -1024,14 +1024,14 @@ private var giftEmojiLayer: InlineStickerItemLayer?
                     x: localRect.minX + sourceImageView.frame.midX - imageNode.frame.midX,
                     y: localRect.minY + sourceImageView.frame.midY - imageNode.frame.midY
                 )
-
+                
                 transition.horizontal.animatePositionAdditive(node: imageNode, offset: CGPoint(x: offset.x, y: 0.0))
                 transition.vertical.animatePositionAdditive(node: imageNode, offset: CGPoint(x: 0.0, y: offset.y))
-
+                
                 sourceParentNode.view.addSubview(sourceImageView)
-
+                
                 imageNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.1)
-
+                
                 sourceImageView.frame = sourceImageView.frame
                     .offsetBy(dx: sourceParentOffset.x, dy: sourceParentOffset.y)
                     .offsetBy(dx: localRect.minX - offset.x, dy: localRect.minY - offset.y)

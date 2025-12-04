@@ -40,7 +40,7 @@ final class PeerInfoState {
     let isEditingBirthDate: Bool
     let updatingBirthDate: TelegramBirthday??
     let personalChannels: [TelegramAdminedPublicChannel]?
-
+    
     init(
         isEditing: Bool,
         selectedMessageIds: Set<MessageId>?,
@@ -102,7 +102,7 @@ final class PeerInfoState {
             personalChannels: self.personalChannels
         )
     }
-
+    
     func withSelectedStoryIds(_ selectedStoryIds: Set<Int32>?) -> PeerInfoState {
         return PeerInfoState(
             isEditing: self.isEditing,
@@ -119,7 +119,7 @@ final class PeerInfoState {
             personalChannels: self.personalChannels
         )
     }
-
+    
     func withPaneIsReordering(_ paneIsReordering: Bool) -> PeerInfoState {
         return PeerInfoState(
             isEditing: self.isEditing,
@@ -221,7 +221,7 @@ final class PeerInfoState {
             personalChannels: self.personalChannels
         )
     }
-
+    
     func withIsEditingBirthDate(_ isEditingBirthDate: Bool) -> PeerInfoState {
         return PeerInfoState(
             isEditing: self.isEditing,
@@ -238,7 +238,7 @@ final class PeerInfoState {
             personalChannels: self.personalChannels
         )
     }
-
+    
     func withUpdatingBirthDate(_ updatingBirthDate: TelegramBirthday??) -> PeerInfoState {
         return PeerInfoState(
             isEditing: self.isEditing,
@@ -255,7 +255,7 @@ final class PeerInfoState {
             personalChannels: self.personalChannels
         )
     }
-
+    
     func withPersonalChannels(_ personalChannels: [TelegramAdminedPublicChannel]?) -> PeerInfoState {
         return PeerInfoState(
             isEditing: self.isEditing,
@@ -350,7 +350,7 @@ final class PeerInfoPersonalChannelData: Equatable {
     let topMessages: [EngineMessage]
     let storyStats: PeerStoryStats?
     let isLoading: Bool
-
+    
     init(peer: EngineRenderedPeer, subscriberCount: Int?, topMessages: [EngineMessage], storyStats: PeerStoryStats?, isLoading: Bool) {
         self.peer = peer
         self.subscriberCount = subscriberCount
@@ -358,7 +358,7 @@ final class PeerInfoPersonalChannelData: Equatable {
         self.storyStats = storyStats
         self.isLoading = isLoading
     }
-
+    
     static func ==(lhs: PeerInfoPersonalChannelData, rhs: PeerInfoPersonalChannelData) -> Bool {
         if lhs === rhs {
             return true
@@ -425,7 +425,7 @@ final class PeerInfoScreenData {
     let webAppPermissions: WebAppPermissionsState?
     let savedMusicContext: ProfileSavedMusicContext?
     let savedMusicState: ProfileSavedMusicContext.State?
-
+    
     let _isContact: Bool
     var forceIsContact: Bool = false
 
@@ -592,9 +592,9 @@ private func peerInfoAvailableMediaPanes(context: AccountContext, peerId: PeerId
         chatLocationContextHolder = Atomic(value: nil)
     }
     let _ = peerId
-
+    
     var tags: [(MessageTags, PeerInfoPaneKey)] = []
-
+    
     if !isMyProfile {
         tags = [
             (.photoOrVideo, .media),
@@ -753,14 +753,14 @@ private func peerInfoPersonalOrLinkedChannel(context: AccountContext, peerId: En
         }
         return .single(.known(nil))
     }
-
+    
     return personalChannel
     |> distinctUntilChanged
     |> mapToSignal { personalChannel -> Signal<PeerInfoPersonalChannelData?, NoError> in
         guard case let .known(personalChannelValue) = personalChannel, let personalChannelValue else {
             return .single(nil)
         }
-
+        
         return context.engine.data.subscribe(
             TelegramEngine.EngineData.Item.Peer.RenderedPeer(id: personalChannelValue.peerId),
             TelegramEngine.EngineData.Item.Peer.ParticipantCount(id: personalChannelValue.peerId)
@@ -769,7 +769,7 @@ private func peerInfoPersonalOrLinkedChannel(context: AccountContext, peerId: En
             guard let channelRenderedPeer, let channelPeer = channelRenderedPeer.peer else {
                 return .single(nil)
             }
-
+            
             let polledChannel: Signal<Void, NoError> = Signal<Void, NoError>.single(Void())
             |> then(
                 context.account.viewTracker.polledChannel(peerId: channelPeer.id)
@@ -777,7 +777,7 @@ private func peerInfoPersonalOrLinkedChannel(context: AccountContext, peerId: En
                 |> map { _ -> Void in
                 }
             )
-
+            
             return combineLatest(
                 context.account.postbox.aroundMessageHistoryViewForLocation(.peer(peerId: channelPeer.id, threadId: nil), anchor: .upperBound, ignoreMessagesInTimestampRange: nil, ignoreMessageIds: Set(), count: 10, clipHoles: false, fixedCombinedReadStates: nil, topTaggedMessageIdNamespaces: Set(), tag: nil, appendMessagesFromTheSameGroup: false, namespaces: .not(Namespaces.Message.allNonRegular), orderStatistics: []),
                 context.engine.data.subscribe(
@@ -796,19 +796,19 @@ private func peerInfoPersonalOrLinkedChannel(context: AccountContext, peerId: En
                     }
                 }
                 messages = messages.reversed()
-
+                
                 var isLoading = false
                 if messages.isEmpty && view.isLoading {
                     isLoading = true
                 }
-
+                
                 var mappedParticipantCount: Int?
                 if let participantCount {
                     mappedParticipantCount = participantCount
                 } else if let subscriberCount = personalChannelValue.subscriberCount {
                     mappedParticipantCount = Int(subscriberCount)
                 }
-
+                
                 return PeerInfoPersonalChannelData(
                     peer: channelRenderedPeer,
                     subscriberCount: mappedParticipantCount,
@@ -928,9 +928,9 @@ func peerInfoScreenSettingsData(context: AccountContext, peerId: EnginePeer.Id, 
     } else {
         tonState = .single(nil)
     }
-
+    
     let profileGiftsContext = ProfileGiftsContext(account: context.account, peerId: peerId)
-
+    
     return combineLatest(
         context.account.viewTracker.peerView(peerId, updateData: true),
         accountsAndPeers,
@@ -1152,7 +1152,7 @@ func peerInfoScreenData(
             } else {
                 recommendedBots = .single(nil)
             }
-
+            
             let premiumGiftOptions: Signal<[PremiumGiftCodeOption], NoError>
             let profileGiftsContext: ProfileGiftsContext?
             let profileGiftsCollectionsContext: ProfileGiftsCollectionsContext?
@@ -1177,7 +1177,7 @@ func peerInfoScreenData(
                 profileGiftsCollectionsContext = nil
                 premiumGiftOptions = .single([])
             }
-
+            
             enum StatusInputData: Equatable {
                 case none
                 case presence(TelegramUserPresence)
@@ -1304,7 +1304,7 @@ func peerInfoScreenData(
             } else {
                 hasStoryArchive = .single(false)
             }
-
+            
             var botPreviewStoryListContext: StoryListContext?
             let hasBotPreviewItems: Signal<Bool, NoError>
             if case .bot = kind {
@@ -1318,7 +1318,7 @@ func peerInfoScreenData(
             } else {
                 hasBotPreviewItems = .single(false)
             }
-
+            
             let accountIsPremium = context.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId))
             |> map { peer -> Bool in
                 return peer?.isPremium ?? false
@@ -1400,7 +1400,7 @@ func peerInfoScreenData(
             } else {
                 hasSavedMessageTags = .single(false)
             }
-
+            
             let starsRevenueContextAndState = combineLatest(
                 context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
                 |> distinctUntilChanged,
@@ -1415,7 +1415,7 @@ func peerInfoScreenData(
                 #if DEBUG
                 canViewStarsRevenue = peerId != context.account.peerId
                 #endif
-
+                
                 guard canViewStarsRevenue else {
                     return .single((nil, nil))
                 }
@@ -1425,7 +1425,7 @@ func peerInfoScreenData(
                     return (starsRevenueStatsContext, state.stats)
                 }
             }
-
+            
             let revenueContextAndState = combineLatest(
                 context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
                 |> distinctUntilChanged,
@@ -1449,7 +1449,7 @@ func peerInfoScreenData(
                     return (revenueStatsContext, state.stats)
                 }
             }
-
+            
             let webAppPermissions: Signal<WebAppPermissionsState?, NoError> = context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
             |> mapToSignal { peer -> Signal<WebAppPermissionsState?, NoError> in
                 if let peer, case let .user(user) = peer, let _ = user.botInfo {
@@ -1458,9 +1458,9 @@ func peerInfoScreenData(
                     return .single(nil)
                 }
             }
-
+            
             let savedMusicContext = ProfileSavedMusicContext(account: context.account, peerId: peerId)
-
+                     
             return combineLatest(
                 context.account.viewTracker.peerView(peerId, updateData: true),
                 peerInfoAvailableMediaPanes(context: context, peerId: peerId, chatLocation: chatLocation, isMyProfile: isMyProfile, chatLocationContextHolder: chatLocationContextHolder, sharedMediaFromForumTopic: sharedMediaFromForumTopic),
@@ -1506,7 +1506,7 @@ func peerInfoScreenData(
                             availablePanes?.insert(.gifts, at: hasStories ? 1 : 0)
                         }
                     }
-
+                    
                     if availablePanes != nil, groupsInCommon != nil, let cachedData = peerView.cachedData as? CachedUserData {
                         if cachedData.commonGroupCount != 0 {
                             availablePanes?.append(.groupsInCommon)
@@ -1528,14 +1528,14 @@ func peerInfoScreenData(
                                 availablePanes = availablePanesValue
                             }
                         }
-
+                        
                         if let user = peerView.peers[peerView.peerId] as? TelegramUser, let botInfo = user.botInfo, botInfo.flags.contains(.hasWebApp), botInfo.flags.contains(.canEdit) {
                             availablePanes?.insert(.botPreview, at: 0)
                         } else if let cachedData = peerView.cachedData as? CachedUserData, let botPreview = cachedData.botPreview, !botPreview.items.isEmpty {
                             availablePanes?.insert(.botPreview, at: 0)
                         }
                     }
-
+                    
                     if let recommendedBots, recommendedBots.count > 0 {
                         availablePanes?.append(.similarBots)
                     }
@@ -1551,7 +1551,7 @@ func peerInfoScreenData(
                         availablePanes = currentAvailablePanes
                     }
                 }
-
+                
                 let peer = peerView.peers[userPeerId]
                 
                 var globalSettings: TelegramGlobalSettings?
@@ -1579,7 +1579,7 @@ func peerInfoScreenData(
                         hasWatchApp: false,
                         enableQRLogin: false)
                 }
-
+                
                 return PeerInfoScreenData(
                     peer: peer,
                     chatPeer: peerView.peers[peerId],
@@ -1696,9 +1696,9 @@ func peerInfoScreenData(
             } else {
                 hasSavedMessageTags = .single(false)
             }
-
+            
             let isPremiumRequiredForStoryPosting: Signal<Bool, NoError> = isPremiumRequiredForStoryPosting(context: context)
-
+            
             let starsRevenueContextAndState = context.engine.data.subscribe(
                 TelegramEngine.EngineData.Item.Peer.CanViewStarsRevenue(id: peerId)
             )
@@ -1713,7 +1713,7 @@ func peerInfoScreenData(
                     return (starsRevenueStatsContext, state.stats)
                 }
             }
-
+            
             let revenueContextAndState = context.engine.data.subscribe(
                 TelegramEngine.EngineData.Item.Peer.CanViewRevenue(id: peerId)
             )
@@ -1728,12 +1728,12 @@ func peerInfoScreenData(
                     return (revenueStatsContext, state.stats)
                 }
             }
-
+            
             let profileGiftsContext = ProfileGiftsContext(account: context.account, peerId: peerId)
             let profileGiftsCollectionsContext = ProfileGiftsCollectionsContext(account: context.account, peerId: peerId, allGiftsContext: profileGiftsContext)
-
+            
             let personalChannel = peerInfoPersonalOrLinkedChannel(context: context, peerId: peerId, isSettings: false)
-
+            
             return combineLatest(
                 context.account.viewTracker.peerView(peerId, updateData: true),
                 peerInfoAvailableMediaPanes(context: context, peerId: peerId, chatLocation: chatLocation, isMyProfile: false, chatLocationContextHolder: chatLocationContextHolder, sharedMediaFromForumTopic: sharedMediaFromForumTopic),
@@ -1781,7 +1781,7 @@ func peerInfoScreenData(
                             availablePanes = availablePanesValue
                         }
                     }
-
+                    
                     if availablePanes != nil, let cachedData = peerView.cachedData as? CachedChannelData {
                         if (cachedData.starGiftsCount ?? 0) > 0 || (profileGiftsState.count ?? 0) > 0 || forceHasGifts {
                             availablePanes?.insert(.gifts, at: hasStories ? 1 : 0)
@@ -1799,7 +1799,7 @@ func peerInfoScreenData(
                         availablePanes = currentAvailablePanes
                     }
                 }
-
+                
                 var discussionPeer: Peer?
                 if case let .known(maybeLinkedDiscussionPeerId) = (peerView.cachedData as? CachedChannelData)?.linkedDiscussionPeerId, let linkedDiscussionPeerId = maybeLinkedDiscussionPeerId, let peer = peerView.peers[linkedDiscussionPeerId] {
                     discussionPeer = peer
@@ -1809,7 +1809,7 @@ func peerInfoScreenData(
                 if let channel = peerViewMainPeer(peerView) as? TelegramChannel, case let .broadcast(info) = channel.info, info.flags.contains(.hasMonoforum), let linkedMonoforumId = channel.linkedMonoforumId {
                     monoforumPeer = peerView.peers[linkedMonoforumId]
                 }
-
+                
                 var canManageInvitations = false
                 if let channel = peerViewMainPeer(peerView) as? TelegramChannel, let _ = peerView.cachedData as? CachedChannelData, channel.flags.contains(.isCreator) || (channel.adminRights?.rights.contains(.canInviteUsers) == true) {
                     canManageInvitations = true
@@ -1829,7 +1829,7 @@ func peerInfoScreenData(
                         requestsStatePromise.set(requestsContext.state |> map(Optional.init))
                     }
                 }
-
+                                                                
                 return PeerInfoScreenData(
                     peer: peerView.peers[peerId],
                     chatPeer: peerView.peers[peerId],
@@ -1919,7 +1919,7 @@ func peerInfoScreenData(
             )
             |> map { peerView, memberCountData -> PeerInfoStatusData? in
                 let (preciseTotalMemberCount, onlineMemberCount) = memberCountData
-
+                
                 if let cachedChannelData = peerView.cachedData as? CachedChannelData, let memberCount = preciseTotalMemberCount ?? cachedChannelData.participantsSummary.memberCount {
                     if let onlineMemberCount, onlineMemberCount > 1 {
                         var string = ""
@@ -1999,7 +1999,7 @@ func peerInfoScreenData(
                 storyListContext = nil
                 hasStories = .single(false)
             }
-
+            
             let threadData: Signal<MessageHistoryThreadData?, NoError>
             if case let .replyThread(message) = chatLocation {
                 let threadId = message.threadId
@@ -2055,7 +2055,7 @@ func peerInfoScreenData(
             } else {
                 hasSavedMessageTags = .single(false)
             }
-
+            
             let starsRevenueContextAndState = context.engine.data.subscribe(
                 TelegramEngine.EngineData.Item.Peer.CanViewStarsRevenue(id: peerId)
             )
@@ -2070,9 +2070,9 @@ func peerInfoScreenData(
                     return (starsRevenueStatsContext, state.stats)
                 }
             }
-
+            
             let isPremiumRequiredForStoryPosting: Signal<Bool, NoError> = isPremiumRequiredForStoryPosting(context: context)
-
+            
             return combineLatest(queue: .mainQueue(),
                 context.account.viewTracker.peerView(groupId, updateData: true),
                 peerInfoAvailableMediaPanes(context: context, peerId: groupId, chatLocation: chatLocation, isMyProfile: false, chatLocationContextHolder: chatLocationContextHolder, sharedMediaFromForumTopic: sharedMediaFromForumTopic),
@@ -2107,7 +2107,7 @@ func peerInfoScreenData(
                 if let channel = peerViewMainPeer(peerView) as? TelegramChannel, case let .broadcast(info) = channel.info, info.flags.contains(.hasMonoforum), let linkedMonoforumId = channel.linkedMonoforumId {
                     monoforumPeer = peerView.peers[linkedMonoforumId]
                 }
-
+                                
                 var availablePanes = availablePanes
                 if let membersData = membersData, case .longList = membersData {
                     if availablePanes != nil {
@@ -2134,7 +2134,7 @@ func peerInfoScreenData(
                         }
                     }
                 }
-
+                                
                 var canManageInvitations = false
                 if let group = peerViewMainPeer(peerView) as? TelegramGroup {
                     let previousValue = wasUpgradedGroup.swap(group.migrationReference != nil)
@@ -2625,7 +2625,7 @@ private func isPremiumRequiredForStoryPosting(context: AccountContext) -> Signal
     if let isPremiumRequired {
         return .single(isPremiumRequired)
     }
-
+    
     return .single(true)
     |> then(
         context.engine.messages.checkStoriesUploadAvailability(target: .myStories)

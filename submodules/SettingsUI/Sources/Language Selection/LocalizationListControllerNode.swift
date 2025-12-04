@@ -437,7 +437,7 @@ final class LocalizationListControllerNode: ViewControllerTracingNode {
         let translationConfiguration = TranslationConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
         var translateButtonAvailable = false
         var chatTranslationAvailable = false
-
+        
         switch translationConfiguration.manual {
         case .enabled, .alternative:
             translateButtonAvailable = true
@@ -448,7 +448,7 @@ final class LocalizationListControllerNode: ViewControllerTracingNode {
         default:
             break
         }
-
+        
         switch translationConfiguration.auto {
         case .enabled:
             chatTranslationAvailable = true
@@ -459,7 +459,7 @@ final class LocalizationListControllerNode: ViewControllerTracingNode {
         default:
             break
         }
-
+        
         let previousState = Atomic<LocalizationListState?>(value: nil)
         let previousEntriesHolder = Atomic<([LanguageListEntry], PresentationTheme, PresentationStrings)?>(value: nil)
         self.listDisposable = combineLatest(

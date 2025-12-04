@@ -96,7 +96,7 @@ public final class ShareLoadingContainerNode: ASDisplayNode, ShareContentContain
     
     public func setDidBeginDragging(_ f: (() -> Void)?) {
     }
-
+    
     public func setContentOffsetUpdated(_ f: ((CGFloat, ContainedViewLayoutTransition) -> Void)?) {
         self.contentOffsetUpdated = f
     }
@@ -279,10 +279,10 @@ public final class ShareProlongedLoadingContainerNode: ASDisplayNode, ShareConte
         if let postbox, let mediaManager = environment.mediaManager, let path = getAppBundle().path(forResource: "BlankVideo", ofType: "m4v"), let size = fileSize(path) {
             let _ = postbox
             let _ = mediaManager
-
+            
             let decoration = ChatBubbleVideoDecoration(corners: ImageCorners(), nativeSize: CGSize(width: 100.0, height: 100.0), contentMode: .aspectFit, backgroundColor: .black)
             let _ = decoration
-
+            
             let dummyFile = TelegramMediaFile(fileId: EngineMedia.Id(namespace: 0, id: 1), partialReference: nil, resource: LocalFileReferenceMediaResource(localFilePath: path, randomId: 12345), previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "video/mp4", size: size, attributes: [.Video(duration: 1, size: PixelDimensions(width: 100, height: 100), flags: [], preloadSize: nil, coverTime: nil, videoCodec: nil)], alternativeRepresentations: [])
             
             let videoContent = NativeVideoContent(id: .message(1, EngineMedia.Id(namespace: 0, id: 1)), userLocation: .other, fileReference: .standalone(media: dummyFile), streamVideo: .none, loopVideo: true, enableSound: false, fetchAutomatically: true, onlyFullSizeThumbnail: false, continuePlayingWithoutSoundOnLostAudioSession: false, placeholderColor: .black, storeAfterDownload: nil)
@@ -318,7 +318,7 @@ public final class ShareProlongedLoadingContainerNode: ASDisplayNode, ShareConte
     
     public func setDidBeginDragging(_ f: (() -> Void)?) {
     }
-
+    
     public func setContentOffsetUpdated(_ f: ((CGFloat, ContainedViewLayoutTransition) -> Void)?) {
         self.contentOffsetUpdated = f
     }

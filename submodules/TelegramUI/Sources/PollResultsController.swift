@@ -267,7 +267,7 @@ private enum PollResultsEntry: ItemListNodeEntry {
                 adjustQuoteFontSize: false,
                 cachedMessageSyntaxHighlight: nil
             )
-
+            
             let header = ItemListPeerItemHeader(theme: presentationData.theme, strings: presentationData.strings, context: arguments.context, text: attributedText, additionalText: optionAdditionalText, actionTitle: optionExpanded ? presentationData.strings.PollResults_Collapse : presentationData.strings.MessagePoll_VotedCount(optionCount), id: Int64(optionId), action: optionExpanded ? {
                 arguments.collapseOption(opaqueIdentifier)
             } : nil)

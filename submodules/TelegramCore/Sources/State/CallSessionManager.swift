@@ -56,7 +56,7 @@ public struct CallId: Equatable  {
 public struct GroupCallReference: Codable, Equatable {
     public var id: Int64
     public var accessHash: Int64
-
+    
     public init(id: Int64, accessHash: Int64) {
         self.id = id
         self.accessHash = accessHash
@@ -72,7 +72,7 @@ extension GroupCallReference {
             return nil
         }
     }
-
+    
     var apiInputGroupCall: Api.InputGroupCall {
         return .inputGroupCall(id: self.id, accessHash: self.accessHash)
     }
@@ -142,7 +142,7 @@ private final class StableIncomingUUIDs {
             return value
         }
     }
-
+    
     func get(peerId: Int64, messageId: Int32) -> UUID {
         let key = Key.group(peerId: peerId, messageId: messageId)
         if let value = self.dict[key] {
@@ -372,7 +372,7 @@ private final class CallSessionContext {
     let signalingDisposables = DisposableSet()
     let acknowledgeIncomingCallDisposable = MetaDisposable()
     var createConferenceCallDisposable: Disposable?
-
+    
     var isEmpty: Bool {
         if case .terminated = self.state {
             return self.subscribers.isEmpty
@@ -400,7 +400,7 @@ private final class CallSessionContext {
 public struct IncomingConferenceTermporaryExternalInfo {
     public var callId: Int64
     public var isVideo: Bool
-
+    
     public init(callId: Int64, isVideo: Bool) {
         self.callId = callId
         self.isVideo = isVideo
@@ -427,7 +427,7 @@ private final class IncomingConferenceInvitationContext {
         self.internalId = internalId
 
         let key = PostboxViewKey.messages(Set([messageId]))
-
+        
         if let externalInfo {
             self.state = .ringing(
                 callId: externalInfo.callId,
@@ -795,7 +795,7 @@ private final class CallSessionManagerContext {
 
         self.rejectConferenceInvitationDisposables.add(rejectSignal.startStrict())
     }
-
+    
     func drop(internalId: CallSessionInternalId, reason: DropCallReason, debugLog: Signal<String?, NoError>) {
         for (id, context) in self.incomingConferenceInvitationContexts {
             if context.internalId == internalId {
@@ -950,7 +950,7 @@ private final class CallSessionManagerContext {
             default:
                 break
             }
-
+            
             if let (id, accessHash) = dropData {
                 self.contextIdByStableId.removeValue(forKey: id)
                 context.state = .dropping(reason: .ended(.switchedToConference(slug: slug)), disposable: (dropCallSession(network: self.network, addUpdates: self.addUpdates, stableId: id, accessHash: accessHash, isVideo: isVideo, reason: .switchToConference(slug: slug))
@@ -971,7 +971,7 @@ private final class CallSessionManagerContext {
             self.contextUpdated(internalId: internalId)
         }
     }
-
+    
     func dropAll() {
         let contexts = self.contexts
         for (internalId, _) in contexts {
@@ -1025,13 +1025,13 @@ private final class CallSessionManagerContext {
             }
         }
     }
-
+    
     func createConferenceIfNecessary(internalId: CallSessionInternalId) {
         if let context = self.contexts[internalId] {
             if context.createConferenceCallDisposable != nil {
                 return
             }
-
+            
             var idAndAccessHash: (id: Int64, accessHash: Int64)?
             switch context.state {
             case let .active(id, accessHash, _, _, _, _, _, _, _, _, _, _):
@@ -1039,7 +1039,7 @@ private final class CallSessionManagerContext {
             default:
                 break
             }
-
+            
             if idAndAccessHash != nil {
                 context.createConferenceCallDisposable = (_internal_createConferenceCall(
                     postbox: self.postbox,
@@ -1061,7 +1061,7 @@ private final class CallSessionManagerContext {
             }
         }
     }
-
+    
     func updateCallType(internalId: CallSessionInternalId, type: CallSession.CallType) {
         if let context = self.contexts[internalId] {
             context.type = type
@@ -1210,7 +1210,7 @@ private final class CallSessionManagerContext {
                                                 case let .dataJSON(data):
                                                     customParametersValue = data
                                                 }
-
+                                                
                                                 let isVideoPossible = self.videoVersions().contains(where: { versions.contains($0) })
                                                 context.isVideoPossible = isVideoPossible
                                                 
@@ -1237,7 +1237,7 @@ private final class CallSessionManagerContext {
                                         case let .dataJSON(data):
                                             customParametersValue = data
                                         }
-
+                                        
                                         let isVideoPossible = self.videoVersions().contains(where: { versions.contains($0) })
                                         context.isVideoPossible = isVideoPossible
                                         
@@ -1348,7 +1348,7 @@ private final class CallSessionManagerContext {
             self.ringingStatesUpdated()
         }
     }
-
+    
     private func makeSessionEncryptionKey(config: SecretChatEncryptionConfig, gAHash: Data, b: Data, gA: Data) -> (key: Data, keyId: Int64, keyVisualHash: Data)? {
         var key = MTExp(self.network.encryptionProvider, gA, b, config.p.makeData())!
         
@@ -1419,7 +1419,7 @@ public final class CallSessionManager {
             return impl.get(id: stableId)
         }
     }
-
+    
     public static func getStableIncomingUUID(peerId: Int64, messageId: Int32) -> UUID {
         return StableIncomingUUIDs.shared.with { impl in
             return impl.get(peerId: peerId, messageId: messageId)
@@ -1469,7 +1469,7 @@ public final class CallSessionManager {
             context.addConferenceInvitationMessages(ids: ids)
         }
     }
-
+    
     public func drop(internalId: CallSessionInternalId, reason: DropCallReason, debugLog: Signal<String?, NoError>) {
         self.withContext { context in
             context.drop(internalId: internalId, reason: reason, debugLog: debugLog)
@@ -1481,7 +1481,7 @@ public final class CallSessionManager {
             context.dropOutgoingConferenceRequest(messageId: messageId)
         }
     }
-
+    
     func drop(stableId: CallSessionStableId, reason: DropCallReason) {
         self.withContext { context in
             context.drop(stableId: stableId, reason: reason)
@@ -1526,7 +1526,7 @@ public final class CallSessionManager {
             context.createConferenceIfNecessary(internalId: internalId)
         }
     }
-
+    
     public func updateCallType(internalId: CallSessionInternalId, type: CallSession.CallType) {
         self.withContext { context in
             context.updateCallType(internalId: internalId, type: type)
@@ -1628,7 +1628,7 @@ private func acceptCallSession(accountPeerId: PeerId, postbox: Postbox, network:
                                             case let .dataJSON(data):
                                                 customParametersValue = data
                                             }
-
+                                            
                                             return .success(.call(config: config, gA: gAOrB.makeData(), timestamp: startDate, connections: parseConnectionSet(primary: connections.first!, alternative: Array(connections[1...])), maxLayer: maxLayer, version: versions[0], customParameters: customParametersValue, allowsP2P: (flags & (1 << 5)) != 0, supportsConferenceCalls: (flags & (1 << 8)) != 0))
                                         } else {
                                             return .failed

@@ -23,7 +23,7 @@ private final class DataPrivacyControllerArguments {
     let updateSuggestFrequentContacts: (Bool) -> Void
     let deleteCloudDrafts: () -> Void
     let openBotListSettings: () -> Void
-
+    
     init(account: Account, clearPaymentInfo: @escaping () -> Void, updateSecretChatLinkPreviews: @escaping (Bool) -> Void, deleteContacts: @escaping () -> Void, updateSyncContacts: @escaping (Bool) -> Void, updateSuggestFrequentContacts: @escaping (Bool) -> Void, deleteCloudDrafts: @escaping () -> Void, openBotListSettings: @escaping () -> Void) {
         self.account = account
         self.clearPaymentInfo = clearPaymentInfo
@@ -66,7 +66,7 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     case secretChatLinkPreviewsInfo(PresentationTheme, String)
     
     case botList
-
+    
     var section: ItemListSectionId {
         switch self {
         case .contactsHeader, .deleteContacts, .syncContacts, .syncContactsInfo:
@@ -118,7 +118,7 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
             return 12
         case .secretChatLinkPreviewsInfo:
             return 13
-
+            
         case .botList:
             return 14
         }
@@ -317,7 +317,7 @@ private func dataPrivacyControllerEntries(presentationData: PresentationData, st
     if hasBotSettings {
         entries.append(.botList)
     }
-
+    
     return entries
 }
 
@@ -330,7 +330,7 @@ public func dataPrivacyController(context: AccountContext) -> ViewController {
     
     var presentControllerImpl: ((ViewController) -> Void)?
     var pushControllerImpl: ((ViewController) -> Void)?
-
+    
     let actionsDisposable = DisposableSet()
     
     let currentInfoDisposable = MetaDisposable()
@@ -575,6 +575,6 @@ public func dataPrivacyController(context: AccountContext) -> ViewController {
     pushControllerImpl = { [weak controller] c in
         controller?.push(c)
     }
-
+    
     return controller
 }

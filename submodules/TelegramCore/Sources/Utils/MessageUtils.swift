@@ -183,7 +183,7 @@ func messagesIdsGroupedByPeerId(_ ids: ReferencedReplyMessageIds) -> [PeerId: Re
 
 func messagesIdsGroupedByPeerId(_ ids: Set<MessageAndThreadId>) -> [PeerAndThreadId: [MessageId]] {
     var dict: [PeerAndThreadId: [MessageId]] = [:]
-
+    
     for id in ids {
         let peerAndThreadId = PeerAndThreadId(peerId: id.messageId.peerId, threadId: id.threadId)
         if dict[peerAndThreadId] == nil {
@@ -192,13 +192,13 @@ func messagesIdsGroupedByPeerId(_ ids: Set<MessageAndThreadId>) -> [PeerAndThrea
             dict[peerAndThreadId]!.append(id.messageId)
         }
     }
-
+    
     return dict
 }
 
 func messagesIdsGroupedByPeerId(_ ids: [MessageAndThreadId]) -> [PeerAndThreadId: [MessageId]] {
     var dict: [PeerAndThreadId: [MessageId]] = [:]
-
+    
     for id in ids {
         let peerAndThreadId = PeerAndThreadId(peerId: id.messageId.peerId, threadId: id.threadId)
         if dict[peerAndThreadId] == nil {
@@ -207,7 +207,7 @@ func messagesIdsGroupedByPeerId(_ ids: [MessageAndThreadId]) -> [PeerAndThreadId
             dict[peerAndThreadId]!.append(id.messageId)
         }
     }
-
+    
     return dict
 }
 
@@ -234,7 +234,7 @@ func locallyRenderedMessage(message: StoreMessage, peers: [PeerId: Peer], associ
                 messagePeers[channelPeer.id] = channelPeer
             }
         }
-
+        
         if let channel = peer as? TelegramChannel, channel.isMonoForum, let linkedMonoforumId = channel.linkedMonoforumId {
             if let channelPeer = peers[linkedMonoforumId] {
                 messagePeers[channelPeer.id] = channelPeer
@@ -391,7 +391,7 @@ public extension Message {
             return false
         }
     }
-
+    
     func isSensitiveContent(platform: String) -> Bool {
         if let rule = self.restrictedContentAttribute?.rules.first(where: { $0.reason == "sensitive" }) {
             if rule.platform == "all" || rule.platform == platform {
@@ -465,7 +465,7 @@ public extension Message {
         }
         return nil
     }
-
+    
     var factCheckAttribute: FactCheckMessageAttribute? {
         for attribute in self.attributes {
             if let attribute = attribute as? FactCheckMessageAttribute {
@@ -474,7 +474,7 @@ public extension Message {
         }
         return nil
     }
-
+    
     var inlineBotAttribute: InlineBusinessBotMessageAttribute? {
         for attribute in self.attributes {
             if let attribute = attribute as? InlineBusinessBotMessageAttribute {
@@ -483,7 +483,7 @@ public extension Message {
         }
         return nil
     }
-
+    
     var derivedDataAttribute: DerivedDataMessageAttribute? {
         for attribute in self.attributes {
             if let attribute = attribute as? DerivedDataMessageAttribute {
@@ -492,7 +492,7 @@ public extension Message {
         }
         return nil
     }
-
+    
     var forwardVideoTimestampAttribute: ForwardVideoTimestampAttribute? {
         for attribute in self.attributes {
             if let attribute = attribute as? ForwardVideoTimestampAttribute {
@@ -515,7 +515,7 @@ public extension Message {
         if !self.hasReactions {
             return nil
         }
-
+        
         if let result = mergedMessageReactions(attributes: self.attributes, isTags: isTags) {
             return result
         } else {
@@ -568,11 +568,11 @@ public extension Message {
         }
         return nil
     }
-
+    
     var paidContent: TelegramMediaPaidContent? {
         return self.media.first(where: { $0 is TelegramMediaPaidContent }) as? TelegramMediaPaidContent
     }
-
+    
     var authorSignatureAttribute: AuthorSignatureMessageAttribute? {
         for attribute in self.attributes {
             if let attribute = attribute as? AuthorSignatureMessageAttribute {
@@ -581,7 +581,7 @@ public extension Message {
         }
         return nil
     }
-
+    
     var paidStarsAttribute: PaidStarsMessageAttribute? {
         for attribute in self.attributes {
             if let attribute = attribute as? PaidStarsMessageAttribute {

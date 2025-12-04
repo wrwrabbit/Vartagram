@@ -90,7 +90,7 @@ public enum DataAndStorageEntryTag: ItemListItemTag, Equatable {
     case raiseToListen
     case autoSave(AutomaticSaveIncomingPeerType)
     case sensitiveContent
-
+    
     public func isEqual(to other: ItemListItemTag) -> Bool {
         if let other = other as? DataAndStorageEntryTag, self == other {
             return true
@@ -127,7 +127,7 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
     
     case sensitiveContent(String, Bool)
     case sensitiveContentInfo(String)
-
+    
     case connectionHeader(PresentationTheme, String)
     case connectionProxy(PresentationTheme, String, String)
     
@@ -665,7 +665,7 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
         entries.append(.sensitiveContent(presentationData.strings.Settings_SensitiveContent, contentSettingsConfiguration.sensitiveContentEnabled))
         entries.append(.sensitiveContentInfo(presentationData.strings.Settings_SensitiveContentInfo))
     }
-
+    
     let proxyValue: String
     if let proxySettings = data.proxySettings, let activeServer = proxySettings.activeServer, proxySettings.enabled {
         switch activeServer.connection {
@@ -679,7 +679,7 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
     }
     entries.append(.connectionHeader(presentationData.theme, presentationData.strings.ChatSettings_ConnectionType_Title.uppercased()))
     entries.append(.connectionProxy(presentationData.theme, presentationData.strings.SocksProxySetup_Title, proxyValue))
-
+        
     return entries
 }
 
@@ -690,7 +690,7 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
     var pushControllerImpl: ((ViewController) -> Void)?
     var presentControllerImpl: ((ViewController, ViewControllerPresentationArguments?) -> Void)?
     var presentAgeVerificationImpl: ((@escaping () -> Void) -> Void)?
-
+    
     let actionsDisposable = DisposableSet()
     
     //let cacheUsagePromise = Promise<CacheUsageStatsResult?>()
@@ -977,7 +977,7 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
 
     let sensitiveContent = Atomic<Bool?>(value: nil)
     let canAdjustSensitiveContent = Atomic<Bool?>(value: nil)
-
+    
     let signal = combineLatest(queue: .mainQueue(),
         context.sharedContext.presentationData,
         statePromise.get(),
@@ -992,7 +992,7 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
     |> map { presentationData, state, dataAndStorageData, sharedData, contentSettingsConfiguration, mediaAutoSaveSettings, usageSignal, autosaveExceptionPeers, isHidableAccount -> (ItemListControllerState, (ItemListNodeState, Any)) in
         let webBrowserSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.webBrowserSettings]?.get(WebBrowserSettings.self) ?? WebBrowserSettings.defaultSettings
         let mediaSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.mediaDisplaySettings]?.get(MediaDisplaySettings.self) ?? MediaDisplaySettings.defaultSettings
-
+        
         let options = availableOpenInOptions(context: context, item: .url(url: "https://telegram.org"))
         let defaultWebBrowser: String
         if let option = options.first(where: { $0.identifier == webBrowserSettings.defaultWebBrowser }) {
@@ -1002,7 +1002,7 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
         } else {
             defaultWebBrowser = presentationData.strings.WebBrowser_Telegram
         }
-
+        
         let previousSensitiveContent = sensitiveContent.swap(contentSettingsConfiguration?.sensitiveContentEnabled)
         var animateChanges = false
         if previousSensitiveContent != contentSettingsConfiguration?.sensitiveContentEnabled {
@@ -1013,7 +1013,7 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
             let _ = canAdjustSensitiveContent.swap(contentSettingsConfiguration?.sensitiveContentEnabled)
         }
         let showSensitiveContentSetting = canAdjustSensitiveContent.with { $0 } ?? false
-
+        
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.ChatSettings_Title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back), animateChanges: false)
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: dataAndStorageControllerEntries(context: context, state: state, data: dataAndStorageData, presentationData: presentationData, defaultWebBrowser: defaultWebBrowser, contentSettingsConfiguration: contentSettingsConfiguration, networkUsage: usageSignal.network, storageUsage: usageSignal.storage, mediaAutoSaveSettings: mediaAutoSaveSettings, autosaveExceptionPeers: autosaveExceptionPeers, mediaSettings: mediaSettings, showSensitiveContentSetting: showSensitiveContentSetting, mediaStoreAllowed: !isHidableAccount), style: .blocks, ensureVisibleItemTag: focusOnItemTag, emptyStateItem: nil, animateChanges: animateChanges)
         

@@ -97,7 +97,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
     private let animationRenderer: MultiAnimationRenderer
     
     private var countPanelNode: PeersCountPanelNode?
-
+    
     private var readyValue = Promise<Bool>()
     var ready: Signal<Bool, NoError> {
         return self.readyValue.get()
@@ -257,7 +257,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
             guard let self else {
                 return
             }
-
+            
             if let (peerId, isMonoforum) = self.forumPeerId, isMonoforum {
                 let _ = (self.context.engine.data.get(
                     TelegramEngine.EngineData.Item.Peer.Peer(id: peerId)
@@ -278,7 +278,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
             guard let self else {
                 return
             }
-
+            
             if let (peerId, isMonoforum) = self.forumPeerId, isMonoforum {
                 let _ = (self.context.engine.data.get(
                     TelegramEngine.EngineData.Item.Peer.Peer(id: peerId)
@@ -730,7 +730,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
             guard let strongSelf = self else {
                 return
             }
-
+            
             let _ = (ChatSendMessageContextScreen.initialData(context: strongSelf.context, currentMessageEffectId: nil)
             |> deliverOnMainQueue).start(next: { initialData in
                 guard let strongSelf = self, let textInputPanelNode = strongSelf.textInputPanelNode else {
@@ -740,12 +740,12 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                 guard let textInputNode = textInputPanelNode.textInputNode else {
                     return
                 }
-
+                
                 var hasEntityKeyboard = false
                 if case .media = strongSelf.presentationInterfaceState.inputMode {
                     hasEntityKeyboard = true
                 }
-
+                
                 let controller = makeChatSendMessageActionSheetController(
                     initialData: initialData,
                     context: strongSelf.context,
@@ -935,7 +935,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
             })
             self.addSubnode(countPanelNode)
             self.countPanelNode = countPanelNode
-
+            
             if let (layout, navigationBarHeight, actualNavigationBarHeight) = self.containerLayout {
                 self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, actualNavigationBarHeight: actualNavigationBarHeight, transition: .immediate)
             }
@@ -946,7 +946,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                 forwardAccessoryPanelNode.interfaceInteraction = self.interfaceInteraction
                 self.addSubnode(forwardAccessoryPanelNode)
                 self.forwardAccessoryPanelNode = forwardAccessoryPanelNode
-
+                
                 let textInputPanelNode = AttachmentTextInputPanelNode(context: self.context, presentationInterfaceState: self.presentationInterfaceState, presentController: { [weak self] c in self?.present(c, nil) }, makeEntityInputView: {
                     return nil
                 })
@@ -955,10 +955,10 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                     guard let strongSelf = self else {
                         return
                     }
-
+                    
                     let effectiveInputText = strongSelf.presentationInterfaceState.interfaceState.composeInputState.inputText
                     let forwardOptionsState = strongSelf.presentationInterfaceState.interfaceState.forwardOptionsState
-
+                    
                     let (selectedPeers, selectedPeerMap) = strongSelf.selectedPeers
                     if !selectedPeers.isEmpty {
                         strongSelf.requestSend?(selectedPeers, selectedPeerMap, effectiveInputText, mode, forwardOptionsState, messageEffect)
@@ -966,7 +966,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                 }
                 self.addSubnode(textInputPanelNode)
                 self.textInputPanelNode = textInputPanelNode
-
+                
                 if let (layout, navigationBarHeight, actualNavigationBarHeight) = self.containerLayout {
                     self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, actualNavigationBarHeight: actualNavigationBarHeight, transition: .animated(duration: 0.3, curve: .spring))
                 }
@@ -997,11 +997,11 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                             self.countPanelNode?.buttonTitle = self.presentationData.strings.ShareMenu_Send
                         }
                         self.countPanelNode?.count = count
-
+                        
                         if let titleView = self.controller?.titleView, let maxCount = self.controller?.multipleSelectionLimit {
                             titleView.title = CounterControllerTitle(title: titleView.title.title, counter: "\(count)/\(maxCount)")
                         }
-
+                        
                         if let (layout, navigationBarHeight, actualNavigationBarHeight) = self.containerLayout {
                             self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, actualNavigationBarHeight: actualNavigationBarHeight, transition: .animated(duration: 0.3, curve: .spring))
                         }
@@ -1872,60 +1872,60 @@ private final class ContextControllerContentSourceImpl: ContextControllerContent
 private final class PeersCountPanelNode: ASDisplayNode {
     private let theme: PresentationTheme
     private let strings: PresentationStrings
-
+    
     private let separatorNode: ASDisplayNode
     private let button: SolidRoundedButtonNode
-
+    
     private var validLayout: (CGFloat, CGFloat, CGFloat)?
-
+    
     var buttonTitle: String = ""
     var count: Int = 0 {
         didSet {
             if self.count != oldValue && self.count > 0 {
                 self.button.title = self.buttonTitle
                 self.button.badge = "\(self.count)"
-
+                
                 if let (width, sideInset, bottomInset) = self.validLayout {
                     let _ = self.updateLayout(width: width, sideInset: sideInset, bottomInset: bottomInset, transition: .immediate)
                 }
             }
         }
     }
-
+    
     init(theme: PresentationTheme, strings: PresentationStrings, action: @escaping () -> Void) {
         self.theme = theme
         self.strings = strings
 
         self.separatorNode = ASDisplayNode()
         self.separatorNode.backgroundColor = theme.rootController.navigationBar.separatorColor
-
+        
         self.button = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(theme: theme), height: 48.0, cornerRadius: 10.0)
-
+        
         super.init()
-
+        
         self.backgroundColor = theme.rootController.navigationBar.opaqueBackgroundColor
-
+        
         self.addSubnode(self.button)
         self.addSubnode(self.separatorNode)
-
+        
         self.button.pressed = {
             action()
         }
     }
-
+    
     func updateLayout(width: CGFloat, sideInset: CGFloat, bottomInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
         self.validLayout = (width, sideInset, bottomInset)
         let topInset: CGFloat = 9.0
         var bottomInset = bottomInset
         bottomInset += topInset - (bottomInset.isZero ? 0.0 : 4.0)
-
+        
         let buttonInset: CGFloat = 16.0 + sideInset
         let buttonWidth = width - buttonInset * 2.0
         let buttonHeight = self.button.updateLayout(width: buttonWidth, transition: transition)
         transition.updateFrame(node: self.button, frame: CGRect(x: buttonInset, y: topInset, width: buttonWidth, height: buttonHeight))
-
+        
         transition.updateFrame(node: self.separatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: width, height: UIScreenPixel)))
-
+        
         return topInset + buttonHeight + bottomInset
     }
 }

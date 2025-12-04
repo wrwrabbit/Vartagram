@@ -75,7 +75,7 @@ private func fetchWebpage(account: Account, messageId: MessageId, threadId: Int6
             } else {
                 targetMessageNamespace = Namespaces.Message.Cloud
             }
-
+            
             let messages: Signal<Api.messages.Messages, MTRpcError>
             if Namespaces.Message.allScheduled.contains(messageId.namespace) {
                 messages = account.network.request(Api.functions.messages.getScheduledMessages(peer: inputPeer, id: [messageId.id]))
@@ -319,7 +319,7 @@ public final class AccountViewTracker {
     private var refreshCanSendMessagesForPeerIdsAndTimestamps: [PeerId: Int32] = [:]
     private var refreshCanSendMessagesForPeerIdsDebounceDisposable: Disposable?
     private var pendingRefreshCanSendMessagesForPeerIds: [PeerId] = []
-
+    
     private var updatedSeenPersonalMessageIds = Set<MessageId>()
     private var updatedReactionsSeenForMessageIds = Set<MessageId>()
     
@@ -352,10 +352,10 @@ public final class AccountViewTracker {
     
     private var quickRepliesUpdateDisposable: Disposable?
     private var quickRepliesUpdateTimestamp: Double = 0.0
-
+    
     private var businessLinksUpdateDisposable: Disposable?
     private var businessLinksUpdateTimestamp: Double = 0.0
-
+    
     init(account: Account) {
         self.account = account
         self.accountPeerId = account.peerId
@@ -1326,7 +1326,7 @@ public final class AccountViewTracker {
                 } else {
                     refresh = true
                 }
-
+                
                 if refresh {
                     self.updatedUnsupportedMediaMessageIdsAndTimestamps[MessageAndThreadId(messageId: messageId, threadId: nil)] = timestamp
                     addedMessageIds.append(messageId)
@@ -1336,7 +1336,7 @@ public final class AccountViewTracker {
                 for (_, messageIds) in messagesIdsGroupedByPeerId(Set(addedMessageIds)) {
                     let disposableId = self.nextUpdatedUnsupportedMediaDisposableId
                     self.nextUpdatedUnsupportedMediaDisposableId += 1
-
+                    
                     if let account = self.account {
                         let signal = account.postbox.transaction { transaction -> [MessageId] in
                             var result: [MessageId] = []
@@ -1356,13 +1356,13 @@ public final class AccountViewTracker {
                             guard !ids.isEmpty else {
                                 return .complete()
                             }
-
+                            
                             var requests: [Signal<Never, NoError>] = []
-
+                            
                             for id in ids {
                                 requests.append(_internal_refreshInlineGroupCall(account: account, messageId: id))
                             }
-
+                            
                             return combineLatest(requests)
                             |> ignoreValues
                         }
@@ -1377,7 +1377,7 @@ public final class AccountViewTracker {
             }
         }
     }
-
+    
     public func refreshStoryStatsForPeerIds(peerIds: [PeerId]) {
         self.queue.async {
             self.pendingRefreshStoriesForPeerIds.append(contentsOf: peerIds)
@@ -1482,11 +1482,11 @@ public final class AccountViewTracker {
     public func refreshCanSendMessagesForPeerIds(peerIds: [PeerId]) {
         self.queue.async {
             self.pendingRefreshCanSendMessagesForPeerIds.append(contentsOf: peerIds)
-
+            
             if self.refreshCanSendMessagesForPeerIdsDebounceDisposable == nil {
                 self.refreshCanSendMessagesForPeerIdsDebounceDisposable = (Signal<Never, NoError>.complete() |> delay(0.15, queue: self.queue)).start(completed: {
                     self.refreshCanSendMessagesForPeerIdsDebounceDisposable = nil
-
+                    
                     let pendingPeerIds = self.pendingRefreshCanSendMessagesForPeerIds
                     self.pendingRefreshCanSendMessagesForPeerIds.removeAll()
                     self.internalRefreshCanSendMessagesStatsForPeerIds(peerIds: pendingPeerIds)
@@ -1494,7 +1494,7 @@ public final class AccountViewTracker {
             }
         }
     }
-
+    
     private func internalRefreshCanSendMessagesStatsForPeerIds(peerIds: [PeerId]) {
         self.queue.async {
             var addedPeerIds: [PeerId] = []
@@ -1507,7 +1507,7 @@ public final class AccountViewTracker {
                 } else {
                     refresh = true
                 }
-
+                
                 if refresh {
                     self.refreshCanSendMessagesForPeerIdsAndTimestamps[peerId] = timestamp
                     addedPeerIds.append(peerId)
@@ -1516,7 +1516,7 @@ public final class AccountViewTracker {
             if !addedPeerIds.isEmpty {
                 let disposableId = self.nextUpdatedUnsupportedMediaDisposableId
                 self.nextUpdatedUnsupportedMediaDisposableId += 1
-
+                
                 if let account = self.account {
                     let signal = account.postbox.transaction { transaction -> [(PeerId, Api.InputUser)] in
                         return addedPeerIds.compactMap { id -> (PeerId, Api.InputUser)? in
@@ -1531,9 +1531,9 @@ public final class AccountViewTracker {
                         guard !inputPeers.isEmpty else {
                             return .complete()
                         }
-
+                        
                         var requests: [Signal<Never, NoError>] = []
-
+                        
                         let batchCount = 100
                         var startIndex = 0
                         while startIndex < inputPeers.count {
@@ -1576,7 +1576,7 @@ public final class AccountViewTracker {
                                 |> ignoreValues
                             })
                         }
-
+                        
                         return combineLatest(requests)
                         |> ignoreValues
                     }
@@ -1590,7 +1590,7 @@ public final class AccountViewTracker {
             }
         }
     }
-
+    
     public func updateMarkAllMentionsSeen(peerId: PeerId, threadId: Int64?) {
         self.queue.async {
             guard let account = self.account else {
@@ -1988,14 +1988,14 @@ public final class AccountViewTracker {
                         addHole = true
                         pollingCompleted = .single(true)
                     }
-
+                    
                     /*#if DEBUG
                     if "".isEmpty {
                         addHole = false
                         pollingCompleted = .single(true)
                     }
                     #endif*/
-
+                    
                     let resetPeerHoleManagement = self.resetPeerHoleManagement
                     let isAutomaticallyTracked = self.account!.postbox.transaction { transaction -> Bool in
                         if transaction.getPeerChatListIndex(peerId) == nil {
@@ -2117,7 +2117,7 @@ public final class AccountViewTracker {
             }
         })
     }
-
+    
     public func pendingQuickReplyMessagesViewForLocation(shortcut: String) -> Signal<(MessageHistoryView, ViewUpdateType, InitialMessageHistoryData?), NoError> {
         guard let account = self.account else {
             return .never()
@@ -2141,19 +2141,19 @@ public final class AccountViewTracker {
                 }
             }
             let mappedView = MessageHistoryView(tag: nil, namespaces: .just([Namespaces.Message.QuickReplyLocal]), entries: entries, holeEarlier: false, holeLater: false, isLoading: false)
-
+            
             return (mappedView, update, initialData)
         }
         return signal
     }
-
+    
     public func aroundMessageOfInterestHistoryViewForLocation(_ chatLocation: ChatLocationInput, ignoreMessagesInTimestampRange: ClosedRange<Int32>? = nil, ignoreMessageIds: Set<MessageId> = Set(), count: Int, trackHoles: Bool = true, tag: HistoryViewInputTag? = nil, appendMessagesFromTheSameGroup: Bool = false, orderStatistics: MessageHistoryViewOrderStatistics = [], additionalData: [AdditionalMessageHistoryViewData] = [], useRootInterfaceStateForThread: Bool = false) -> Signal<(MessageHistoryView, ViewUpdateType, InitialMessageHistoryData?), NoError> {
         if let account = self.account {
             let signal: Signal<(MessageHistoryView, ViewUpdateType, InitialMessageHistoryData?), NoError>
             if let peerId = chatLocation.peerId, let threadId = chatLocation.threadId, tag == nil {
                 signal = account.postbox.transaction { transaction -> (Peer?, MessageHistoryThreadData?, MessageIndex?) in
                     let interfaceState = transaction.getPeerChatThreadInterfaceState(peerId, threadId: threadId)
-
+                    
                     return (
                         transaction.getPeer(peerId),
                         transaction.getMessageHistoryThreadInfo(peerId: peerId, threadId: threadId)?.data.get(MessageHistoryThreadData.self),
@@ -2165,7 +2165,7 @@ public final class AccountViewTracker {
                     if peerId == account.peerId {
                         isSimpleThread = true
                     }
-
+                    
                     if isSimpleThread {
                         let anchor: HistoryViewInputAnchor
                         if let scrollRestorationIndex {
@@ -2173,7 +2173,7 @@ public final class AccountViewTracker {
                         } else {
                             anchor = .upperBound
                         }
-
+                        
                         return account.postbox.aroundMessageHistoryViewForLocation(
                             chatLocation,
                             anchor: anchor,
@@ -2431,7 +2431,7 @@ public final class AccountViewTracker {
                         }
                     }
                 }
-
+                
                 var rhsVideo = false
                 var rhsMissed = false
                 var rhsOther = false
@@ -2707,7 +2707,7 @@ public final class AccountViewTracker {
             }
         }
     }
-
+    
     public func keepQuickRepliesApproximatelyUpdated() {
         self.queue.async {
             guard let account = self.account else {
@@ -2721,7 +2721,7 @@ public final class AccountViewTracker {
             }
         }
     }
-
+    
     public func keepBusinessLinksApproximatelyUpdated() {
         self.queue.async {
             guard let account = self.account else {
@@ -2739,15 +2739,15 @@ public final class AccountViewTracker {
 
 public final class ExtractedChatListItemCachedData: Hashable {
     public let isPremiumRequiredToMessage: Bool
-
+    
     public init(isPremiumRequiredToMessage: Bool) {
         self.isPremiumRequiredToMessage = isPremiumRequiredToMessage
     }
-
+    
     public static func ==(lhs: ExtractedChatListItemCachedData, rhs: ExtractedChatListItemCachedData) -> Bool {
         return true
     }
-
+    
     public func hash(into hasher: inout Hasher) {
         hasher.combine(self.isPremiumRequiredToMessage)
     }

@@ -1405,7 +1405,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                 let _ = (context.account.postbox.optimizeStorage(minFreePagesFraction: 0.0)
                 |> deliverOnMainQueue).start(completed: {
                     controller.dismiss()
-
+                    
                     let controller = OverlayStatusController(theme: presentationData.theme, type: .success)
                     arguments.presentController(controller, nil)
                 })
@@ -1796,18 +1796,18 @@ private func debugControllerEntries(sharedContext: SharedAccountContext, present
         }
         #endif
         entries.append(.resetTranslationStates)
-
+                
         entries.append(.compressedEmojiCache(experimentalSettings.compressedEmojiCache))
         entries.append(.storiesJpegExperiment(experimentalSettings.storiesJpegExperiment))
         entries.append(.disableReloginTokens(experimentalSettings.disableReloginTokens))
-
+        
         entries.append(.checkSerializedData(experimentalSettings.checkSerializedData))
         entries.append(.enableQuickReactionSwitch(!experimentalSettings.disableQuickReaction))
         entries.append(.liveStreamV2(experimentalSettings.liveStreamV2))
         entries.append(.experimentalCallMute(experimentalSettings.experimentalCallMute))
-
+        
         entries.append(.playerV2(experimentalSettings.playerV2))
-
+        
         entries.append(.devRequests(experimentalSettings.devRequests))
         entries.append(.fakeAds(experimentalSettings.fakeAds))
         entries.append(.enableLocalTranslation(experimentalSettings.enableLocalTranslation))

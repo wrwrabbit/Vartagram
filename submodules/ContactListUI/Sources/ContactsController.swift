@@ -364,7 +364,7 @@ public class ContactsController: ViewController {
                 openPeer(peer, false)
             }
         }
-
+        
         self.contactsNode.requestAddContact = { [weak self] phoneNumber in
             if let strongSelf = self {
                 strongSelf.view.endEditing(true)
@@ -495,16 +495,16 @@ public class ContactsController: ViewController {
             guard let self, let layout = self.validLayout else {
                 return
             }
-
+            
             let toolbar: Toolbar?
             if let state, state.selectedPeerIndices.count > 0 {
                 toolbar = Toolbar(leftAction: nil, rightAction: nil, middleAction: ToolbarAction(title: self.presentationData.strings.ContactList_DeleteConfirmation(Int32(state.selectedPeerIndices.count)), isEnabled: true, color: .custom(self.presentationData.theme.actionSheet.destructiveActionTextColor)))
             } else {
                 toolbar = nil
             }
-
+            
             let _ = self.contactsNode.updateNavigationBar(layout: layout, transition: .animated(duration: 0.2, curve: .easeInOut))
-
+            
             var transition: ContainedViewLayoutTransition = .immediate
             let previousToolbar = previousToolbarValue.swap(toolbar)
             if (previousToolbar == nil) != (toolbar == nil) {
@@ -512,7 +512,7 @@ public class ContactsController: ViewController {
             }
             self.setToolbar(toolbar, transition: transition)
         })
-
+        
         self.displayNodeDidLoad()
     }
     
@@ -528,7 +528,7 @@ public class ContactsController: ViewController {
         }
         self.requestDeleteContacts(peerIds: peerIds)
     }
-
+    
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
@@ -640,32 +640,32 @@ public class ContactsController: ViewController {
             return ContactListNodeGroupSelectionState().withToggledPeerId(.peer(peerId))
         }
     }
-
+    
     public func requestDeleteContacts(peerIds: [EnginePeer.Id]) {
         guard !peerIds.isEmpty else {
             return
         }
         let actionSheet = ActionSheetController(presentationData: self.presentationData)
         var items: [ActionSheetItem] = []
-
+        
         let actionTitle: String
         if peerIds.count > 1 {
             actionTitle = self.presentationData.strings.ContactList_DeleteConfirmation(Int32(peerIds.count))
         } else {
             actionTitle = self.presentationData.strings.ContactList_DeleteConfirmationSingle
         }
-
+        
         items.append(ActionSheetButtonItem(title: actionTitle, color: .destructive, action: { [weak self, weak actionSheet] in
             actionSheet?.dismissAnimated()
-
+            
             guard let self else {
                 return
             }
-
+            
             self.contactsNode.contactListNode.updateSelectionState { _ in
                 return nil
             }
-
+            
             self.contactsNode.contactListNode.updatePendingRemovalPeerIds { state in
                 var state = state
                 for peerId in peerIds {
@@ -673,9 +673,9 @@ public class ContactsController: ViewController {
                 }
                 return state
             }
-
+            
             let text = self.presentationData.strings.ContactList_DeletedContacts(Int32(peerIds.count))
-
+            
             self.present(UndoOverlayController(presentationData: self.context.sharedContext.currentPresentationData.with { $0 }, content: .removedChat(context: self.context, title: NSAttributedString(string: text), text: nil), elevatedLayout: false, animateInAsReplacement: true, action: { [weak self] value in
                 guard let self else {
                     return false
@@ -689,14 +689,14 @@ public class ContactsController: ViewController {
                     } else {
                         deleteContactsFromDevice = .complete()
                     }
-
+                    
                     let deleteSignal = self.context.engine.contacts.deleteContacts(peerIds: peerIds)
                     |> then(deleteContactsFromDevice)
-
+                    
                     for peerId in peerIds {
                         deleteSendMessageIntents(peerId: peerId)
                     }
-
+                    
                     self.contactsNode.contactListNode.updatePendingRemovalPeerIds { state in
                         var state = state
                         for peerId in peerIds {
@@ -704,9 +704,9 @@ public class ContactsController: ViewController {
                         }
                         return state
                     }
-
+                    
                     let _ = deleteSignal.start()
-
+                    
                     return true
                 } else if value == .undo {
                     self.contactsNode.contactListNode.updatePendingRemovalPeerIds { state in
@@ -731,7 +731,7 @@ public class ContactsController: ViewController {
         ])
         self.present(actionSheet, in: .window(.root))
     }
-
+    
     @objc func addPressed() {
         if self.context.immediateIsHidable {
             // the add button is shown anyway, so it can not be peeped that account is hidable

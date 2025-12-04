@@ -596,7 +596,7 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
                             subscriber?.putNext(secret)
                             subscriber?.putCompletion()
                         })
-
+                        
                         return MTBlockDisposable(block: {
                             disposable.dispose()
                         })
@@ -612,7 +612,7 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
                             subscriber?.putNext(token)
                             subscriber?.putCompletion()
                         })
-
+                        
                         return MTBlockDisposable(block: {
                             disposable.dispose()
                         })
@@ -660,11 +660,11 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             }
             
             let network = Network(queue: queue, datacenterId: datacenterId, context: context, mtProto: mtProto, requestService: requestService, connectionStatusDelegate: connectionStatusDelegate, _connectionStatus: connectionStatus, basePath: basePath, appDataDisposable: appDataDisposable, encryptionProvider: arguments.encryptionProvider, useRequestTimeoutTimers: useRequestTimeoutTimers, useBetaFeatures: arguments.useBetaFeatures, useExperimentalFeatures: useExperimentalFeatures)
-
+            
             if let data = appConfiguration.data, let notifyInterval = data["upload_premium_speedup_notify_period"] as? Double {
                 network.updateNetworkSpeedLimitedEventNotifyInterval(value: notifyInterval)
             }
-
+            
             appDataUpdatedImpl = { [weak network] data in
                 guard let data = data else {
                     return
@@ -790,17 +790,17 @@ public enum NetworkRequestResult<T> {
 private final class NetworkSpeedLimitedEventState {
     var notifyInterval: Double = 60.0 * 60.0
     var lastNotifyTimestamp: Double = 0.0
-
+    
     func add(event: NetworkSpeedLimitedEvent) -> Bool {
         let timestamp = CFAbsoluteTimeGetCurrent()
-
+        
         if self.lastNotifyTimestamp + self.notifyInterval < timestamp {
             return true
         } else {
             return false
         }
     }
-
+    
     func markNotifyTimestamp() {
         let timestamp = CFAbsoluteTimeGetCurrent()
         self.lastNotifyTimestamp = timestamp
@@ -844,7 +844,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     }
     private let networkSpeedLimitedEventPipe = ValuePipe<NetworkSpeedLimitedEvent>()
     private let networkSpeedLimitedEventState = Atomic<NetworkSpeedLimitedEventState>(value: NetworkSpeedLimitedEventState())
-
+    
     public func dropConnectionStatus() {
         _connectionStatus.set(.single(.waitingForNetwork))
     }
@@ -1144,7 +1144,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
             }
         }
     }
-
+    
     public func request<T>(_ data: (FunctionDescription, Buffer, DeserializeFunctionResponse<T>), tag: NetworkRequestDependencyTag? = nil, automaticFloodWait: Bool = true, onFloodWaitError: ((String) -> Void)? = nil) -> Signal<T, MTRpcError> {
         let requestService = self.requestService
         return Signal { subscriber in
@@ -1204,7 +1204,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
             }
         }
     }
-
+    
     func setTrustedTimestamp(_ timestamp: Int32) {
         let _ = self.trustedTime.swap((timestamp, getDeviceUptimeSeconds(nil)))
     }
@@ -1221,7 +1221,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
             state.notifyInterval = value
         }
     }
-
+    
     func addNetworkSpeedLimitedEvent(event: NetworkSpeedLimitedEvent) {
         let notify = self.networkSpeedLimitedEventState.with { state in
             return state.add(event: event)
@@ -1230,7 +1230,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
             self.networkSpeedLimitedEventPipe.putNext(event)
         }
     }
-
+    
     public func markNetworkSpeedLimitDisplayed() {
         self.networkSpeedLimitedEventState.with { state in
             return state.markNotifyTimestamp()

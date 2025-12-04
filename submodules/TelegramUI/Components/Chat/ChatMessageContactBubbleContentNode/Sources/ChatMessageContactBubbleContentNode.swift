@@ -24,7 +24,7 @@ private let textFont = Font.regular(14.0)
 public class ChatMessageContactBubbleContentNode: ChatMessageBubbleContentNode {
     private var backgroundView: MessageInlineBlockBackgroundView?
     private var actionButtonSeparator: SimpleLayer?
-
+    
     private let avatarNode: AvatarNode
     private let dateAndStatusNode: ChatMessageDateAndStatusNode
     private let titleNode: TextNode
@@ -111,7 +111,7 @@ public class ChatMessageContactBubbleContentNode: ChatMessageBubbleContentNode {
                 incoming = false
             }
             
-
+            
             var contactPeer: Peer?
             if let peerId = selectedContact?.peerId, let peer = item.message.peers[peerId] {
                 contactPeer = peer
@@ -144,21 +144,21 @@ case let .collectible(collectibleColor):
                 authorNameColor = nameColors?.main
                 secondaryColor = nameColors?.secondary
                 tertiaryColor = nameColors?.tertiary
-
+                
                 if let authorNameColor {
                     mainColor = authorNameColor
                 } else {
                     mainColor = messageTheme.accentTextColor
                 }
             }
-
+            
             var titleString: NSAttributedString?
             var textString: NSAttributedString?
             var updatedContactInfo: String?
             
             var canMessage = false
             var canAdd = false
-
+            
             var displayName: String = ""
             if let selectedContact = selectedContact {
                 if !selectedContact.firstName.isEmpty && !selectedContact.lastName.isEmpty {
@@ -175,7 +175,7 @@ case let .collectible(collectibleColor):
                 if selectedContact.peerId != nil {
                     canMessage = true
                 }
-
+                
                 let info: String
                 if let previousContact = previousContact, previousContact.isEqual(to: selectedContact), let contactInfo = previousContactInfo {
                     info = contactInfo
@@ -215,7 +215,7 @@ case let .collectible(collectibleColor):
                 }
                 
                 canAdd = !item.associatedData.deviceContactsNumbers.contains(selectedContact.phoneNumber)
-
+                    
                 updatedContactInfo = info
                 
                 titleString = NSAttributedString(string: displayName, font: titleFont, textColor: mainColor)
@@ -287,7 +287,7 @@ case let .collectible(collectibleColor):
                         statusType = nil
                     }
                 }
-
+                
                 var statusSuggestedWidthAndContinue: (CGFloat, (CGFloat) -> (CGSize, (ListViewItemUpdateAnimation) -> Void))?
                 let messageEffect = item.message.messageEffect(availableMessageEffects: item.associatedData.availableMessageEffects)
                 if let statusType = statusType {
@@ -322,7 +322,7 @@ case let .collectible(collectibleColor):
                         animationRenderer: item.controllerInteraction.presentationContext.animationRenderer
                     ))
                 }
-
+                
                 let avatarPlaceholderColor: UIColor
                 if incoming {
                     avatarPlaceholderColor = item.presentationData.theme.theme.chat.message.incoming.mediaPlaceholderColor
@@ -331,7 +331,7 @@ case let .collectible(collectibleColor):
                 }
                 
                 let (messageButtonWidth, messageContinueLayout) = makeMessageButtonLayout(constrainedSize.width, 10.0, nil, false, item.presentationData.strings.Conversation_ContactMessage.uppercased(), mainColor, false, false)
-
+                
                 let addTitle: String
                 if !canMessage && !canAdd  {
                     addTitle = item.presentationData.strings.Conversation_ViewContactDetails
@@ -344,11 +344,11 @@ case let .collectible(collectibleColor):
                 }
                 let (addButtonWidth, addContinueLayout) = makeAddButtonLayout(constrainedSize.width, 10.0, nil, false, addTitle.uppercased(), mainColor, false, false)
                 
-
+                
                 let showAddButton = !(!canAdd && canMessage)
                 let showMessageButton = canMessage
                 let buttonCount = (showAddButton ? 1 : 0) + (showMessageButton ? 1 : 0)
-
+                
                 let maxButtonWidth = max(messageButtonWidth, addButtonWidth)
                 var maxContentWidth: CGFloat = avatarSize.width + 7.0
                 if let statusSuggestedWidthAndContinue = statusSuggestedWidthAndContinue {
@@ -365,7 +365,7 @@ case let .collectible(collectibleColor):
                     let baseAvatarFrame = CGRect(origin: CGPoint(x: layoutConstants.text.bubbleInsets.right, y: layoutConstants.text.bubbleInsets.top), size: avatarSize)
                     
                     let lineWidth: CGFloat = 3.0
-
+                    
                     var buttonCount = 1
                     if canMessage && canAdd {
                         buttonCount += 1
@@ -374,10 +374,10 @@ case let .collectible(collectibleColor):
                     if buttonCount > 1 {
                         buttonWidth /= CGFloat(buttonCount)
                     }
-
+                    
                     let (messageButtonSize, messageButtonApply) = messageContinueLayout(buttonWidth, 33.0)
                     let (addButtonSize, addButtonApply) = addContinueLayout(buttonWidth, 33.0)
-
+                  
                     let buttonSpacing: CGFloat = 4.0
                     
                     let statusSizeAndApply = statusSuggestedWidthAndContinue?.1(boundingWidth - sideInsets)
@@ -420,12 +420,12 @@ case let .collectible(collectibleColor):
                             
                             strongSelf.titleNode.frame = CGRect(origin: CGPoint(x: avatarFrame.maxX + 7.0, y: avatarFrame.minY + 1.0), size: titleLayout.size)
                             strongSelf.textNode.frame = CGRect(origin: CGPoint(x: avatarFrame.maxX + 7.0, y: avatarFrame.minY + 20.0), size: textLayout.size)
-
+                            
                             strongSelf.addButtonNode.frame = addButtonFrame
                             strongSelf.addButtonNode.isHidden = !canAdd && canMessage
                             strongSelf.messageButtonNode.frame = messageButtonFrame
                             strongSelf.messageButtonNode.isHidden = !canMessage
-
+                            
                             let backgroundInsets = layoutConstants.text.bubbleInsets
                             let backgroundFrame = CGRect(origin: CGPoint(x: backgroundInsets.left, y: backgroundInsets.top + 5.0), size: CGSize(width: boundingWidth - layoutConstants.text.bubbleInsets.right * 2.0, height: layoutSize.height - 34.0))
                             
@@ -480,7 +480,7 @@ case let .collectible(collectibleColor):
                             } else {
                                 strongSelf.dateAndStatusNode.pressed = nil
                             }
-
+                            
                             var pattern: MessageInlineBlockBackgroundView.Pattern?
                             if let contactPeer, let backgroundEmojiId = contactPeer.backgroundEmojiId {
                                 pattern = MessageInlineBlockBackgroundView.Pattern(
@@ -492,9 +492,9 @@ case let .collectible(collectibleColor):
                                     )] as? TelegramMediaFile
                                 )
                             }
-
+                            
                             let patternTopRightPosition = CGPoint()
-
+                            
                             let backgroundView: MessageInlineBlockBackgroundView
                             if let current = strongSelf.backgroundView {
                                 backgroundView = current
@@ -507,9 +507,9 @@ case let .collectible(collectibleColor):
                                 strongSelf.view.insertSubview(backgroundView, at: 0)
                                 backgroundView.update(size: backgroundFrame.size, isTransparent: false, primaryColor: mainColor, secondaryColor: secondaryColor, thirdColor: tertiaryColor, backgroundColor: nil, pattern: pattern, patternTopRightPosition: patternTopRightPosition, animation: .None)
                             }
-
+                            
                             let separatorFrame = CGRect(origin: CGPoint(x: backgroundFrame.minX + 9.0, y: backgroundFrame.maxY - 36.0), size: CGSize(width: backgroundFrame.width - 18.0, height: UIScreenPixel))
-
+                            
                             let actionButtonSeparator: SimpleLayer
                             if let current = strongSelf.actionButtonSeparator {
                                 actionButtonSeparator = current
@@ -520,7 +520,7 @@ case let .collectible(collectibleColor):
                                 strongSelf.layer.addSublayer(actionButtonSeparator)
                                 actionButtonSeparator.frame = separatorFrame
                             }
-
+                            
                             actionButtonSeparator.backgroundColor = mainColor.withMultipliedAlpha(0.2).cgColor
                         }
                     })
@@ -571,7 +571,7 @@ case let .collectible(collectibleColor):
             }
         }
     }
-
+    
     @objc private func addButtonPressed() {
         if let item = self.item {
             let _ = item.controllerInteraction.openMessage(item.message, OpenMessageParams(mode: .default))
@@ -591,21 +591,21 @@ case let .collectible(collectibleColor):
             }
         }
     }
-
+    
     override public func reactionTargetView(value: MessageReaction.Reaction) -> UIView? {
         if !self.dateAndStatusNode.isHidden {
             return self.dateAndStatusNode.reactionView(value: value)
         }
         return nil
     }
-
+    
     override public func messageEffectTargetView() -> UIView? {
         if !self.dateAndStatusNode.isHidden {
             return self.dateAndStatusNode.messageEffectTargetView()
         }
         return nil
     }
-
+    
     override public func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         if self.dateAndStatusNode.supernode != nil, let result = self.dateAndStatusNode.hitTest(self.view.convert(point, to: self.dateAndStatusNode.view), with: event) {
             return result

@@ -72,7 +72,7 @@ final class WebpagePreviewAccessoryPanelNode: AccessoryPanelNode {
         
         self.updateWebpage()
     }
-
+        
     override func animateIn() {
         self.iconView.layer.animateScale(from: 0.001, to: 1.0, duration: 0.2)
     }

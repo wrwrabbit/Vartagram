@@ -79,7 +79,7 @@ public class UnauthorizedAccount {
     public var updateLoginTokenEvents: Signal<Void, NoError> {
         return self.updateLoginTokenPipe.signal()
     }
-
+    
     private let serviceNotificationPipe = ValuePipe<String>()
     public var serviceNotificationEvents: Signal<String, NoError> {
         return self.serviceNotificationPipe.signal()
@@ -102,7 +102,7 @@ public class UnauthorizedAccount {
         let updateLoginTokenPipe = self.updateLoginTokenPipe
         let serviceNotificationPipe = self.serviceNotificationPipe
         let masterDatacenterId = Int32(network.mtProto.datacenterId)
-
+        
         var updateSentCodeImpl: ((Api.auth.SentCode) -> Void)?
         self.stateManager = UnauthorizedAccountStateManager(
             network: network,
@@ -116,7 +116,7 @@ public class UnauthorizedAccount {
                 serviceNotificationPipe.putNext(text)
             }
         )
-
+        
         updateSentCodeImpl = { [weak self] sentCode in
             switch sentCode {
             case .sentCodePaymentRequired:
@@ -139,11 +139,11 @@ public class UnauthorizedAccount {
                         if let state = transaction.getState() as? UnauthorizedAccountState, case let .payment(_, _, _, _, _, syncContactsValue) = state.contents {
                             syncContacts = syncContactsValue
                         }
-
+                        
                         if let futureAuthToken = futureAuthToken {
                             storeFutureLoginToken(accountManager: accountManager, token: futureAuthToken.makeData())
                         }
-
+                        
                         let user = TelegramUser(user: user)
                         var isSupportUser = false
                         if let phone = user.phone, phone.hasPrefix("42"), phone.count <= 5 {
@@ -476,7 +476,7 @@ public func dataWithHexString(_ string: String) -> Data {
         let subIndex = hex.index(hex.startIndex, offsetBy: 2)
         let c = String(hex[..<subIndex])
         hex = String(hex[subIndex...])
-
+        
         guard let byte = UInt8(c, radix: 16) else {
             return Data()
         }
@@ -966,7 +966,7 @@ public enum NetworkSpeedLimitedEvent {
     public enum DownloadSubject {
         case message(MessageId)
     }
-
+    
     case upload
     case download(DownloadSubject)
 }
@@ -1077,7 +1077,7 @@ public class Account {
         self.auxiliaryMethods = auxiliaryMethods
         self.supplementary = supplementary
         self.isSupportUser = isSupportUser
-
+        
         self.networkStatsContext = NetworkStatsContext(postbox: postbox)
         
         self.peerInputActivityManager = PeerInputActivityManager()

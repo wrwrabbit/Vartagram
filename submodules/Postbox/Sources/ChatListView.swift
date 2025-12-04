@@ -110,7 +110,7 @@ public final class ChatListForumTopicData: Equatable {
         self.info = info
         self.threadPeer = threadPeer
     }
-
+    
     public static func ==(lhs: ChatListForumTopicData, rhs: ChatListForumTopicData) -> Bool {
         if lhs.id != rhs.id {
             return false
@@ -142,7 +142,7 @@ public enum ChatListEntry: Comparable {
         public var autoremoveTimeout: Int32?
         public var storyStats: PeerStoryStats?
         public var extractedCachedData: AnyHashable?
-
+        
         public init(
             index: ChatListIndex,
             messages: [Message],
@@ -239,7 +239,7 @@ public enum ChatListEntry: Comparable {
             if lhs.extractedCachedData != rhs.extractedCachedData {
                 return false
             }
-
+            
             return true
         }
     }
@@ -283,7 +283,7 @@ public struct PeerStoryStats: Equatable {
     public var unseenCount: Int
     public var hasUnseenCloseFriends: Bool
     public var hasLiveItems: Bool
-
+    
     public init(totalCount: Int, unseenCount: Int, hasUnseenCloseFriends: Bool, hasLiveItems: Bool) {
         self.totalCount = totalCount
         self.unseenCount = unseenCount
@@ -332,7 +332,7 @@ enum MutableChatListEntry: Equatable {
         var autoremoveTimeout: Int32?
         var storyStats: PeerStoryStats?
         var extractedCachedData: AnyHashable?
-
+        
         init(
             index: ChatListIndex,
             messages: [Message],
@@ -600,7 +600,7 @@ final class MutableChatListView {
     
     private let displaySavedMessagesAsTopicListPreferencesKey: ValueBoxKey
     private(set) var displaySavedMessagesAsTopicList: PreferencesEntry?
-
+    
     private let accountPeerId: PeerId?
     private(set) var accountPeer: Peer?
 
@@ -614,11 +614,11 @@ final class MutableChatListView {
         self.inactiveSecretChatPeerIds = inactiveSecretChatPeerIds
         self.extractCachedData = extractCachedData
         self.accountPeerId = accountPeerId
-
+        
         self.currentHiddenPeerIds = postbox.hiddenChatIds
         
         self.displaySavedMessagesAsTopicListPreferencesKey = postbox.seedConfiguration.displaySavedMessagesAsTopicListPreferencesKey
-
+        
         var spaces: [ChatListViewSpace] = [
             .group(groupId: self.groupId, pinned: .notPinned, predicate: filterPredicate, inactiveSecretChatPeerIds: inactiveSecretChatPeerIds)
         ]
@@ -657,9 +657,9 @@ final class MutableChatListView {
         } else {
             self.groupEntries = []
         }
-
+        
         self.displaySavedMessagesAsTopicList = postbox.preferencesTable.get(key: self.displaySavedMessagesAsTopicListPreferencesKey)
-
+        
         self.accountPeer = self.accountPeerId.flatMap(postbox.peerTable.get)
     }
     
@@ -742,9 +742,9 @@ final class MutableChatListView {
                 }
             }
         }
-
+        
         self.displaySavedMessagesAsTopicList = postbox.preferencesTable.get(key: self.displaySavedMessagesAsTopicListPreferencesKey)
-
+        
         self.accountPeer = self.accountPeerId.flatMap(postbox.peerTable.get)
     }
     
@@ -758,7 +758,7 @@ final class MutableChatListView {
         let currentGroupEntries = self.groupEntries
         let currentDisplaySavedMessagesAsTopicList = self.displaySavedMessagesAsTopicList
         let currentAccountPeer = self.accountPeer
-
+        
         self.reloadGroups(postbox: postbox)
         
         if self.groupEntries != currentGroupEntries {
@@ -770,7 +770,7 @@ final class MutableChatListView {
         if !arePeersEqual(self.accountPeer, currentAccountPeer) {
             updated = true
         }
-
+        
         return updated
     }
     
@@ -798,7 +798,7 @@ final class MutableChatListView {
                 hasChanges = true
             }
         }
-
+        
         if !transaction.currentPreferencesOperations.isEmpty {
             for operation in transaction.currentPreferencesOperations {
                 switch operation {
@@ -812,7 +812,7 @@ final class MutableChatListView {
                 }
             }
         }
-
+        
         if let accountPeerId = self.accountPeerId, transaction.currentUpdatedPeers[accountPeerId] != nil {
             let accountPeer = self.accountPeerId.flatMap(postbox.peerTable.get)
             if !arePeersEqual(self.accountPeer, accountPeer) {
@@ -820,7 +820,7 @@ final class MutableChatListView {
                 hasChanges = true
             }
         }
-
+        
         if case .root = self.groupId, self.filterPredicate == nil {
             var invalidatedGroups = false
             for (groupId, groupOperations) in operations {
@@ -934,7 +934,7 @@ final class MutableChatListView {
                         peers[associatedPeer.id] = associatedPeer
                     }
                 }
-
+                    
                 if let associatedPeerId = peer.associatedPeerId, peer.associatedPeerOverridesIdentity {
                     notificationSettings = postbox.peerNotificationSettingsTable.getEffective(associatedPeerId)
                     presence = postbox.peerPresenceTable.get(associatedPeerId)
@@ -955,7 +955,7 @@ final class MutableChatListView {
                 isThreadBased = value.value
                 threadsArePeers = value.threadsArePeers
             }
-
+            
             var forumTopicData: ChatListForumTopicData?
             if let message = renderedMessages.first, let threadId = message.threadId {
                 if let info = postbox.messageHistoryThreadIndexTable.get(peerId: message.id.peerId, threadId: threadId) {
@@ -1001,7 +1001,7 @@ final class MutableChatListView {
             if let extractCachedData = self.extractCachedData {
                 extractedCachedData = postbox.cachedPeerDataTable.get(index.messageIndex.id.peerId).flatMap(extractCachedData)
             }
-
+            
             return .MessageEntry(MutableChatListEntry.MessageEntryData(
                 index: index,
                 messages: renderedMessages,
@@ -1044,7 +1044,7 @@ public final class ChatListView: Equatable {
     public let laterIndex: ChatListIndex?
     public let displaySavedMessagesAsTopicList: PreferencesEntry?
     public let accountPeer: Peer?
-
+    
     init(_ mutableView: MutableChatListView) {
         self.groupId = mutableView.groupId
         
@@ -1055,7 +1055,7 @@ public final class ChatListView: Equatable {
                 if let peer = entryData.renderedPeer.peer, peer.id.namespace._internalGetInt32Value() == 2, let associatedPeerId = peer.associatedPeerId, associatedPeerId.namespace._internalGetInt32Value() == 0 {
                     continue
                 }
-
+                
                 let index = entryData.index
                 let messages = entryData.messages
                 let readState = entryData.readState

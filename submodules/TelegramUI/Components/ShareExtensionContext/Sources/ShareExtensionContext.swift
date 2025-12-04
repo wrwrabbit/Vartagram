@@ -345,7 +345,7 @@ public class ShareRootControllerImpl {
                 }
             }
             #endif
-
+            
             /*let account: Signal<(SharedAccountContextImpl, Account, [AccountWithInfo]), ShareAuthorizationError> = internalContext.sharedContext.accountManager.transaction { transaction -> (SharedAccountContextImpl, LoggingSettings) in
                 return (internalContext.sharedContext, transaction.getSharedData(SharedDataKeys.loggingSettings)?.get(LoggingSettings.self) ?? LoggingSettings.defaultSettings)
             }
@@ -555,9 +555,9 @@ public class ShareRootControllerImpl {
                             }
                             |> then(.single(.done))
                         }
-
+                         
                         var itemCount = 1
-
+                        
                         if let extensionItems = self?.getExtensionContext()?.inputItems as? [NSExtensionItem] {
                             for item in extensionItems {
                                 if let attachments = item.attachments {
@@ -611,7 +611,7 @@ public class ShareRootControllerImpl {
                             //inForeground.set(false)
                             self?.getExtensionContext()?.completeRequest(returningItems: nil, completionHandler: nil)
                         }
-
+                        
                         var canShareToStory = true
                         var canSendInHighQuality = false
                         if let inputItems = self?.getExtensionContext()?.inputItems, inputItems.count == 1, let item = inputItems[0] as? NSExtensionItem, let attachments = item.attachments {
@@ -624,7 +624,7 @@ public class ShareRootControllerImpl {
                                 }
                             }
                         }
-
+                        
                         if canShareToStory {
                             shareController.canSendInHighQuality = canSendInHighQuality
                             shareController.shareStory = { [weak self] in
@@ -633,13 +633,13 @@ public class ShareRootControllerImpl {
                                 }
                                 if let inputItems = self.getExtensionContext()?.inputItems, inputItems.count == 1, let item = inputItems[0] as? NSExtensionItem, let attachments = item.attachments {
                                     let sessionId = Int64.random(in: 1000000 ..< .max)
-
+                                    
                                     let storiesPath = rootPath + "/share/stories/\(sessionId)"
                                     let _ = try? FileManager.default.createDirectory(atPath: storiesPath, withIntermediateDirectories: true, attributes: nil)
                                     var index = 0
-
+                                    
                                     let dispatchGroup = DispatchGroup()
-
+                                    
                                     for attachment in attachments {
                                         let fileIndex = index
                                         if attachment.hasItemConformingToTypeIdentifier(kUTTypeImage as String) {
@@ -648,7 +648,7 @@ public class ShareRootControllerImpl {
                                                 if let url, let imageData = try? Data(contentsOf: url) {
                                                     let filePath = storiesPath + "/\(fileIndex).jpg"
                                                     try? FileManager.default.removeItem(atPath: filePath)
-
+                                                    
                                                     do {
                                                         try imageData.write(to: URL(fileURLWithPath: filePath))
                                                     } catch {
@@ -663,7 +663,7 @@ public class ShareRootControllerImpl {
                                                 if let url {
                                                     let filePath = storiesPath + "/\(fileIndex).mp4"
                                                     try? FileManager.default.removeItem(atPath: filePath)
-
+                                                    
                                                     do {
                                                         try FileManager.default.copyItem(at: url, to: URL(fileURLWithPath: filePath))
                                                     } catch {
@@ -675,7 +675,7 @@ public class ShareRootControllerImpl {
                                         }
                                         index += 1
                                     }
-
+                                    
                                     dispatchGroup.notify(queue: .main) {
                                         self.openUrl("tg://shareStory?session=\(sessionId)")
                                     }

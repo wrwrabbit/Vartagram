@@ -168,9 +168,9 @@ final class ChatTranslationPanelNode: ASDisplayNode {
         if let icon = self.buttonIconNode.image {
             let buttonSize = CGSize(width: buttonTextSize.width + icon.size.width + buttonSpacing + buttonPadding * 2.0, height: panelHeight)
             transition.updateFrame(node: self.button, frame: CGRect(origin: CGPoint(x: leftInset + floorToScreenPixels((width - leftInset - rightInset - buttonSize.width) / 2.0), y: 0.0), size: buttonSize))
-
+            
             transition.updateFrame(node: self.buttonIconNode, frame: CGRect(origin: CGPoint(x: buttonPadding, y: floorToScreenPixels((buttonSize.height - icon.size.height) / 2.0)), size: icon.size))
-
+            
             let buttonTextFrame = CGRect(origin: CGPoint(x: buttonPadding + icon.size.width + buttonSpacing, y: floorToScreenPixels((buttonSize.height - buttonTextSize.height) / 2.0)), size: buttonTextSize)
             transition.updatePosition(node: self.buttonTextNode, position: buttonTextFrame.center)
             self.buttonTextNode.bounds = CGRect(origin: CGPoint(), size: buttonTextFrame.size)
@@ -183,19 +183,19 @@ final class ChatTranslationPanelNode: ASDisplayNode {
     
     @objc private func closePressed() {
         let isPremium = self.chatInterfaceState?.isPremium ?? false
-
+        
         var translationAvailable = isPremium
         if let channel = self.chatInterfaceState?.renderedPeer?.chatMainPeer as? TelegramChannel, channel.flags.contains(.autoTranslateEnabled) {
             translationAvailable = true
         }
-
+        
         if translationAvailable {
             self.interfaceInteraction?.hideTranslationPanel()
         } else if !isPremium {
             let _ = ApplicationSpecificNotice.incrementTranslationSuggestion(accountManager: self.context.sharedContext.accountManager, count: -100, timestamp: Int32(Date().timeIntervalSince1970) + 60 * 60 * 24 * 7).startStandalone()
         }
     }
-
+    
     @objc private func buttonPressed() {
         guard let translationState = self.chatInterfaceState?.translationState else {
             return
@@ -207,7 +207,7 @@ final class ChatTranslationPanelNode: ASDisplayNode {
         if let channel = self.chatInterfaceState?.renderedPeer?.chatMainPeer as? TelegramChannel, channel.flags.contains(.autoTranslateEnabled) {
             translationAvailable = true
         }
-
+        
         if translationAvailable {
             self.interfaceInteraction?.toggleTranslation(translationState.isEnabled ? .original : .translated)
         } else if !translationState.isEnabled {
@@ -225,7 +225,7 @@ final class ChatTranslationPanelNode: ASDisplayNode {
             }
         }
     }
-
+    
     @objc private func morePressed(node: ContextReferenceContentNode, gesture: ContextGesture?) {
         guard let translationState = self.chatInterfaceState?.translationState else {
             return

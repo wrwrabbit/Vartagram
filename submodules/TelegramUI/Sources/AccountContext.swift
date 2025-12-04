@@ -157,7 +157,7 @@ public let giftAuctionsManager: GiftAuctionsManager?
     public var countriesConfiguration: Signal<CountriesConfiguration, NoError> {
         return self._countriesConfiguration.get()
     }
-
+    
     private var storedPassword: (String, CFAbsoluteTime, SwiftSignalKit.Timer)?
     private var limitsConfigurationDisposable: Disposable?
     private var contentSettingsDisposable: Disposable?
@@ -255,7 +255,7 @@ public let giftAuctionsManager: GiftAuctionsManager?
         }
         return availableMessageEffectsValue.get()
     }
-
+    
     private var userLimitsConfigurationDisposable: Disposable?
     public private(set) var userLimits: EngineConfiguration.UserLimits
     
@@ -294,7 +294,7 @@ public let giftAuctionsManager: GiftAuctionsManager?
     
     private var isFrozenDisposable: Disposable?
     public private(set) var isFrozen: Bool
-
+    
     public let imageCache: AnyObject?
     
     public init(sharedContext: SharedAccountContextImpl, account: Account, limitsConfiguration: LimitsConfiguration, contentSettings: ContentSettings, appConfiguration: AppConfiguration, availableReplyColors: EngineAvailableColorOptions, availableProfileColors: EngineAvailableColorOptions, temp: Bool = false)
@@ -350,7 +350,7 @@ public let giftAuctionsManager: GiftAuctionsManager?
         
         self.account.stateManager.starsContext = self.starsContext
         self.account.stateManager.tonContext = self.starsContext
-
+                
 
         self.cachedGroupCallContexts = AccountGroupCallContextCacheImpl()
         
@@ -364,7 +364,7 @@ public let giftAuctionsManager: GiftAuctionsManager?
         })
         self.animationRenderer = MultiAnimationRendererImpl()
         (self.animationRenderer as? MultiAnimationRendererImpl)?.useYuvA = sharedContext.immediateExperimentalUISettings.compressedEmojiCache
-
+        
         let updatedLimitsConfiguration = account.postbox.preferencesView(keys: [PreferencesKeys.limitsConfiguration])
         |> map { preferences -> LimitsConfiguration in
             return preferences.values[PreferencesKeys.limitsConfiguration]?.get(LimitsConfiguration.self) ?? LimitsConfiguration.defaultValue
@@ -409,15 +409,15 @@ public let giftAuctionsManager: GiftAuctionsManager?
         self.appConfigurationDisposable = (self._appConfiguration.get()
         |> deliverOnMainQueue).start(next: { value in
             let _ = currentAppConfiguration.swap(value)
-
+            
             guard let data = appConfiguration.data else {
                 return
             }
-
+            
             if data["ios_killswitch_contact_diffing"] != nil {
                 sharedDisableDeviceContactDataDiffing = true
             }
-
+            
             if let url = data["ios_update_url"] as? String, !url.isEmpty {
                 let _ = (sharedContext.accountManager.transaction { transaction -> Void in
                     transaction.updateSharedData(ApplicationSpecificSharedDataKeys.updateSettings, { _ in
@@ -555,7 +555,7 @@ public let giftAuctionsManager: GiftAuctionsManager?
             }
             self.audioTranscriptionTrial = audioTranscriptionTrial
         })
-
+        
         self.isFrozenDisposable = (self.appConfiguration
         |> map { appConfiguration in
             return AccountFreezeConfiguration.with(appConfiguration: appConfiguration).freezeUntilDate != nil
@@ -567,7 +567,7 @@ public let giftAuctionsManager: GiftAuctionsManager?
             }
             self.isFrozen = isFrozen
         })
-
+        
         self.experimentalUISettingsDisposable = (sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.experimentalUISettings])
         |> deliverOnMainQueue).start(next: { [weak self] sharedData in
             guard let self else {
@@ -804,7 +804,7 @@ public let giftAuctionsManager: GiftAuctionsManager?
             }
         }
     }
-
+    
     public func joinConferenceCall(call: JoinCallLinkInformation, isVideo: Bool, unmuteByDefault: Bool) {
         guard let callManager = self.sharedContext.callManager else {
             return
@@ -834,7 +834,7 @@ public let giftAuctionsManager: GiftAuctionsManager?
             } else {
                 dataInput = .single(nil)
             }
-
+            
             let _ = (dataInput
             |> deliverOnMainQueue).start(next: { [weak self] current in
                 guard let strongSelf = self else {
@@ -931,7 +931,7 @@ public let giftAuctionsManager: GiftAuctionsManager?
             })
         }
     }
-
+    
     public func requestCall(peerId: PeerId, isVideo: Bool, completion: @escaping () -> Void) {
         guard let callResult = self.sharedContext.callManager?.requestCall(context: self, peerId: peerId, isVideo: isVideo, endCurrentIfAny: false) else {
             return

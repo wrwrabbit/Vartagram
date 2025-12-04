@@ -401,7 +401,7 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
                     layoutInsets.top += layoutConstants.timestampHeaderHeight
                 }
             }
-
+            
             var deliveryFailedInset: CGFloat = 0.0
             if isFailed {
                 deliveryFailedInset += 24.0
@@ -906,7 +906,7 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
                                     }
                                 }
                                 strongSelf.addSubnode(actionButtonsNode)
-
+                                
                                 if animation.isAnimated {
                                     actionButtonsNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25)
                                 }
@@ -1503,7 +1503,7 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
             reactionButtonsNode.offset(value: value, animationCurve: animationCurve, duration: duration)
         }
     }
-
+        
     override public func targetReactionView(value: MessageReaction.Reaction) -> UIView? {
         if let result = self.reactionButtonsNode?.reactionTargetView(value: value) {
             return result

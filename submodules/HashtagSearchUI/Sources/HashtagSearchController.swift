@@ -17,7 +17,7 @@ public final class HashtagSearchController: TelegramBaseController {
         case noChat
         case chatOnly
     }
-
+    
     private let queue = Queue()
     
     private let context: AccountContext
@@ -27,7 +27,7 @@ public final class HashtagSearchController: TelegramBaseController {
     let publicPosts: Bool
     let stories: Bool
     let forceDark: Bool
-
+    
     private var transitionDisposable: Disposable?
     private let openMessageFromSearchDisposable = MetaDisposable()
     
@@ -67,10 +67,10 @@ public final class HashtagSearchController: TelegramBaseController {
         if case .chatOnly = mode, let addressName = peer?.addressName {
             title = "\(query)@\(addressName)"
         }
-
+        
         self.title = title
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
-
+                        
         self.presentationDataDisposable = (self.context.sharedContext.presentationData
         |> deliverOnMainQueue).start(next: { [weak self] presentationData in
             if let self {
@@ -81,12 +81,12 @@ public final class HashtagSearchController: TelegramBaseController {
                 if forceDark {
                     presentationData = presentationData.withUpdated(theme: defaultDarkColorPresentationTheme)
                 }
-
+                
                 self.presentationData = presentationData
                 
                 if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
                     self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-
+                    
                     self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData))
                     self.controllerNode.updatePresentationData(self.presentationData)
                 }

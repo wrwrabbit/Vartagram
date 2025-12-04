@@ -382,7 +382,7 @@ final class ChatHistoryPreloadManager {
         var indices = indices
         indices.removeAll()
         #endif*/
-
+        
         self.queue.async {
             var validEntityIds = Set(indices.map { $0.0.entity })
             for peerId in additionalPeerIds {

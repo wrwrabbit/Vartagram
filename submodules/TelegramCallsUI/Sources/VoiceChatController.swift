@@ -246,9 +246,9 @@ public protocol VoiceChatController: ViewController {
     var parentNavigationController: NavigationController? { get set }
     var onViewDidAppear: (() -> Void)? { get set }
     var onViewDidDisappear: (() -> Void)? { get set }
-
+    
     func updateCall(call: VideoChatCall)
-
+    
     func dismiss(closing: Bool, manual: Bool)
 }
 

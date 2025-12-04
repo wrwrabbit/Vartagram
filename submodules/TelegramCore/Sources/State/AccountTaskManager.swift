@@ -20,7 +20,7 @@ final class AccountTaskManager {
         private let tasksDisposable = MetaDisposable()
         private let configurationDisposable = MetaDisposable()
         private let promoDisposable = MetaDisposable()
-
+        
         private let managedTopReactionsDisposable = MetaDisposable()
         
         private var isUpdating: Bool = false

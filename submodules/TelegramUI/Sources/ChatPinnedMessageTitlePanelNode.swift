@@ -83,7 +83,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
     
     private var statusDisposable: Disposable?
     private var progressDisposable: Disposable?
-
+    
     private let animationCache: AnimationCache?
     private let animationRenderer: MultiAnimationRenderer?
 
@@ -310,7 +310,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                     }
                 }
             }
-
+            
             if actionTitle == nil {
                 for media in message.message.media {
                     if let webpage = media as? TelegramMediaWebpage, case let .Loaded(content) = webpage.content, content.type == "telegram_call" {
@@ -531,10 +531,10 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
             if self.activityIndicator.alpha.isZero {
                 transition.updateAlpha(node: self.activityIndicator, alpha: 1.0)
                 transition.updateSublayerTransformScale(node: self.activityIndicatorContainer, scale: 1.0)
-
+                
                 transition.updateAlpha(node: self.buttonsContainer, alpha: 0.0)
                 transition.updateSublayerTransformScale(node: self.buttonsContainer, scale: 0.1)
-
+                
                 if let theme = self.theme {
                     self.activityIndicator.transitionToState(.progress(color: theme.chat.inputPanel.panelControlAccentColor, lineWidth: nil, value: nil, cancelEnabled: false, animateRotation: true), animated: false, completion: {
                     })
@@ -549,13 +549,13 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                     }
                 })
                 transition.updateSublayerTransformScale(node: self.activityIndicatorContainer, scale: 0.1)
-
+                
                 transition.updateAlpha(node: self.buttonsContainer, alpha: 1.0)
                 transition.updateSublayerTransformScale(node: self.buttonsContainer, scale: 1.0)
             }
         }
     }
-
+    
     private func enqueueTransition(width: CGFloat, panelHeight: CGFloat, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition, animation: PinnedMessageAnimation?, pinnedMessage: ChatPinnedMessage, theme: PresentationTheme, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, dateTimeFormat: PresentationDateTimeFormat, accountPeerId: PeerId, firstTime: Bool, isReplyThread: Bool, translateToLanguage: String?) {
         let message = pinnedMessage.message
         
@@ -593,7 +593,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
         
         let previousMediaReference = self.previousMediaReference
         let context = self.context
-
+        
         let contentLeftInset: CGFloat = leftInset + 10.0
         var textLineInset: CGFloat = 10.0
         var rightInset: CGFloat = 14.0 + rightInset
@@ -603,12 +603,12 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
         if !self.actionButton.isHidden {
             rightInset += self.actionButton.bounds.width - 14.0
         }
-
+        
         var updatedMediaReference: AnyMediaReference?
         var imageDimensions: CGSize?
-
+        
         let giveaway = pinnedMessage.message.media.first(where: { $0 is TelegramMediaGiveaway }) as? TelegramMediaGiveaway
-
+        
         var titleStrings: [AnimatedCountLabelNode.Segment] = []
         if let _ = giveaway {
             titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedGiveaway) ", font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlAccentColor)))
@@ -627,7 +627,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                 titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedMessage) ", font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlAccentColor)))
             }
         }
-
+        
         if !message.containsSecretMedia {
             for media in message.media {
                 if let image = media as? TelegramMediaImage {
@@ -669,7 +669,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                 }
             }
         }
-
+        
         if isReplyThread {
             let titleString: String
             if let author = message.effectiveAuthor {
@@ -689,24 +689,24 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                 }
             }
         }
-
+        
         var applyImage: (() -> Void)?
         if let imageDimensions = imageDimensions {
             let boundingSize = CGSize(width: 35.0, height: 35.0)
             applyImage = imageNodeLayout(TransformImageArguments(corners: ImageCorners(radius: 2.0), imageSize: imageDimensions.aspectFilled(boundingSize), boundingSize: boundingSize, intrinsicInsets: UIEdgeInsets()))
-
+            
             textLineInset += 9.0 + 35.0
         }
-
+        
         var mediaUpdated = false
         if let updatedMediaReference = updatedMediaReference, let previousMediaReference = previousMediaReference {
             mediaUpdated = !updatedMediaReference.media.isEqual(to: previousMediaReference.media)
         } else if (updatedMediaReference != nil) != (previousMediaReference != nil) {
             mediaUpdated = true
         }
-
+        
         let hasSpoiler = message.attributes.contains(where: { $0 is MediaSpoilerMessageAttribute })
-
+        
         var updateImageSignal: Signal<(TransformImageArguments) -> DrawingContext?, NoError>?
         var updatedFetchMediaSignal: Signal<FetchResourceSourceType, FetchResourceError>?
         if mediaUpdated {
@@ -770,7 +770,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                     }
                 }
             }
-
+            
             let entities = messageEntities.filter { entity in
                 switch entity.type {
                 case .Spoiler, .CustomEmoji:
@@ -788,20 +788,20 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
         } else {
             messageText = NSAttributedString(string: foldLineBreaks(textString.string), font: textFont, textColor: message.media.isEmpty || message.media.first is TelegramMediaWebpage ? theme.chat.inputPanel.primaryTextColor : theme.chat.inputPanel.secondaryTextColor)
         }
-
+        
         let textConstrainedSize = CGSize(width: width - textLineInset - contentLeftInset - rightInset - textRightInset, height: CGFloat.greatestFiniteMagnitude)
         let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: messageText, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: textConstrainedSize, alignment: .natural, cutout: nil, insets: UIEdgeInsets(top: 2.0, left: 0.0, bottom: 2.0, right: 0.0)))
-
+        
         let spoilerTextLayoutAndApply: (TextNodeLayout, (TextNodeWithEntities.Arguments?) -> TextNodeWithEntities)?
         if !textLayout.spoilers.isEmpty {
             spoilerTextLayoutAndApply = makeSpoilerTextLayout(TextNodeLayoutArguments(attributedString: messageText, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: textConstrainedSize, alignment: .natural, cutout: nil, insets: UIEdgeInsets(top: 2.0, left: 0.0, bottom: 2.0, right: 0.0), displaySpoilers: true, displayEmbeddedItemsUnderSpoilers: true))
         } else {
             spoilerTextLayoutAndApply = nil
         }
-
+        
         let strongSelf = self
         let _ = titleApply(animation != nil)
-
+        
         var textArguments: TextNodeWithEntities.Arguments?
         if let cache = strongSelf.animationCache, let renderer = strongSelf.animationRenderer {
             textArguments = TextNodeWithEntities.Arguments(
@@ -813,16 +813,16 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
             )
         }
         let _ = textApply(textArguments)
-
+        
         strongSelf.previousMediaReference = updatedMediaReference
-
+        
         animationTransition.updateFrameAdditive(node: strongSelf.contentTextContainer, frame: CGRect(origin: CGPoint(x: contentLeftInset + textLineInset, y: 0.0), size: CGSize(width: width, height: panelHeight)))
-
+        
         strongSelf.titleNode.frame = CGRect(origin: CGPoint(x: 0.0, y: 5.0), size: titleLayout.size)
-
+        
         let textFrame = CGRect(origin: CGPoint(x: 0.0, y: 23.0), size: textLayout.size)
         strongSelf.textNode.textNode.frame = textFrame
-
+        
         if let (_, spoilerTextApply) = spoilerTextLayoutAndApply {
             let spoilerTextNode = spoilerTextApply(textArguments)
             if strongSelf.spoilerTextNode == nil {
@@ -832,12 +832,12 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                 spoilerTextNode.textNode.contentsScale = UIScreenScale
                 spoilerTextNode.textNode.displaysAsynchronously = false
                 strongSelf.contentTextContainer.insertSubnode(spoilerTextNode.textNode, aboveSubnode: strongSelf.textNode.textNode)
-
+                
                 strongSelf.spoilerTextNode = spoilerTextNode
             }
-
+            
             strongSelf.spoilerTextNode?.textNode.frame = textFrame
-
+            
             let dustNode: InvisibleInkDustNode
             if let current = strongSelf.dustNode {
                 dustNode = current
@@ -851,16 +851,16 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
         } else if let spoilerTextNode = strongSelf.spoilerTextNode {
             strongSelf.spoilerTextNode = nil
             spoilerTextNode.textNode.removeFromSupernode()
-
+            
             if let dustNode = strongSelf.dustNode {
                 strongSelf.dustNode = nil
                 dustNode.removeFromSupernode()
             }
         }
-
+        
         strongSelf.textNode.visibilityRect = CGRect.infinite
         strongSelf.spoilerTextNode?.visibilityRect = CGRect.infinite
-
+        
         let lineFrame = CGRect(origin: CGPoint(x: contentLeftInset, y: 0.0), size: CGSize(width: 2.0, height: panelHeight))
         animationTransition.updateFrame(node: strongSelf.lineNode, frame: lineFrame)
         strongSelf.lineNode.update(
@@ -876,20 +876,20 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
             ),
             transition: animationTransition
         )
-
+        
         strongSelf.imageNodeContainer.frame = CGRect(origin: CGPoint(x: contentLeftInset + 9.0, y: 7.0), size: CGSize(width: 35.0, height: 35.0))
         strongSelf.imageNode.frame = CGRect(origin: CGPoint(), size: CGSize(width: 35.0, height: 35.0))
-
+        
         if let applyImage = applyImage {
             applyImage()
-
+            
             animationTransition.updateSublayerTransformScale(node: strongSelf.imageNodeContainer, scale: 1.0)
             animationTransition.updateAlpha(node: strongSelf.imageNodeContainer, alpha: 1.0, beginWithCurrentState: true)
         } else {
             animationTransition.updateSublayerTransformScale(node: strongSelf.imageNodeContainer, scale: 0.1)
             animationTransition.updateAlpha(node: strongSelf.imageNodeContainer, alpha: 0.0, beginWithCurrentState: true)
         }
-
+        
         if let updateImageSignal = updateImageSignal {
             strongSelf.imageNode.setSignal(updateImageSignal)
         }
@@ -953,7 +953,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                             }
                             self.updateIsLoading(isLoading: value)
                         })
-
+                        
                         return
                     case let .callback(requiresPassword, data):
                         let progressPromise = Promise<Bool>()
@@ -1020,7 +1020,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                     break
                 }
             }
-
+            
             for media in message.media {
                 if let webpage = media as? TelegramMediaWebpage, case let .Loaded(content) = webpage.content, content.type == "telegram_call" {
                     var isConcealed = true
@@ -1034,7 +1034,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                         message: message,
                         progress: progressPromise
                     ))
-
+                    
                     self.progressDisposable?.dispose()
                     self.progressDisposable = (progressPromise.get()
                     |> deliverOnMainQueue).startStrict(next: { [weak self] value in
@@ -1043,7 +1043,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                         }
                         self.updateIsLoading(isLoading: value)
                     })
-
+                    
                     return
                 }
             }

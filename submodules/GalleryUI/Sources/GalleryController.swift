@@ -218,7 +218,7 @@ public func galleryItemForEntry(
     let message = entry.entry.message
     let location = entry.location ?? entry.entry.location
     let messageMedia = mediaForMessage(message: message)
-
+    
     let mediaAndMediaImage: (Media, TelegramMediaImage?)?
     if let mediaIndex = entry.mediaIndex {
         if mediaIndex < messageMedia.count {
@@ -232,7 +232,7 @@ public func galleryItemForEntry(
     guard let (media, mediaImage) = mediaAndMediaImage else {
         return nil
     }
-
+    
     if let _ = media as? TelegramMediaImage {
         return ChatImageGalleryItem(
             context: context,
@@ -260,7 +260,7 @@ public func galleryItemForEntry(
                     if #available(iOS 13.0, *) {
                         if NativeVideoContent.isHLSVideo(file: file) {
                             isHLS = true
-
+                            
                             if let data = context.currentAppConfiguration.with({ $0 }).data, let disableHLS = data["video_ignore_alt_documents"] as? Double {
                                 if Int(disableHLS) != 0 {
                                     isHLS = false
@@ -268,7 +268,7 @@ public func galleryItemForEntry(
                             }
                         }
                     }
-
+                    
                     if isHLS {
                         content = HLSVideoContent(id: .message(message.stableId, file.fileId), userLocation: .peer(message.id.peerId), fileReference: .message(message: MessageReference(message), media: file), streamVideo: streamVideos, loopVideo: loopVideos, autoFetchFullSizeThumbnail: true, codecConfiguration: HLSCodecConfiguration(context: context))
                     } else {
@@ -278,7 +278,7 @@ public func galleryItemForEntry(
                     content = PlatformVideoContent(id: .message(message.id, message.stableId, file.fileId), userLocation: .peer(message.id.peerId), content: .file(.message(message: MessageReference(message), media: file)), streamVideo: streamVideos, loopVideo: loopVideos)
                 }
             }
-
+            
             var entities: [MessageTextEntity] = []
             for attribute in message.attributes {
                 if let attribute = attribute as? TextEntitiesMessageAttribute {
@@ -296,11 +296,11 @@ public func galleryItemForEntry(
                     }
                 }
             }
-
+            
             if let result = addLocallyGeneratedEntities(text, enabledTypes: [.timecode], entities: entities, mediaDuration: file.duration.flatMap(Double.init)) {
                 entities = result
             }
-
+            
             var (text_, entities_) = context.shouldSuppressForeignAgentNotice(in: message) ? removeForeignAgentNotice(text: text, entities: entities, media: message.media) : (text, entities)
             if context.shouldHideChannelSignature(in: message), let username = message.channelUsername {
                 (text_, entities_) = removeChannelSignature(text: text_, entities: entities_, media: message.media, username: username)
@@ -310,7 +310,7 @@ public func galleryItemForEntry(
             if Namespaces.Message.allNonRegular.contains(message.id.namespace) {
                 originData = GalleryItemOriginData(title: nil, timestamp: nil)
             }
-
+            
             let caption = galleryCaptionStringWithAppliedEntities(context: context, text: text, entities: entities, message: message)
             return UniversalVideoGalleryItem(
                 context: context,
@@ -413,12 +413,12 @@ public func galleryItemForEntry(
                 }
                 description = galleryCaptionStringWithAppliedEntities(context: context, text: descriptionText, entities: entities, message: message)
             }
-
+            
             var originData = GalleryItemOriginData(title: message.effectiveAuthor.flatMap(EnginePeer.init)?.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), timestamp: message.timestamp)
             if Namespaces.Message.allNonRegular.contains(message.id.namespace) {
                 originData = GalleryItemOriginData(title: nil, timestamp: nil)
             }
-
+            
             return UniversalVideoGalleryItem(
                 context: context,
                 presentationData: presentationData,
@@ -442,7 +442,7 @@ public func galleryItemForEntry(
             )
         }
     }
-
+    
     return nil
 }
 
@@ -559,7 +559,7 @@ public struct GalleryEntry {
     public var entry: MessageHistoryEntry
     public var mediaIndex: Int?
     public var location: MessageHistoryEntryLocation?
-
+    
     public var stableId: GalleryEntryStableId {
         return GalleryEntryStableId(stableId: self.entry.message.stableId, mediaIndex: self.mediaIndex)
     }
@@ -611,7 +611,7 @@ public class GalleryController: ViewController, StandalonePresentableController,
     private let timecode: Double?
     private var playbackRate: Double?
     private var videoQuality: UniversalVideoContentVideoQuality = .auto
-
+    
     private let accountInUseDisposable = MetaDisposable()
     private let disposable = MetaDisposable()
     
@@ -714,7 +714,7 @@ public class GalleryController: ViewController, StandalonePresentableController,
                 if peerIdValue == context.account.peerId, let customTag {
                     context.engine.messages.internalReindexSavedMessagesCustomTagsIfNeeded(threadId: threadIdValue, tag: customTag)
                 }
-
+            
                 message = context.account.postbox.messageAtId(messageId)
                 |> mapToSignal { message -> Signal<(Message, Bool)?, NoError> in
                     if let message, let peer = message.peers[message.id.peerId] as? TelegramGroup, let migrationPeerId = peer.migrationReference?.peerId {
@@ -1339,7 +1339,7 @@ public class GalleryController: ViewController, StandalonePresentableController,
                 }
             }
         }
-
+        
         self.galleryNode.animateOut(animateContent: animatedOutNode, completion: {
             animatedOutInterface = true
             completion()
@@ -1402,7 +1402,7 @@ public class GalleryController: ViewController, StandalonePresentableController,
                         } else if let media = media.first {
                             selectedMedia = media.0
                         }
-
+                        
                         if let selectedMedia, let transitionArguments = presentationArguments.transitionArguments(message.id, selectedMedia) {
                             return (transitionArguments.transitionNode, transitionArguments.addToTransitionSurface)
                         }
@@ -1426,15 +1426,15 @@ public class GalleryController: ViewController, StandalonePresentableController,
                     strongSelf.hiddenMediaManagerIndex = nil
                     strongSelf.context.sharedContext.mediaManager.galleryHiddenMediaManager.removeSource(hiddenMediaManagerIndex)
                 }
-
+                
                 switch animationType {
                 case .default, .simpleAnimation:
                     let animatedOutNode = animationType != .simpleAnimation
-
+                    
                     if let chatController = strongSelf.baseNavigationController?.topViewController as? ChatController {
                         chatController.updatePushedTransition(0.0, transition: .animated(duration: 0.45, curve: .customSpring(damping: 180.0, initialVelocity: 0.0)))
                     }
-
+                    
                     strongSelf.galleryNode.animateOut(animateContent: animatedOutNode, completion: {
                     })
                 case .pip:
@@ -1442,17 +1442,17 @@ public class GalleryController: ViewController, StandalonePresentableController,
                 }
             }
         }
-
+        
         self.galleryNode.completeCustomDismiss = { [weak self] isPictureInPicture in
             guard let self else {
                 return
             }
-
+            
             if let hiddenMediaManagerIndex = self.hiddenMediaManagerIndex {
                 self.hiddenMediaManagerIndex = nil
                 self.context.sharedContext.mediaManager.galleryHiddenMediaManager.removeSource(hiddenMediaManagerIndex)
             }
-
+            
             if isPictureInPicture {
                 if let chatController = self.baseNavigationController?.topViewController as? ChatController {
                     chatController.updatePushedTransition(0.0, transition: .animated(duration: 0.45, curve: .customSpring(damping: 180.0, initialVelocity: 0.0)))
@@ -1460,7 +1460,7 @@ public class GalleryController: ViewController, StandalonePresentableController,
             } else {
                 self._hiddenMedia.set(.single(nil))
             }
-
+            
             self.presentingViewController?.dismiss(animated: false, completion: nil)
         }
         
@@ -1575,7 +1575,7 @@ public class GalleryController: ViewController, StandalonePresentableController,
                                         }
                                         
                                         let entries = galleryEntriesForMessageHistoryEntries(view.entries)
-
+                                    
                                         if strongSelf.invertItemOrder {
                                             strongSelf.entries = entries.reversed()
                                             strongSelf.hasLeftEntries = view.hasLater
@@ -1627,7 +1627,7 @@ public class GalleryController: ViewController, StandalonePresentableController,
                                         index -= 1
                                     }
                                     let entries = galleryEntriesForMessageHistoryEntries(messageEntries)
-
+                                    
                                     if entries.count > strongSelf.entries.count {
                                         if strongSelf.invertItemOrder {
                                             strongSelf.entries = entries.reversed()
@@ -1703,7 +1703,7 @@ public class GalleryController: ViewController, StandalonePresentableController,
             self.hiddenMediaManagerIndex = nil
             self.context.sharedContext.mediaManager.galleryHiddenMediaManager.removeSource(hiddenMediaManagerIndex)
         }
-
+        
         let context = self.context
         let mediaManager = context.sharedContext.mediaManager
         self.hiddenMediaManagerIndex = mediaManager.galleryHiddenMediaManager.addSource(self._hiddenMedia.get()
@@ -1714,12 +1714,12 @@ public class GalleryController: ViewController, StandalonePresentableController,
                 return nil
             }
         })
-
+        
         var nodeAnimatesItself = false
         
         if let centralItemNode = self.galleryNode.pager.centralItemNode() {
             let entry = self.entries[centralItemNode.index]
-
+            
             self.centralItemTitle.set(centralItemNode.title())
             self.centralItemTitleView.set(centralItemNode.titleView())
             self.centralItemRightBarButtonItem.set(centralItemNode.rightBarButtonItem())
@@ -1739,14 +1739,14 @@ public class GalleryController: ViewController, StandalonePresentableController,
                 } else if let media = media.first {
                     selectedMedia = media.0
                 }
-
+                
                 if let selectedMedia {
                     if let presentationArguments = self.presentationArguments as? GalleryControllerPresentationArguments, let transitionArguments = presentationArguments.transitionArguments(message.id, selectedMedia) {
                         nodeAnimatesItself = true
                         if presentationArguments.animated {
                             centralItemNode.animateIn(from: transitionArguments.transitionNode, addToTransitionSurface: transitionArguments.addToTransitionSurface, completion: {})
                         }
-
+                        
                         self._hiddenMedia.set(.single((message.id, selectedMedia)))
                     }
                     centralItemNode.activateAsInitial()
@@ -1837,7 +1837,7 @@ public class GalleryController: ViewController, StandalonePresentableController,
             }
         }
     }
-
+    
     public var keyShortcuts: [KeyShortcut] {
         var keyShortcuts: [KeyShortcut] = []
         keyShortcuts.append(
@@ -1900,7 +1900,7 @@ public class GalleryController: ViewController, StandalonePresentableController,
         keyShortcuts.append(contentsOf: itemNodeShortcuts)
         return keyShortcuts
     }
-
+    
     public static func maybeExpandPIP(context: AccountContext, messageId: EngineMessage.Id) -> Bool {
         guard let currentPictureInPictureNode = context.sharedContext.mediaManager.currentPictureInPictureNode as? UniversalVideoGalleryItemNode else {
             return false
@@ -1914,9 +1914,9 @@ public class GalleryController: ViewController, StandalonePresentableController,
         if message.id != messageId {
             return false
         }
-
+        
         currentPictureInPictureNode.expandPIP()
-
+        
         return true
     }
 }

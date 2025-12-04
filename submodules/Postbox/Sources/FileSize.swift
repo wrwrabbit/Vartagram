@@ -21,11 +21,11 @@ public func fileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) ->
         if (value.st_mode & S_IFMT) == S_IFLNK {
             return 0
         }
-
+        
         if useTotalFileAllocatedSize {
             return Int64(value.st_blocks) * Int64(value.st_blksize)
         }
-
+        
         return value.st_size
     } else {
         return nil

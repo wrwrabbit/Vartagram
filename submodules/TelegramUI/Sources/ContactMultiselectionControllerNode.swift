@@ -57,7 +57,7 @@ final class ContactMultiselectionControllerNode: ASDisplayNode {
     
     private let context: AccountContext
     private let mode: ContactMultiselectionControllerMode
-
+    
     private var containerLayout: (ContainerViewLayout, CGFloat, CGFloat)?
     
     var requestDeactivateSearch: (() -> Void)?
@@ -89,21 +89,21 @@ final class ContactMultiselectionControllerNode: ASDisplayNode {
     var isCallVideoOptionSelected: Bool {
         return self.footerPanelNode?.isCheckOptionSelected ?? false
     }
-
+    
     init(navigationBar: NavigationBar?, context: AccountContext, presentationData: PresentationData, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?, mode: ContactMultiselectionControllerMode, isPeerEnabled: ((EnginePeer) -> Bool)?, attemptDisabledItemSelection: ((EnginePeer, ChatListDisabledPeerReason) -> Void)?, options: Signal<[ContactListAdditionalOption], NoError>, filters: [ContactListFilter], onlyWriteable: Bool, isGroupInvitation: Bool, limit: Int32?, reachedSelectionLimit: ((Int32) -> Void)?, present: @escaping (ViewController, Any?) -> Void) {
         self.navigationBar = navigationBar
         
         self.context = context
         self.presentationData = presentationData
         self.mode = mode
-
+        
         self.animationCache = context.animationCache
         self.animationRenderer = context.animationRenderer
         
         self.isPeerEnabled = isPeerEnabled
         self.onlyWriteable = onlyWriteable
         self.isGroupInvitation = isGroupInvitation
-
+        
         var proceedImpl: (() -> Void)?
         
         var placeholder: String
@@ -174,7 +174,7 @@ final class ContactMultiselectionControllerNode: ASDisplayNode {
                 if chatSelection.disableChannels {
                     categories.remove(.bots)
                 }
-
+                
                 chatListFilter = .filter(id: Int32.max, title: ChatFolderTitle(text: "", entities: [], enableAnimations: true), emoticon: nil, data: ChatListFilterData(
                     isShared: false,
                     hasSharedLinks: false,
@@ -187,7 +187,7 @@ final class ContactMultiselectionControllerNode: ASDisplayNode {
                     color: nil
                 ))
             }
-
+            
             placeholder = placeholderValue
             let chatListNode = ChatListNode(context: context, location: .chatList(groupId: .root), chatListFilter: chatSelection.chatListNodeFilter ?? chatListFilter, previewing: false, fillPreloadItems: false, mode: .peers(filter: chatSelection.chatListNodePeersFilter ?? [.excludeSecretChats], isSelecting: true, additionalCategories: additionalCategories?.categories ?? [], chatListFilters: chatListFilters, displayAutoremoveTimeout: chatSelection.displayAutoremoveTimeout, displayPresence: chatSelection.displayPresence), isPeerEnabled: isPeerEnabled, theme: self.presentationData.theme, fontSize: self.presentationData.listsFontSize, strings: self.presentationData.strings, dateTimeFormat: self.presentationData.dateTimeFormat, nameSortOrder: self.presentationData.nameSortOrder, nameDisplayOrder: self.presentationData.nameDisplayOrder, animationCache: self.animationCache, animationRenderer: self.animationRenderer, disableAnimations: true, isInlineMode: false, autoSetReady: true, isMainTab: false, inactiveSecretChatPeerIds: chatSelection.inactiveSecretChatPeerIds)
             chatListNode.passthroughPeerSelection = true
@@ -224,7 +224,7 @@ final class ContactMultiselectionControllerNode: ASDisplayNode {
                     var todayPeers: [EnginePeer.Id] = []
                     var yesterdayPeers: [EnginePeer.Id] = []
                     var tomorrowPeers: [EnginePeer.Id] = []
-
+                    
                     for (peerId, birthday) in birthdays {
                         if birthday.day == today {
                             todayPeers.append(peerId)
@@ -237,7 +237,7 @@ final class ContactMultiselectionControllerNode: ASDisplayNode {
                             tomorrowPeers.append(peerId)
                         }
                     }
-
+                    
                     if !todayPeers.isEmpty {
                         sections.append((presentationData.strings.Premium_Gift_ContactSelection_BirthdayToday, todayPeers, hasActions))
                     }
@@ -247,7 +247,7 @@ final class ContactMultiselectionControllerNode: ASDisplayNode {
                     if !tomorrowPeers.isEmpty {
                         sections.append((presentationData.strings.Premium_Gift_ContactSelection_BirthdayTomorrow, tomorrowPeers, hasActions))
                     }
-
+                    
                     displayTopPeers = .custom(showSelf: false, selfSubtitle: nil, sections: sections)
                 } else {
                     displayTopPeers = .recent
@@ -257,15 +257,15 @@ final class ContactMultiselectionControllerNode: ASDisplayNode {
             } else {
                 displayTopPeers = .none
             }
-
+            
             let presentation: Signal<ContactListPresentation, NoError> = options
             |> map { options in
                 return .natural(options: options, includeChatList: includeChatList, topPeers: displayTopPeers)
             }
-
+            
             let contactListNode = ContactListNode(context: context, updatedPresentationData: updatedPresentationData, presentation: presentation, filters: filters, onlyWriteable: onlyWriteable, isGroupInvitation: isGroupInvitation, isPeerEnabled: isPeerEnabled, selectionState: ContactListNodeGroupSelectionState())
             self.contentNode = .contacts(contactListNode)
-
+            
             if !selectedPeers.isEmpty {
                 contactListNode.updateSelectionState { state in
                     var state = state ?? ContactListNodeGroupSelectionState()
@@ -556,7 +556,7 @@ private final class FooterPanelNode: ASDisplayNode {
             self.badge = badge
         }
     }
-
+    
     private let theme: PresentationTheme
     private let strings: PresentationStrings
 
@@ -564,12 +564,12 @@ private final class FooterPanelNode: ASDisplayNode {
     private var checkOptionButton: HighlightTrackingButton?
     private var checkOptionText: ComponentView<Empty>?
     private var checkOptionControl: ComponentView<Empty>?
-
+    
     private let separatorNode: ASDisplayNode
     private let button: SolidRoundedButtonView
 
     private(set) var isCheckOptionSelected: Bool = false
-
+    
     private var validLayout: (CGFloat, CGFloat, CGFloat)?
     
     var content: Content {
@@ -619,7 +619,7 @@ private final class FooterPanelNode: ASDisplayNode {
             let _ = self.updateLayout(width: validLayout.0, sideInset: validLayout.1, bottomInset: validLayout.2, transition: .animated(duration: 0.2, curve: .easeInOut))
         }
     }
-
+    
     func updateLayout(width: CGFloat, sideInset: CGFloat, bottomInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
         self.validLayout = (width, sideInset, bottomInset)
 
@@ -648,7 +648,7 @@ private final class FooterPanelNode: ASDisplayNode {
                 self.view.addSubview(checkOptionButton)
                 checkOptionButton.addTarget(self, action: #selector(self.checkOptionButtonPressed), for: .touchUpInside)
             }
-
+            
             let checkOptionText: ComponentView<Empty>
             if let current = self.checkOptionText {
                 checkOptionText = current

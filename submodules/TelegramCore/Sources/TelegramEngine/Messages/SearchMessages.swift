@@ -56,7 +56,7 @@ public struct SearchMessagesResult: Equatable {
         self.totalCount = totalCount
         self.completed = completed
     }
-
+    
     public static func ==(lhs: SearchMessagesResult, rhs: SearchMessagesResult) -> Bool {
         if lhs.messages.count != rhs.messages.count {
             return false
@@ -251,24 +251,24 @@ func _internal_getSearchMessageCount(account: Account, location: SearchMessagesL
                 chatPeer = nil
             }
         }
-
+        
         if let threadId, let channel = chatPeer as? TelegramChannel, channel.isMonoForum {
             savedPeer = transaction.getPeer(PeerId(threadId)).flatMap(apiInputPeer)
         }
-
+        
         return (chatPeer.flatMap(apiInputPeer), fromPeer, savedPeer)
     }
     |> mapToSignal { inputPeer, fromPeer, savedPeer -> Signal<Int?, NoError> in
         guard let inputPeer else {
             return .single(nil)
         }
-
+        
         var flags: Int32 = 0
-
+        
         if let _ = fromPeer {
             flags |= (1 << 0)
         }
-
+        
         var topMsgId: Int32?
         var savedPeerId: Api.InputPeer?
         if let savedPeer {
@@ -278,7 +278,7 @@ func _internal_getSearchMessageCount(account: Account, location: SearchMessagesL
             flags |= (1 << 1)
             topMsgId = Int32(clamping: threadId)
         }
-
+        
         return account.network.request(Api.functions.messages.search(flags: flags, peer: inputPeer, q: query, fromId: fromPeer, savedPeerId: savedPeerId, savedReaction: nil, topMsgId: topMsgId, filter: .inputMessagesFilterEmpty, minDate: 0, maxDate: 0, offsetId: 0, addOffset: 0, limit: 1, maxId: 0, minId: 0, hash: 0))
         |> map { result -> Int? in
             switch result {
@@ -302,7 +302,7 @@ func _internal_searchMessages(account: Account, location: SearchMessagesLocation
     if case let .peer(peerId, fromId, tags, reactions, threadId, minDate, maxDate) = location, fromId == nil, tags == nil, peerId == account.peerId, let reactions, let reaction = reactions.first, (minDate == nil || minDate == 0), (maxDate == nil || maxDate == 0) {
         return account.postbox.transaction { transaction -> (SearchMessagesResult, SearchMessagesState) in
             let messages = transaction.getMessagesWithCustomTag(peerId: peerId, namespace: Namespaces.Message.Cloud, threadId: threadId, customTag: ReactionsMessageAttribute.messageTag(reaction: reaction), from: MessageIndex.upperBound(peerId: peerId, namespace: Namespaces.Message.Cloud), includeFrom: false, to: MessageIndex.lowerBound(peerId: peerId, namespace: Namespaces.Message.Cloud), limit: 500)
-
+            
             return (
                 SearchMessagesResult(
                     messages: messages,
@@ -325,7 +325,7 @@ func _internal_searchMessages(account: Account, location: SearchMessagesLocation
             )
         }
     }
-
+    
     let remoteSearchResult: Signal<(Api.messages.Messages?, Api.messages.Messages?), NoError>
     switch location {
         case let .peer(peerId, fromId, tags, reactions, threadId, minDate, maxDate):
@@ -403,7 +403,7 @@ func _internal_searchMessages(account: Account, location: SearchMessagesLocation
                     flags |= (1 << 1)
                     topMsgId = Int32(clamping: threadId)
                 }
-
+                
                 let peerMessages: Signal<Api.messages.Messages?, NoError>
                 if let completed = state?.main.completed, completed {
                     peerMessages = .single(nil)
@@ -419,11 +419,11 @@ func _internal_searchMessages(account: Account, location: SearchMessagesLocation
                                 $0.apiReaction
                             }
                         }
-
+                        
                         if savedReactions != nil {
                             flags |= 1 << 3
                         }
-
+                        
                         signal = account.network.request(Api.functions.messages.search(flags: flags, peer: inputPeer, q: query, fromId: fromInputPeer, savedPeerId: inputSavedPeer, savedReaction: savedReactions, topMsgId: topMsgId, filter: filter, minDate: minDate ?? 0, maxDate: maxDate ?? (Int32.max - 1), offsetId: lowerBound?.id.id ?? 0, addOffset: 0, limit: limit, maxId: Int32.max - 1, minId: 0, hash: 0))
                     }
                     peerMessages = signal
@@ -440,18 +440,18 @@ func _internal_searchMessages(account: Account, location: SearchMessagesLocation
                         additionalPeerMessages = .single(nil)
                     } else if mainCompleted || !hasAdditional {
                         let lowerBound = state?.additional?.messages.last.flatMap({ $0.index })
-
+                        
                         var savedReactions: [Api.Reaction]?
                         if let reactions = reactions {
                             savedReactions = reactions.map {
                                 $0.apiReaction
                             }
                         }
-
+                        
                         if savedReactions != nil {
                             flags |= 1 << 3
                         }
-
+                        
                         additionalPeerMessages = account.network.request(Api.functions.messages.search(flags: flags, peer: inputPeer, q: query, fromId: fromInputPeer, savedPeerId: inputSavedPeer, savedReaction: savedReactions, topMsgId: topMsgId, filter: filter, minDate: minDate ?? 0, maxDate: maxDate ?? (Int32.max - 1), offsetId: lowerBound?.id.id ?? 0, addOffset: 0, limit: limit, maxId: Int32.max - 1, minId: 0, hash: 0))
                         |> map(Optional.init)
                         |> `catch` { _ -> Signal<Api.messages.Messages?, NoError> in
@@ -474,7 +474,7 @@ func _internal_searchMessages(account: Account, location: SearchMessagesLocation
             } else {
                 folderId = nil
             }
-
+        
             if case let .general(scope, _, _, _) = location, case let .globalPosts(allowPaidStars) = scope {
                 remoteSearchResult = account.postbox.transaction { transaction -> (Int32, MessageIndex?, Api.InputPeer) in
                     var lowerBound: MessageIndex?
@@ -568,7 +568,7 @@ func _internal_searchMessages(account: Account, location: SearchMessagesLocation
                         } else {
                             secretMessages = transaction.searchMessages(peerId: nil, query: query, tags: tags, inactiveSecretChatPeerIds: inactiveSecretChatPeerIds)
                         }
-
+                        
                         var filteredMessages: [Message] = []
                         var readStates: [PeerId: CombinedPeerReadState] = [:]
                         var threadInfo: [MessageId: MessageHistoryThreadData] = [:]
@@ -624,7 +624,7 @@ func _internal_searchMessages(account: Account, location: SearchMessagesLocation
                     break
                 }
             }
-
+            
             let updatedState = SearchMessagesState(main: mergedState(transaction: transaction, seedConfiguration: account.postbox.seedConfiguration, accountPeerId: account.peerId, state: state?.main, result: result) ?? SearchMessagesPeerState(messages: [], readStates: [:], threadInfo: [:], totalCount: 0, completed: true, nextRate: nil), additional: additional)
             return (mergedResult(updatedState), updatedState)
         }

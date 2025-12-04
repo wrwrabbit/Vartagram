@@ -405,7 +405,7 @@ final class ChatListTable: Table {
             }
         }
         changedPeerIds.formUnion(additionalChangedPeerIds)
-
+        
         self.ensureInitialized(groupId: .root)
         
         for peerId in changedPeerIds {
@@ -433,7 +433,7 @@ final class ChatListTable: Table {
                 topMessageIndex = nil
                 rawTopMessageIndex = nil
             }
-
+            
             var updatedIndex = self.indexTable.setTopMessageIndex(peerId: peerId, index: topMessageIndex)
             if let updatedInclusion = updatedChatListInclusions[peerId] {
                 updatedIndex = self.indexTable.setInclusion(peerId: peerId, inclusion: updatedInclusion)

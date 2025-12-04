@@ -14,7 +14,7 @@ import TelegramNotices
 protocol ChatListSearchPaneNode: ASDisplayNode {
     var isReady: Signal<Bool, NoError> { get }
     var isCurrent: Bool { get set }
-
+    
     func update(size: CGSize, sideInset: CGFloat, bottomInset: CGFloat, visibleHeight: CGFloat, presentationData: PresentationData, synchronous: Bool, transition: ContainedViewLayoutTransition)
     func scrollToTop() -> Bool
     func cancelPreviewGestures()
@@ -211,7 +211,7 @@ final class ChatListSearchPaneContainerNode: ASDisplayNode, ASGestureRecognizerD
     var currentPaneUpdated: ((ChatListSearchPaneKey?, CGFloat, ContainedViewLayoutTransition) -> Void)?
     var requestExpandTabs: (() -> Bool)?
     var requesDismissInput: (() -> Void)?
-
+    
     private var currentAvailablePanes: [ChatListSearchPaneKey]?
     
     init(context: AccountContext, animationCache: AnimationCache, animationRenderer: MultiAnimationRenderer, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil, peersFilter: ChatListNodePeersFilter, requestPeerType: [ReplyMarkupButtonRequestPeerType]?, location: ChatListControllerLocation, searchQuery: Signal<String?, NoError>, searchOptions: Signal<ChatListSearchOptions?, NoError>, navigationController: NavigationController?, parentController: ViewController?) {
@@ -227,7 +227,7 @@ final class ChatListSearchPaneContainerNode: ASDisplayNode, ASGestureRecognizerD
         self.navigationController = navigationController
         self.parentController = parentController
         self.globalPeerSearchContext = GlobalPeerSearchContext()
-
+                
         super.init()
     }
     
@@ -239,11 +239,11 @@ final class ChatListSearchPaneContainerNode: ASDisplayNode, ASGestureRecognizerD
             }
             return
         }
-
+        
         if key == .globalPosts {
             let _ = ApplicationSpecificNotice.incrementGlobalPostsSearch(accountManager: self.context.sharedContext.accountManager).startStandalone()
         }
-
+        
         #if DEBUG
         #else
         self.isAdjacentLoadingEnabled = true
@@ -254,7 +254,7 @@ final class ChatListSearchPaneContainerNode: ASDisplayNode, ASGestureRecognizerD
             if let (size, sideInset, bottomInset, visibleHeight, presentationData, availablePanes) = self.currentParams {
                 self.update(size: size, sideInset: sideInset, bottomInset: bottomInset, visibleHeight: visibleHeight, presentationData: presentationData, availablePanes: availablePanes, transition: .animated(duration: 0.4, curve: .spring))
             }
-
+            
             if case .apps = key {
                 self.requesDismissInput?()
             }
@@ -264,7 +264,7 @@ final class ChatListSearchPaneContainerNode: ASDisplayNode, ASGestureRecognizerD
             if let (size, sideInset, bottomInset, visibleHeight, presentationData, availablePanes) = self.currentParams {
                 self.update(size: size, sideInset: sideInset, bottomInset: bottomInset, visibleHeight: visibleHeight, presentationData: presentationData, availablePanes: availablePanes, transition: .animated(duration: 0.4, curve: .spring))
             }
-
+            
             if case .apps = key {
                 self.requesDismissInput?()
             }
@@ -357,7 +357,7 @@ final class ChatListSearchPaneContainerNode: ASDisplayNode, ASGestureRecognizerD
                     let switchToKey = availablePanes[updatedIndex]
                     if switchToKey != self.currentPaneKey && self.currentPanes[switchToKey] != nil{
                         self.currentPaneKey = switchToKey
-
+                        
                         if case .apps = switchToKey {
                             self.requesDismissInput?()
                         }

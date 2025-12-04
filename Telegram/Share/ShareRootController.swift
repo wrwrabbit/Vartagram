@@ -107,7 +107,7 @@ class ShareRootController: UIViewController {
         super.viewDidLayoutSubviews()
         self.impl?.viewDidLayoutSubviews(view: self.view, traitCollection: self.traitCollection)
     }
-
+    
     @objc func openURL(_ url: URL) -> Bool {
         var responder: UIResponder? = self
         while responder != nil {

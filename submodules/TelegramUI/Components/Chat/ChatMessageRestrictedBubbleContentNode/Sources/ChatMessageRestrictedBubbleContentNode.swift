@@ -102,7 +102,7 @@ public class ChatMessageRestrictedBubbleContentNode: ChatMessageBubbleContentNod
                         statusType = nil
                     }
                 }
-
+                
                 let entities = [MessageTextEntity(range: 0..<rawText.count, type: .Italic)]
                 
                 let messageTheme = incoming ? item.presentationData.theme.theme.chat.message.incoming : item.presentationData.theme.theme.chat.message.outgoing

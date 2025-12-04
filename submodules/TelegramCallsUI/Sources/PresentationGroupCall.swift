@@ -215,20 +215,20 @@ private final class PendingConferenceInvitationContext {
     enum State {
         case ringing
     }
-
+    
     enum InvitationError {
         case generic
         case privacy(peer: EnginePeer?)
     }
-
+    
     private let engine: TelegramEngine
     private var requestDisposable: Disposable?
     private var stateDisposable: Disposable?
     private(set) var messageId: EngineMessage.Id?
-
+    
     private var hadMessage: Bool = false
     private var didNotifyEnded: Bool = false
-
+    
     init(engine: TelegramEngine, reference: InternalGroupCallReference, peerId: PeerId, isVideo: Bool, onStateUpdated: @escaping (State) -> Void, onEnded: @escaping (Bool) -> Void, onError: @escaping (InvitationError) -> Void) {
         self.engine = engine
         self.requestDisposable = ((engine.calls.inviteConferenceCallParticipant(reference: reference, peerId: peerId, isVideo: isVideo) |> deliverOnMainQueue).startStrict(next: { [weak self] messageId in
@@ -236,15 +236,15 @@ private final class PendingConferenceInvitationContext {
                 return
             }
             self.messageId = messageId
-
+            
             onStateUpdated(.ringing)
-
+            
             let timeout: Double = 30.0
             let timerSignal = Signal<Void, NoError>.single(Void()) |> then(
                 Signal<Void, NoError>.single(Void())
                 |> delay(1.0, queue: .mainQueue())
             ) |> restart
-
+            
             let startTime = CFAbsoluteTimeGetCurrent()
             self.stateDisposable = (combineLatest(queue: .mainQueue(),
                 engine.data.subscribe(
@@ -273,7 +273,7 @@ private final class PendingConferenceInvitationContext {
                                 break
                             }
                         }
-
+                        
                         if let action = foundAction, case let .conferenceCall(conferenceCall) = action.action {
                             if conferenceCall.flags.contains(.isMissed) || conferenceCall.duration != nil {
                             } else {
@@ -304,12 +304,12 @@ private final class PendingConferenceInvitationContext {
             guard let self else {
                 return
             }
-
+            
             if !self.didNotifyEnded {
                 self.didNotifyEnded = true
                 onEnded(false)
             }
-
+            
             let mappedError: InvitationError
             switch error {
             case .privacy(let peer):
@@ -320,7 +320,7 @@ private final class PendingConferenceInvitationContext {
             onError(mappedError)
         }))
     }
-
+    
     deinit {
         self.requestDisposable?.dispose()
         self.stateDisposable?.dispose()
@@ -341,7 +341,7 @@ private final class ConferenceCallE2EContextStateImpl: ConferenceCallE2EContextS
     func getParticipants() -> [ConferenceCallE2EContext.BlockchainParticipant] {
         return self.call.participants().map { ConferenceCallE2EContext.BlockchainParticipant(userId: $0.userId, internalId: $0.internalId) }
     }
-
+    
     func getParticipantLatencies() -> [Int64: Double] {
         let dict = self.call.participantLatencies()
         var result: [Int64: Double] = [:]
@@ -541,13 +541,13 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
     private var reconnectingAsPeer: EnginePeer?
     
     public private(set) var callId: Int64?
-
+    
     public private(set) var hasVideo: Bool
     public private(set) var hasScreencast: Bool
     private let isVideoEnabled: Bool
     
     private let keyPair: TelegramKeyPair?
-
+    
     private var temporaryJoinTimestamp: Int32
     private var temporaryActivityTimestamp: Double?
     private var temporaryActivityRank: Int?
@@ -564,7 +564,7 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
     private(set) var genericCallContext: CurrentImpl?
     private var currentConnectionMode: OngoingGroupCallContext.ConnectionMode = .none
     private var didInitializeConnectionMode: Bool = false
-
+    
     let externalMediaStream = Promise<DirectMediaStreamingContext>()
 
     private var screencastIPCContext: ScreencastIPCContext?
@@ -578,7 +578,7 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
     private var requestedVideoChannels: [OngoingGroupCallContext.VideoChannel] = []
     private var suspendVideoChannelRequests: Bool = false
     private var pendingVideoSubscribers = Bag<(String, MetaDisposable, (OngoingGroupCallContext.VideoFrameData) -> Void)>()
-
+    
     private var summaryInfoState = Promise<SummaryInfoState?>(nil)
     private var summaryParticipantsState = Promise<SummaryParticipantsState?>(nil)
     
@@ -613,7 +613,7 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
         return self.isNoiseSuppressionEnabledPromise.get()
     }
     private let isNoiseSuppressionEnabledDisposable = MetaDisposable()
-
+    
     public var e2eEncryptionKeyHash: Signal<Data?, NoError> {
         return self.e2eContext?.e2eEncryptionKeyHash ?? .single(nil)
     }
@@ -669,17 +669,17 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
     }
     private var hasActiveIncomingDataDisposable: Disposable?
     private var hasActiveIncomingDataTimer: Foundation.Timer?
-
+    
     private let isFailedPromise = ValuePromise<Bool>(false)
     var isFailed: Signal<Bool, NoError> {
         return self.isFailedPromise.get()
     }
-
+    
     private let signalBarsPromise = Promise<Int32>(0)
     var signalBars: Signal<Int32, NoError> {
         return self.signalBarsPromise.get()
     }
-
+    
     private var audioSessionControl: ManagedAudioSessionControl?
     private var audioSessionDisposable: Disposable?
     private let audioSessionShouldBeActive = ValuePromise<Bool>(false, ignoreRepeated: true)
@@ -803,25 +803,25 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
     public var isSpeaking: Signal<Bool, NoError> {
         return self.isSpeakingPromise.get()
     }
-
+    
     private var screencastStateDisposable: Disposable?
     
     public let isStream: Bool
     private let streamPeerId: EnginePeer.Id?
     private let sharedAudioContext: SharedCallAudioContext?
-
+    
     public let isConference: Bool
     private let beginWithVideo: Bool
-
+    
     private let conferenceSourceId: CallSessionInternalId?
     public var conferenceSource: CallSessionInternalId? {
         return self.conferenceSourceId
     }
-
+    
     public var onMutedSpeechActivityDetected: ((Bool) -> Void)?
-
+    
     let debugLog = Promise<String?>()
-
+    
     public weak var upgradedConferenceCall: PresentationCallImpl?
     public var pendingDisconnedUpgradedConferenceCall: PresentationCallImpl?
     private var pendingDisconnedUpgradedConferenceCallTimer: Foundation.Timer?
@@ -839,9 +839,9 @@ private var messagesContext: GroupCallMessagesContext? {
     public var messagesState: Signal<GroupCallMessagesContext.State, NoError> {
         return self.messagesStatePromise.get()
     }
-
+    
     private var lastErrorAlertTimestamp: Double = 0.0
-
+    
     public init(
         accountContext: AccountContext,
         audioSession: ManagedAudioSession,
@@ -871,7 +871,7 @@ private var messagesContext: GroupCallMessagesContext? {
         self.initialCall = initialCall
         self.currentReference = initialCall?.reference
         self.callId = initialCall?.description.id
-
+        
         self.internalId = internalId
         self.peerId = peerId
         self.isChannel = isChannel
@@ -894,7 +894,7 @@ private var messagesContext: GroupCallMessagesContext? {
         self.isConference = isConference
         self.beginWithVideo = beginWithVideo
         self.keyPair = keyPair
-
+        
         if let unmuteByDefault {
             if unmuteByDefault {
                 self.isMutedValue = .unmuted
@@ -935,11 +935,11 @@ if let initialCall {
             if let data = accountContext.currentAppConfiguration.with({ $0 }).data, let value = data["group_call_message_ttl"] as? Double {
                 messageLifetime = Int32(value)
             }
-
+            
             if streamPeerId != nil {
                 messageLifetime = Int32.max
             }
-
+            
             self.messagesContext = accountContext.engine.messages.groupCallMessages(
                 appConfig: accountContext.currentAppConfiguration.with({ $0 }),
                 callId: initialCall.description.id,
@@ -950,7 +950,7 @@ if let initialCall {
             )
             self.messagesStatePromise.set(self.messagesContext!.state)
         }
-
+        
         var sharedAudioContext = sharedAudioContext
         if sharedAudioContext == nil {
             var useSharedAudio = true
@@ -966,23 +966,23 @@ if let initialCall {
 if isStream {
                 useSharedAudio = false
             }
-
+            
             if useSharedAudio {
                 let sharedAudioContextValue = SharedCallAudioContext.get(audioSession: audioSession, callKitIntegration: callKitIntegration, defaultToSpeaker: true, reuseCurrent: canReuseCurrent && callKitIntegration == nil, enableMicrophone: !isStream)
                 sharedAudioContext = sharedAudioContextValue
             }
         }
-
+        
         self.sharedAudioContext = sharedAudioContext
-
+        
         if self.sharedAudioContext == nil && !accountContext.sharedContext.immediateExperimentalUISettings.liveStreamV2 {
             var didReceiveAudioOutputs = false
-
+            
             if !audioSession.getIsHeadsetPluggedIn() {
                 self.currentSelectedAudioOutputValue = .speaker
                 self.audioOutputStatePromise.set(.single(([], .speaker)))
             }
-
+            
             self.audioSessionDisposable = audioSession.push(audioSessionType: self.isStream ? .play(mixWithOthers: false) : .voiceCall, activateImmediately: true, manualActivate: { [weak self] control in
                 Queue.mainQueue().async {
                     if let self {
@@ -995,7 +995,7 @@ if isStream {
                         if let self {
                             self.updateIsAudioSessionActive(false)
                             self.updateSessionState(internalState: self.internalState, audioSessionControl: nil)
-
+                            
                             if self.isStream {
                                 let _ = self.leave(terminateIfPossible: false)
                             }
@@ -1010,7 +1010,7 @@ if isStream {
                         return
                     }
                     self.audioOutputStateValue = (availableOutputs, currentOutput)
-
+                    
                     var signal: Signal<([AudioSessionOutput], AudioSessionOutput?), NoError> = .single((availableOutputs, currentOutput))
                     if !didReceiveAudioOutputs {
                         didReceiveAudioOutputs = true
@@ -1025,7 +1025,7 @@ if isStream {
                     self.audioOutputStatePromise.set(signal)
                 }
             })
-
+            
             self.audioSessionShouldBeActiveDisposable = (self.audioSessionShouldBeActive.get()
             |> deliverOnMainQueue).start(next: { [weak self] value in
                 guard let self else {
@@ -1058,7 +1058,7 @@ if isStream {
                     self.audioSessionActive.set(.single(false))
                 }
             })
-
+            
             if self.sharedAudioContext == nil {
                 self.audioSessionActiveDisposable = (self.audioSessionActive.get()
                 |> deliverOnMainQueue).start(next: { [weak self] value in
@@ -1066,7 +1066,7 @@ if isStream {
                         self.updateIsAudioSessionActive(value)
                     }
                 })
-
+                
                 self.audioOutputStateDisposable = (self.audioOutputStatePromise.get()
                 |> deliverOnMainQueue).start(next: { [weak self] availableOutputs, currentOutput in
                     guard let self else {
@@ -1212,9 +1212,9 @@ if isStream {
         if let data = self.accountContext.currentAppConfiguration.with({ $0 }).data, let value = data["ios_use_inprocess_screencast"] as? Double {
             useIPCContext = value != 0.0
         }
-
+        
         let embeddedBroadcastImplementationTypePath = self.accountContext.sharedContext.basePath + "/broadcast-coordination-type-v2"
-
+        
         let screencastIPCContext: ScreencastIPCContext
         if useIPCContext {
             screencastIPCContext = ScreencastEmbeddedIPCContext(basePath: self.accountContext.sharedContext.basePath)
@@ -1224,7 +1224,7 @@ if isStream {
             let _ = try? "legacy".write(toFile: embeddedBroadcastImplementationTypePath, atomically: true, encoding: .utf8)
         }
         self.screencastIPCContext = screencastIPCContext
-
+        
         self.screencastStateDisposable = (screencastIPCContext.isActive
         |> distinctUntilChanged
         |> deliverOnMainQueue).start(next: { [weak self] isActive in
@@ -1244,7 +1244,7 @@ if isStream {
             }
             strongSelf.screencastBufferClientContext = IpcGroupCallBufferBroadcastContext(basePath: basePath)
         })*/
-
+        
         if beginWithVideo {
             self.requestVideo()
         }
@@ -1275,7 +1275,7 @@ if isStream {
         self.memberEventsPipeDisposable.dispose()
         self.hasActiveIncomingDataDisposable?.dispose()
         self.hasActiveIncomingDataTimer?.invalidate()
-
+        
         self.myAudioLevelTimer?.invalidate()
         self.typingDisposable.dispose()
         
@@ -1823,19 +1823,19 @@ if isStream {
                     if let data = appConfiguration.data, let value = data["voice_chat_send_bitrate"] as? Double {
                         outgoingAudioBitrateKbit = Int32(value)
                     }
-
+                    
                     let contextAudioSessionActive: Signal<Bool, NoError>
                     if self.sharedAudioContext != nil {
                         contextAudioSessionActive = .single(true)
                     } else {
                         contextAudioSessionActive = self.audioSessionActive.get()
                     }
-
+                    
                     var audioIsActiveByDefault = true
                     if self.isConference && self.conferenceSourceId != nil {
                         audioIsActiveByDefault = false
                     }
-
+                    
                     var encryptionContext: OngoingGroupCallEncryptionContext?
                     if let e2eContext = self.e2eContext {
                         encryptionContext = OngoingGroupCallEncryptionContextImpl(e2eCall: e2eContext.state, channelId: 0)
@@ -1843,7 +1843,7 @@ if isStream {
                         // Prevent non-encrypted conference calls
                         encryptionContext = OngoingGroupCallEncryptionContextImpl(e2eCall: Atomic(value: ConferenceCallE2EContext.ContextStateHolder()), channelId: 0)
                     }
-
+                    
                     var prioritizeVP8 = false
                     #if DEBUG && false
                     prioritizeVP8 = "".isEmpty
@@ -1878,7 +1878,7 @@ if isStream {
                             self.onMutedSpeechActivityDetected?(value)
                         }
                     }, isConference: self.isConference, audioIsActiveByDefault: audioIsActiveByDefault, isStream: self.isStream, sharedAudioDevice: self.sharedAudioContext?.audioDevice, encryptionContext: encryptionContext))
-
+                    
                     let isEffectivelyMuted: Bool
                     switch self.isMutedValue {
                     case let .muted(isPushToTalkActive):
@@ -1891,7 +1891,7 @@ if isStream {
 
                 self.genericCallContext = genericCallContext
                 self.stateVersionValue += 1
-
+                
                 let isEffectivelyMuted: Bool
                 switch self.isMutedValue {
                 case let .muted(isPushToTalkActive):
@@ -1900,14 +1900,14 @@ if isStream {
                     isEffectivelyMuted = false
                 }
                 genericCallContext.setIsMuted(isEffectivelyMuted)
-
+                
                 genericCallContext.setRequestedVideoChannels(self.suspendVideoChannelRequests ? [] : self.requestedVideoChannels)
                 self.connectPendingVideoSubscribers()
-
+                
                 if let videoCapturer = self.videoCapturer {
                     genericCallContext.requestVideo(videoCapturer)
                 }
-
+                
                 if case let .call(callContext) = genericCallContext {
                     var lastTimestamp: Double?
                     self.hasActiveIncomingDataDisposable?.dispose()
@@ -1919,10 +1919,10 @@ if isStream {
                         }
                         lastTimestamp = CFAbsoluteTimeGetCurrent()
                         self.hasActiveIncomingDataValue = true
-
+                        
                         self.activateIncomingAudioIfNeeded()
                     })
-
+                    
                     self.hasActiveIncomingDataTimer?.invalidate()
                     self.hasActiveIncomingDataTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true, block: { [weak self] _ in
                         guard let self else {
@@ -1935,7 +1935,7 @@ if isStream {
                             }
                         }
                     })
-
+                    
                     self.signalBarsPromise.set(callContext.signalBars)
                 }
             }
@@ -1965,7 +1965,7 @@ if isStream {
                                 subscriber.putCompletion()
                                 return EmptyDisposable
                             }
-
+                            
                             let (disposable, _) = self.accountContext.peerChannelMemberCategoriesContextsManager.admins(engine: self.accountContext.engine, postbox: self.accountContext.account.postbox, network: self.accountContext.account.network, accountPeerId: self.accountContext.account.peerId, peerId: peerId, updated: { list in
                                 var peerIds = Set<PeerId>()
                                 for item in list.list {
@@ -2001,7 +2001,7 @@ if isStream {
                 } else {
                     peerAdminIds = .single([])
                 }
-
+                
                 var generateE2EData: ((Data?) -> JoinGroupCallE2E?)?
                 if let keyPair = self.keyPair {
                     if let mappedKeyPair = TdKeyPair(keyId: keyPair.id, publicKey: keyPair.publicKey.data) {
@@ -2027,14 +2027,14 @@ if isStream {
                         }
                     }
                 }
-
+                
                 let reference: InternalGroupCallReference
                 if let initialCall = self.initialCall {
                     reference = initialCall.reference
                 } else {
                     reference = .id(id: callInfo.id, accessHash: callInfo.accessHash)
                 }
-
+                
                 let isEffectivelyMuted: Bool
                 switch self.isMutedValue {
                 case let .muted(isPushToTalkActive):
@@ -2044,7 +2044,7 @@ if isStream {
                 }
 
                 self.currentLocalSsrc = ssrc
-
+                
                 self.requestDisposable.set((self.accountContext.engine.calls.joinGroupCall(
                     peerId: self.peerId,
                     joinAs: self.joinAsPeerId,
@@ -2062,9 +2062,9 @@ if isStream {
                     guard let self else {
                         return
                     }
-
+                    
                     self.currentReference = .id(id: joinCallResult.callInfo.id, accessHash: joinCallResult.callInfo.accessHash)
-
+                    
                     let clientParams = joinCallResult.jsonParams
                     if let data = clientParams.data(using: .utf8), let dict = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] {
                         if let video = dict["video"] as? [String: Any] {
@@ -2086,7 +2086,7 @@ if isStream {
 
                     if let genericCallContext = self.genericCallContext {
                         let callInfo = joinCallResult.callInfo
-
+                        
                         switch genericCallContext {
                         case let .call(callContext):
                             switch joinCallResult.connectionMode {
@@ -2119,7 +2119,7 @@ if isStream {
                     }
 
                     self.updateSessionState(internalState: .established(info: joinCallResult.callInfo, connectionMode: joinCallResult.connectionMode, clientParams: clientParams, localSsrc: ssrc, initialState: joinCallResult.state), audioSessionControl: self.audioSessionControl)
-
+                    
                     if let e2eState = joinCallResult.e2eState {
                         self.e2eContext?.begin(initialState: e2eState)
                     } else {
@@ -2287,7 +2287,7 @@ if isStream {
                 self.summaryInfoState.set(.single(SummaryInfoState(info: callInfo)))
                 
                 var stateValue = self.stateValue
-
+                
                 stateValue.canManageCall = initialState.isCreator || initialState.adminIds.contains(self.accountContext.account.peerId)
                 if stateValue.canManageCall && initialState.defaultParticipantsAreMuted.canChange {
                     stateValue.defaultParticipantMuteState = initialState.defaultParticipantsAreMuted.isMuted ? .muted : .unmuted
@@ -2303,7 +2303,7 @@ if isStream {
                 }
                 stateValue.defaultSendAs = initialState.defaultSendAs
                 self.stateValue = stateValue
-
+                
                 let accountContext = self.accountContext
                 let peerId = self.peerId
                 let rawAdminIds: Signal<Set<PeerId>, NoError>
@@ -2345,14 +2345,14 @@ if isStream {
                 } else {
                     rawAdminIds = .single(Set())
                 }
-
+                
                 let peer: Signal<EnginePeer?, NoError>
                 if let peerId = peerId ?? self.streamPeerId {
                     peer = accountContext.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
                 } else {
                     peer = .single(nil)
                 }
-
+                
                 let adminIds = combineLatest(queue: .mainQueue(),
                     rawAdminIds,
                     peer
@@ -2385,7 +2385,7 @@ if isStream {
                 } else {
                     reference = .id(id: callInfo.id, accessHash: callInfo.accessHash)
                 }
-
+                
                 let participantsContext = self.accountContext.engine.calls.groupCall(
                     peerId: self.peerId,
                     myPeerId: self.joinAsPeerId,
@@ -2424,16 +2424,16 @@ if isStream {
                 } else {
                     chatPeer = .single(nil)
                 }
-
+                
                 let peerView: Signal<PeerView?, NoError>
                 if let peerId {
                     peerView = accountContext.account.postbox.peerView(id: peerId) |> map(Optional.init)
                 } else {
                     peerView = .single(nil)
                 }
-
+                
                 self.updateLocalVideoState()
-
+                
                 self.participantsContextStateDisposable.set(combineLatest(queue: .mainQueue(),
                     participantsContext.state,
                     participantsContext.activeSpeakers,
@@ -2722,7 +2722,7 @@ if isStream {
                     if didUpdateInvitedPeers {
                         self.invitedPeersValue = updatedInvitedPeers
                     }
-
+                    
                     self.messagesContext?.updateSettings(minMessagePrice: stateValue.sendPaidMessageStars ?? 0)
                 }))
 self.isFailedEventDisposable?.dispose()
@@ -2735,7 +2735,7 @@ self.isFailedEventDisposable?.dispose()
                     }
                     let _ = self.leave(terminateIfPossible: false).startStandalone()
                 })
-
+                
                 let engine = self.accountContext.engine
                 self.memberEventsPipeDisposable.set((participantsContext.memberEvents
                 |> mapToSignal { event -> Signal<PresentationGroupCallMemberEvent, NoError> in
@@ -2787,7 +2787,7 @@ self.isFailedEventDisposable?.dispose()
             }
         }
     }
-
+    
     private func requestMediaChannelDescriptions(ssrcs: Set<UInt32>, completion: @escaping ([OngoingGroupCallContext.MediaChannelDescription]) -> Void) -> Disposable {
         func extractMediaChannelDescriptions(remainingSsrcs: inout Set<UInt32>, participants: [GroupCallParticipantsContext.Participant], into result: inout [OngoingGroupCallContext.MediaChannelDescription]) {
             for participant in participants {
@@ -2947,7 +2947,7 @@ self.isFailedEventDisposable?.dispose()
         if let upgradedConferenceCall = self.upgradedConferenceCall {
             upgradedConferenceCall.internal_markAsCanBeRemoved()
         }
-
+        
         if self.didConnectOnce {
             if let callManager = self.accountContext.sharedContext.callManager {
                 let _ = (callManager.currentGroupCallSignal
@@ -3104,7 +3104,7 @@ self.isFailedEventDisposable?.dispose()
                 }
             })
         }
-
+        
         if isVisuallyMuted {
             self.stateValue.muteState = GroupCallParticipantsContext.Participant.MuteState(canUnmute: true, mutedByYou: false)
         } else {
@@ -3130,7 +3130,7 @@ self.isFailedEventDisposable?.dispose()
         guard let peerId = self.peerId else {
             return
         }
-
+        
         self.schedulePending = false
         self.stateValue.scheduleTimestamp = timestamp
         
@@ -3161,7 +3161,7 @@ self.isFailedEventDisposable?.dispose()
         guard let peerId = self.peerId else {
             return
         }
-
+        
         self.isScheduledStarted = true
         self.stateValue.scheduleTimestamp = nil
         
@@ -3353,7 +3353,7 @@ self.isFailedEventDisposable?.dispose()
     public func addExternalAudioData(data: Data) {
         self.genericCallContext?.addExternalAudioData(data: data)
     }
-
+    
     public func requestVideo() {
         if self.videoCapturer == nil {
             let videoCapturer = OngoingCallVideoCapturer()
@@ -3445,7 +3445,7 @@ self.isFailedEventDisposable?.dispose()
                         return
                     }
                     screencastIPCContext.setJoinResponse(clientParams: joinCallResult.jsonParams)
-
+                    
                 }, error: { _ in
                 }))
             }))
@@ -3455,7 +3455,7 @@ self.isFailedEventDisposable?.dispose()
     public func disableScreencast() {
         self.hasScreencast = false
         self.screencastIPCContext?.disableScreencast(account: self.account)
-
+        
         let maybeCallInfo: GroupCallInfo? = self.internalState.callInfo
 
         if let callInfo = maybeCallInfo {
@@ -3514,11 +3514,11 @@ self.isFailedEventDisposable?.dispose()
             genericCallContext.setRequestedVideoChannels(self.requestedVideoChannels)
         }
     }
-
+    
     public func setSuspendVideoChannelRequests(_ value: Bool) {
         if self.suspendVideoChannelRequests != value {
             self.suspendVideoChannelRequests = value
-
+            
             if let genericCallContext = self.genericCallContext {
                 genericCallContext.setRequestedVideoChannels(self.suspendVideoChannelRequests ? [] : self.requestedVideoChannels)
             }
@@ -3556,7 +3556,7 @@ self.isFailedEventDisposable?.dispose()
         if self.sharedAudioContext != nil {
             return
         }
-
+        
         var shouldMonitorProximity = false
         switch self.currentSelectedAudioOutputValue {
         case .builtin:
@@ -3750,7 +3750,7 @@ self.isFailedEventDisposable?.dispose()
             guard let initialCall = self.initialCall else {
                 return false
             }
-
+            
             if self.conferenceInvitationContexts[peerId] != nil {
                 return false
             }
@@ -3773,17 +3773,17 @@ self.isFailedEventDisposable?.dispose()
                     guard let self else {
                         return
                     }
-
+                    
                     let timestamp = CACurrentMediaTime()
                     if self.lastErrorAlertTimestamp > timestamp - 1.0 {
                         return
                     }
                     self.lastErrorAlertTimestamp = timestamp
-
+                    
                     let presentationData = self.accountContext.sharedContext.currentPresentationData.with({ $0 }).withUpdated(theme: defaultDarkColorPresentationTheme)
-
+                    
                     var errorText = presentationData.strings.Login_UnknownError
-
+                    
                     switch error {
                     case let .privacy(peer):
                         if let peer {
@@ -3800,7 +3800,7 @@ self.isFailedEventDisposable?.dispose()
                     default:
                         break
                     }
-
+                    
                     self.accountContext.sharedContext.mainWindow?.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: nil, text: errorText, actions: [
                         TextAlertAction(type: .genericAction, title: presentationData.strings.Common_OK, action: {})
                     ]), on: .root, blockInteraction: false, completion: {})
@@ -3830,7 +3830,7 @@ self.isFailedEventDisposable?.dispose()
                     }
                     if self.conferenceInvitationContexts[peerId] === invitationContext {
                         self.conferenceInvitationContexts.removeValue(forKey: peerId)
-
+                        
                         if success {
                             if let index = self.invitedPeersValue.firstIndex(where: { $0.id == peerId }) {
                                 var invitedPeer = self.invitedPeersValue[index]
@@ -3843,36 +3843,36 @@ self.isFailedEventDisposable?.dispose()
                     }
                 }
             }
-
+            
             return false
         } else {
             guard let callInfo = self.internalState.callInfo, !self.invitedPeersValue.contains(where: { $0.id == peerId }) else {
                 return false
             }
-
+            
             var updatedInvitedPeers = self.invitedPeersValue
             updatedInvitedPeers.insert(PresentationGroupCallInvitedPeer(id: peerId, state: nil), at: 0)
             self.invitedPeersValue = updatedInvitedPeers
-
+            
             let _ = self.accountContext.engine.calls.inviteToGroupCall(callId: callInfo.id, accessHash: callInfo.accessHash, peerId: peerId).start()
-
+            
             return true
         }
     }
-
+    
     public func kickPeer(id: EnginePeer.Id) {
         if self.isConference {
             self.removedPeer(id)
-
+            
             self.e2eContext?.kickPeer(id: id)
         }
     }
-
+    
     public func removedPeer(_ peerId: PeerId) {
         var updatedInvitedPeers = self.invitedPeersValue
         updatedInvitedPeers.removeAll(where: { $0.id == peerId})
         self.invitedPeersValue = updatedInvitedPeers
-
+        
         if let conferenceInvitationContext = self.conferenceInvitationContexts[peerId] {
             self.conferenceInvitationContexts.removeValue(forKey: peerId)
             if let messageId = conferenceInvitationContext.messageId {
@@ -3917,7 +3917,7 @@ self.isFailedEventDisposable?.dispose()
                     } else {
                         reference = .id(id: callInfo.id, accessHash: callInfo.accessHash)
                     }
-
+                    
                     return engine.calls.groupCallInviteLinks(reference: reference, isConference: isConference)
                 } else {
                     return .complete()
@@ -3927,14 +3927,14 @@ self.isFailedEventDisposable?.dispose()
     }
     
     public var currentInviteLinks: GroupCallInviteLinks?
-
+    
     private var currentMyAudioLevel: Float = 0.0
     private var currentMyAudioLevelTimestamp: Double = 0.0
     private var isSendingTyping: Bool = false
     
     private func restartMyAudioLevelTimer() {
         self.myAudioLevelTimer?.invalidate()
-
+        
         guard let peerId = self.peerId else {
             return
         }
@@ -3989,13 +3989,13 @@ self.isFailedEventDisposable?.dispose()
     public func updateMessagesEnabled(isEnabled: Bool, sendPaidMessageStars: Int64?) {
         self.participantsContext?.updateMessagesEnabled(isEnabled: isEnabled, sendPaidMessageStars: sendPaidMessageStars)
     }
-
+    
     func video(endpointId: String) -> Signal<OngoingGroupCallContext.VideoFrameData, NoError>? {
         return Signal { [weak self] subscriber in
             guard let self else {
                 return EmptyDisposable
             }
-
+            
             if let genericCallContext = self.genericCallContext {
                 return genericCallContext.video(endpointId: endpointId).start(next: { value in
                     subscriber.putNext(value)
@@ -4005,10 +4005,10 @@ self.isFailedEventDisposable?.dispose()
                 let index = self.pendingVideoSubscribers.add((endpointId, disposable, { value in
                     subscriber.putNext(value)
                 }))
-
+                
                 return ActionDisposable { [weak self] in
                     disposable.dispose()
-
+                    
                     Queue.mainQueue().async {
                         guard let self else {
                             return
@@ -4020,15 +4020,15 @@ self.isFailedEventDisposable?.dispose()
         }
         |> runOn(.mainQueue())
     }
-
+    
     private func connectPendingVideoSubscribers() {
         guard let genericCallContext = self.genericCallContext else {
             return
         }
-
+        
         let items = self.pendingVideoSubscribers.copyItems()
         self.pendingVideoSubscribers.removeAll()
-
+        
         for (endpointId, disposable, f) in items {
             disposable.set(genericCallContext.video(endpointId: endpointId).start(next: { value in
                 f(value)
@@ -4059,15 +4059,15 @@ self.isFailedEventDisposable?.dispose()
         }
         |> runOn(.mainQueue())
     }
-
+    
     func moveConferenceCall(source: PresentationCall) {
         guard let source = source as? PresentationCallImpl else {
             return
         }
-
+        
         self.pendingDisconnedUpgradedConferenceCall?.resetAsMovedToConference()
         self.pendingDisconnedUpgradedConferenceCall = source
-
+        
         self.pendingDisconnedUpgradedConferenceCallTimer?.invalidate()
         self.pendingDisconnedUpgradedConferenceCallTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false, block: { [weak self] _ in
             guard let self else {
@@ -4079,37 +4079,37 @@ self.isFailedEventDisposable?.dispose()
             }
         })
     }
-
+    
     public func sendMessage(fromId: PeerId?, isAdmin: Bool, randomId: Int64? = nil, text: String, entities: [MessageTextEntity], paidStars: Int64?) {
         if let messagesContext = self.messagesContext {
             messagesContext.send(fromId: fromId ?? self.joinAsPeerId, isAdmin: isAdmin, randomId: randomId, text: text, entities: entities, paidStars: paidStars)
         }
     }
-
+    
     public func sendStars(fromId: PeerId?, isAdmin: Bool, amount: Int64, delay: Bool) {
         if let messagesContext = self.messagesContext {
             messagesContext.sendStars(fromId: fromId ?? self.joinAsPeerId, isAdmin: isAdmin, amount: amount, delay: delay)
         }
     }
-
+    
     public func cancelSendStars() {
         if let messagesContext = self.messagesContext {
             messagesContext.cancelSendStars()
         }
     }
-
+    
     public func commitSendStars() {
         if let messagesContext = self.messagesContext {
             messagesContext.commitSendStars()
         }
     }
-
+    
     public func deleteMessage(id: GroupCallMessagesContext.Message.Id, reportSpam: Bool) {
         if let messagesContext = self.messagesContext {
             messagesContext.deleteMessage(id: id, reportSpam: reportSpam)
         }
     }
-
+    
     public func deleteAllMessages(authorId: EnginePeer.Id, reportSpam: Bool) {
         if let messagesContext = self.messagesContext {
             messagesContext.deleteAllMessages(authorId: authorId, reportSpam: reportSpam)
@@ -4119,7 +4119,7 @@ self.isFailedEventDisposable?.dispose()
 
 public final class TelegramE2EEncryptionProviderImpl: TelegramE2EEncryptionProvider {
     public static let shared = TelegramE2EEncryptionProviderImpl()
-
+    
     public func generateKeyPair() -> TelegramKeyPair? {
         guard let keyPair = TdKeyPair.generate() else {
             return nil
@@ -4129,7 +4129,7 @@ public final class TelegramE2EEncryptionProviderImpl: TelegramE2EEncryptionProvi
         }
         return TelegramKeyPair(id: keyPair.keyId, publicKey: publicKey)
     }
-
+    
     public func generateCallZeroBlock(keyPair: TelegramKeyPair, userId: Int64) -> Data? {
         guard let keyPair = TdKeyPair(keyId: keyPair.id, publicKey: keyPair.publicKey.data) else {
             return nil

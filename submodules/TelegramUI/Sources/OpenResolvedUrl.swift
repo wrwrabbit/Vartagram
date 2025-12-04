@@ -113,7 +113,7 @@ func openResolvedUrlImpl(
                     }
                 )
             }
-
+        
             var filter: ChatListNodePeersFilter = [.onlyGroupsAndChannels, .onlyManageable, .excludeDisabled, .excludeRecent, .doNotSearchMessages]
             var title: String = presentationData.strings.Bot_AddToChat_Title
             switch peerType {
@@ -308,7 +308,7 @@ func openResolvedUrlImpl(
             navigationController?.pushViewController(browserController)
         case let .join(link):
             dismissInput()
-
+        
             if let progress {
                 let progressSignal = Signal<Never, NoError> { subscriber in
                     progress.set(.single(true))
@@ -321,7 +321,7 @@ func openResolvedUrlImpl(
                 |> runOn(Queue.mainQueue())
                 |> delay(0.1, queue: Queue.mainQueue())
                 let progressDisposable = progressSignal.startStrict()
-
+                
                 var signal = context.engine.peers.joinLinkInformation(link)
                 signal = signal
                 |> afterDisposed {
@@ -329,7 +329,7 @@ func openResolvedUrlImpl(
                         progressDisposable.dispose()
                     }
                 }
-
+            
                 let _ = (signal
                 |> deliverOnMainQueue).startStandalone(next: { [weak navigationController] resolvedState in
                     switch resolvedState {
@@ -346,7 +346,7 @@ func openResolvedUrlImpl(
                             }
                             let channel = TelegramChannel(id: PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(0)), accessHash: .genericPublic(0), title: invite.title, username: nil, photo: photo, creationDate: 0, version: 0, participationStatus: .left, info: .broadcast(TelegramChannelBroadcastInfo(flags: [])), flags: [], restrictionInfo: nil, adminRights: nil, bannedRights: nil, defaultBannedRights: nil, usernames: [], storiesHidden: nil, nameColor: invite.nameColor, backgroundEmojiId: nil, profileColor: nil, profileBackgroundEmojiId: nil, emojiStatus: nil, approximateBoostLevel: nil, subscriptionUntilDate: nil, verificationIconFileId: nil, sendPaidMessageStars: nil, linkedMonoforumId: nil)
                             let invoice = TelegramMediaInvoice(title: "", description: "", photo: nil, receiptMessageId: nil, currency: "XTR", totalAmount: subscriptionPricing.amount.value, startParam: "", extendedMedia: nil, subscriptionPeriod: nil, flags: [], version: 0)
-
+                            
                             inputData.set(.single(BotCheckoutController.InputData(
                                 form: BotPaymentForm(
                                     id: subscriptionFormId,
@@ -364,7 +364,7 @@ func openResolvedUrlImpl(
                                 validatedFormInfo: nil,
                                 botPeer: EnginePeer(channel)
                             )))
-
+                            
                             let starsInputData = combineLatest(
                                 inputData.get(),
                                 starsContext.state
@@ -415,7 +415,7 @@ func openResolvedUrlImpl(
             }
         case let .joinCall(link):
             dismissInput()
-
+        
             let progressSignal = Signal<Never, NoError> { subscriber in
                 progress?.set(.single(true))
                 return ActionDisposable {
@@ -427,7 +427,7 @@ func openResolvedUrlImpl(
             |> runOn(Queue.mainQueue())
             |> delay(0.1, queue: Queue.mainQueue())
             let progressDisposable = progressSignal.startStrict()
-
+            
             var signal = context.engine.peers.joinCallLinkInformation(link)
             signal = signal
             |> afterDisposed {
@@ -435,18 +435,18 @@ func openResolvedUrlImpl(
                     progressDisposable.dispose()
                 }
             }
-
+        
             let _ = (signal
             |> deliverOnMainQueue).startStandalone(next: { [weak navigationController] resolvedCallLink in
                 let _ = (context.engine.calls.getGroupCallPersistentSettings(callId: resolvedCallLink.id)
                 |> deliverOnMainQueue).startStandalone(next: { value in
                     let value: PresentationGroupCallPersistentSettings = value?.get(PresentationGroupCallPersistentSettings.self) ?? PresentationGroupCallPersistentSettings.default
-
+                    
                     if let currentGroupCallController = context.sharedContext.currentGroupCallController as? VoiceChatController, case let .group(groupCall) = currentGroupCallController.call, let currentCallId = groupCall.callId, currentCallId == resolvedCallLink.id {
                         context.sharedContext.navigateToCurrentCall()
                         return
                     }
-
+                    
                     navigationController?.pushViewController(context.sharedContext.makeJoinSubjectScreen(context: context, mode: JoinSubjectScreenMode.groupCall(JoinSubjectScreenMode.GroupCall(
                         id: resolvedCallLink.id,
                         accessHash: resolvedCallLink.accessHash,
@@ -546,7 +546,7 @@ func openResolvedUrlImpl(
                     } else {
                         chatController = .single(ChatControllerImpl(context: context, chatLocation: .peer(id: peerId)))
                     }
-
+                    
                     let _ = (chatController
                     |> deliverOnMainQueue).start(next: { [weak navigationController] chatController in
                         guard let navigationController else {
@@ -562,7 +562,7 @@ func openResolvedUrlImpl(
                         navigationController.setViewControllers(controllers, animated: true)
                     })
                 }
-
+                
                 if let textInputState = textInputState {
                     let _ = (ChatInterfaceState.update(engine: context.engine, peerId: peerId, threadId: threadId, { currentState in
                         return currentState.withUpdatedComposeInputState(textInputState)
@@ -935,17 +935,17 @@ func openResolvedUrlImpl(
             }
         case let .shareStory(sessionId):
             dismissInput()
-
+        
             let rootPath = context.sharedContext.applicationBindings.containerPath + "/telegram-data"
             let storiesPath = rootPath + "/share/stories/\(sessionId)"
-
+        
             var filePaths: [String] = []
             do {
                 let directoryContents = try FileManager.default.contentsOfDirectory(atPath: storiesPath)
-
+                
                 for item in directoryContents {
                     let fullPath = storiesPath + "/" + item
-
+                    
                     var isDirectory: ObjCBool = false
                     if FileManager.default.fileExists(atPath: fullPath, isDirectory: &isDirectory) && !isDirectory.boolValue {
                         filePaths.append(fullPath)
@@ -961,7 +961,7 @@ func openResolvedUrlImpl(
                 }
             } catch {
             }
-
+        
             func subject(for path: String) -> MediaEditorScreenImpl.Subject? {
                 if path.hasSuffix(".jpg") {
                     if let image = UIImage(contentsOfFile: path)?.fixedOrientation() {
@@ -977,7 +977,7 @@ func openResolvedUrlImpl(
                 }
                 return nil
             }
-
+    
             var source: Any?
             if filePaths.count > 1 {
                 var subjects: [MediaEditorScreenImpl.Subject] = []
@@ -992,7 +992,7 @@ func openResolvedUrlImpl(
                     source = subject
                 }
             }
-
+        
             if let navigationController = context.sharedContext.mainWindow?.viewController as? NavigationController {
                 for controller in navigationController.overlayControllers {
                     controller.dismiss()
@@ -1001,14 +1001,14 @@ func openResolvedUrlImpl(
                     controller.dismiss()
                 }
             }
-
+        
             let _ = (context.engine.messages.checkStoriesUploadAvailability(target: .myStories)
             |> deliverOnMainQueue).start(next: { availability in
                 if case let .available(remainingCount) = availability {
                     let controller = context.sharedContext.makeStoryMediaEditorScreen(context: context, source: source, text: nil, link: nil, remainingCount: remainingCount, completion: { results, externalState, commit in
                         let target: Stories.PendingTarget = results.first!.target
                         externalState.storyTarget = target
-
+                        
                         if let rootController = context.sharedContext.mainWindow?.viewController as? TelegramRootControllerInterface {
                             rootController.popToRoot(animated: false)
                             rootController.proceedWithStoryUpload(target: target, results: results, existingMedia: nil, forwardInfo: nil, externalState: externalState, commit: commit)
@@ -1207,7 +1207,7 @@ func openResolvedUrlImpl(
                              guard let strongSelf = self, let receiptMessageId = receiptMessageId else {
                              return false
                              }
-
+                             
                              if case .info = action {
                              strongSelf.present(BotReceiptController(context: strongSelf.context, messageId: receiptMessageId), in: .window(.root), with: ViewControllerPresentationArguments(presentationAnimation: .modalSheet))
                              return true
@@ -1314,7 +1314,7 @@ func openResolvedUrlImpl(
                     updateExternalController(nil)
                 }
             }
-
+        
             if let peerId, let status {
                 var isCurrent = false
                 if case let .chat(chatPeerId, _, _) = urlContext, chatPeerId == peerId {
@@ -1339,18 +1339,18 @@ func openResolvedUrlImpl(
                     dismissedImpl?()
                 }
                 navigationController?.pushViewController(controller)
-
+                
                 if let storyProgressPauseContext = contentContext as? StoryProgressPauseContext {
                     storyProgressPauseContext.update(controller)
                 }
             } else {
                 let controller = textAlertController(context: context, updatedPresentationData: updatedPresentationData, title: nil, text: presentationData.strings.Chat_ErrorCantBoost, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
                 present(controller, nil)
-
+                
                 controller.dismissed = { _ in
                     dismissedImpl?()
                 }
-
+                
                 if let storyProgressPauseContext = contentContext as? StoryProgressPauseContext {
                     storyProgressPauseContext.update(controller)
                 }
@@ -1407,7 +1407,7 @@ func openResolvedUrlImpl(
                                 let _ = (context.engine.payments.applyPremiumGiftCode(slug: slug)
                                 |> deliverOnMainQueue).startStandalone(error: { error in
                                     dismissImpl?()
-
+                                    
                                     if case let .waitForExpiration(date) = error {
                                         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                                         let dateText = stringForMediumDate(timestamp: date, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat)
@@ -1495,7 +1495,7 @@ func openResolvedUrlImpl(
                     dismissedImpl?()
                 })
                 navigationController?.pushViewController(controller)
-
+                
                 if let storyProgressPauseContext = contentContext as? StoryProgressPauseContext {
                     storyProgressPauseContext.update(controller)
                 }
@@ -1555,7 +1555,7 @@ func openResolvedUrlImpl(
                 ).get() else {
                     return
                 }
-
+                
                 guard let controller = context.sharedContext.makePeerInfoController(
                     context: context,
                     updatedPresentationData: updatedPresentationData,
@@ -1576,7 +1576,7 @@ func openResolvedUrlImpl(
                 ).get() else {
                     return
                 }
-
+                
                 guard let controller = context.sharedContext.makePeerInfoController(
                     context: context,
                     updatedPresentationData: updatedPresentationData,
@@ -1594,7 +1594,7 @@ func openResolvedUrlImpl(
             Task { @MainActor [weak navigationController] in
                 if let peerId {
                     let giftOptions = await (context.engine.payments.premiumGiftCodeOptions(peerId: nil, onlyCached: true) |> filter { !$0.isEmpty }).get()
-
+                    
                     let premiumOptions = giftOptions.filter { $0.users == 1 }.map { CachedPremiumGiftOption(months: $0.months, currency: $0.currency, amount: $0.amount, botUrl: "", storeProductId: $0.storeProductId) }
                     let controller = context.sharedContext.makeGiftOptionsController(context: context, peerId: peerId, premiumOptions: premiumOptions, hasBirthday: false, completion: nil)
                     controller.navigationPresentation = .modal

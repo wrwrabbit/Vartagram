@@ -386,19 +386,19 @@ public final class ContactsSearchContainerNode: SearchDisplayControllerContentNo
                         foundRemoteContacts: foundRemoteContacts
                     )
                 })
-
+                
                 let peerRequiresPremiumForMessaging: Signal<[EnginePeer.Id: Bool], NoError>
                 if onlyWriteable {
                     peerRequiresPremiumForMessaging = foundPeers.get()
                     |> map { foundPeers -> Set<EnginePeer.Id> in
                         var result = Set<EnginePeer.Id>()
-
+                        
                         for peer in foundPeers.foundLocalContacts.0 {
                             if case let .user(user) = peer, user.flags.contains(.requirePremium) {
                                 result.insert(user.id)
                             }
                         }
-
+                        
                         if let foundRemoteContacts = foundPeers.foundRemoteContacts {
                             for peer in foundRemoteContacts.0 {
                                 if let user = peer.peer as? TelegramUser, user.flags.contains(.requirePremium) {
@@ -411,7 +411,7 @@ public final class ContactsSearchContainerNode: SearchDisplayControllerContentNo
                                 }
                             }
                         }
-
+                        
                         return result
                     }
                     |> distinctUntilChanged
@@ -425,17 +425,17 @@ public final class ContactsSearchContainerNode: SearchDisplayControllerContentNo
                 } else {
                     peerRequiresPremiumForMessaging = .single([:])
                 }
-
+                
                 return combineLatest(foundPeers.get(), peerRequiresPremiumForMessaging, foundDeviceContacts, themeAndStringsPromise.get())
                 |> delay(0.1, queue: Queue.concurrentDefaultQueue())
                 |> map { foundPeers, peerRequiresPremiumForMessaging, deviceContacts, themeAndStrings -> ([ContactListSearchEntry], String) in
                     let localPeersAndPresences = foundPeers.foundLocalContacts
                     let remotePeers = foundPeers.foundRemoteContacts
-
+                    
                     if !peerRequiresPremiumForMessaging.isEmpty {
                         context.account.viewTracker.refreshCanSendMessagesForPeerIds(peerIds: Array(peerRequiresPremiumForMessaging.keys))
                     }
-
+                    
                     let _ = previousFoundRemoteContacts.swap(remotePeers)
                     
                     var entries: [ContactListSearchEntry] = []
@@ -477,7 +477,7 @@ public final class ContactsSearchContainerNode: SearchDisplayControllerContentNo
                                 }
                             }
                         }
-
+                        
                         existingPeerIds.insert(peer.id)
                         var enabled = true
                         var requiresPremiumForMessaging = false
@@ -516,7 +516,7 @@ public final class ContactsSearchContainerNode: SearchDisplayControllerContentNo
                                     }
                                 }
                             }
-
+                            
                             if !existingPeerIds.contains(peer.peer.id) {
                                 existingPeerIds.insert(peer.peer.id)
                                 
@@ -544,7 +544,7 @@ public final class ContactsSearchContainerNode: SearchDisplayControllerContentNo
                                     continue
                                 }
                             }
-
+                            
                             if let user = peer.peer as? TelegramUser, requirePhoneNumbers {
                                 let phone = user.phone ?? ""
                                 if phone.isEmpty {

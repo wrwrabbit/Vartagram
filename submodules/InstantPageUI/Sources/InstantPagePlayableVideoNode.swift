@@ -178,7 +178,7 @@ final class InstantPagePlayableVideoNode: ASDisplayNode, InstantPageNode, Galler
             }
         }
     }
-
+    
     func scrubberTransition() -> GalleryItemScrubberTransition? {
         return nil
     }

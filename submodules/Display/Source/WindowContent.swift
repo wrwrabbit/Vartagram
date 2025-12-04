@@ -162,7 +162,7 @@ public final class WindowHostView {
     let updateDeferScreenEdgeGestures: (UIRectEdge) -> Void
     let updatePrefersOnScreenNavigationHidden: (Bool) -> Void
     let updateStatusBar: (UIStatusBarStyle, Bool, ContainedViewLayoutTransition) -> Void
-
+    
     var present: ((ContainableController, PresentationSurfaceLevel, Bool, @escaping () -> Void) -> Void)?
     var presentInGlobalOverlay: ((_ controller: ContainableController) -> Void)?
     var addGlobalPortalHostViewImpl: ((PortalSourceView) -> Void)?
@@ -352,7 +352,7 @@ public class Window1 {
         self.badgeView = UIImageView()
         self.badgeView.image = UIImage(bundleImageName: "Components/AppBadge")
         self.badgeView.isHidden = true
-
+        
         self.systemUserInterfaceStyle = hostView.systemUserInterfaceStyle
         
         let boundsSize = self.hostView.eventView.bounds.size
@@ -401,7 +401,7 @@ public class Window1 {
         self.presentationContext.updateStatusBar = { [weak self] transition in
             self?.updateStatusBar(transition: transition)
         }
-
+        
         let updateOpaqueOverlays: () -> Void = { [weak self] in
             guard let strongSelf = self else {
                 return
@@ -417,7 +417,7 @@ public class Window1 {
         self.topPresentationContext.updateStatusBar = { [weak self] transition in
             self?.updateStatusBar(transition: transition)
         }
-
+        
         self.hostView.present = { [weak self] controller, level, blockInteraction, completion in
             self?.present(controller, on: level, blockInteraction: blockInteraction, completion: completion)
         }
@@ -488,7 +488,7 @@ public class Window1 {
                 strongSelf.updateLayout { $0.update(statusBarHeight: statusBarHeight, transition: transition, overrideTransition: false) }
             }
         })*/
-
+        
         self.keyboardRotationChangeObserver = NotificationCenter.default.addObserver(forName: NSNotification.Name("UITextEffectsWindowDidRotateNotification"), object: nil, queue: nil, using: { [weak self] notification in
             if let strongSelf = self {
                 if !strongSelf.hostView.isUpdatingOrientationLayout {
@@ -935,7 +935,7 @@ public class Window1 {
                         self?.inCallNavigate?()
                     }
                 }
-
+                
                 self.hostView.containerView.insertSubview(rootController.view, at: 0)
                 if !self.windowLayout.size.width.isZero && !self.windowLayout.size.height.isZero {
                     rootController.displayNode.frame = CGRect(origin: CGPoint(), size: self.windowLayout.size)
@@ -1023,26 +1023,26 @@ public class Window1 {
     private func updateStatusBar(transition: ContainedViewLayoutTransition) {
         var style: UIStatusBarStyle = .default
         var isHidden = false
-
+        
         if let rootController = self._rootController as? NavigationController {
             let statusBar = rootController.statusBar
             style = statusBar.style
             isHidden = statusBar.isHidden
         }
-
+        
         if let statusBar = self.presentationContext.statusBar {
             style = statusBar.style
             isHidden = statusBar.isHidden
         }
-
+        
         if let statusBar = self.topPresentationContext.statusBar {
             style = statusBar.style
             isHidden = statusBar.isHidden
         }
-
+        
         self.hostView.updateStatusBar(style, isHidden, transition)
     }
-
+    
     private func layoutSubviews(force: Bool) {
         if self.tracingStatusBarsInvalidated, let _ = keyboardManager {
             self.tracingStatusBarsInvalidated = false
@@ -1541,18 +1541,18 @@ private class CustomDimController: ViewController {
     class Node: ASDisplayNode {
         override init() {
             super.init()
-
+            
             self.backgroundColor = .black
         }
     }
     override init(navigationBarPresentationData: NavigationBarPresentationData?) {
         super.init(navigationBarPresentationData: nil)
     }
-
+    
     required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func loadDisplayNode() {
         let node = Node()
         self.displayNode = node

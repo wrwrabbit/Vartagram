@@ -148,45 +148,45 @@ protocol MKMapViewDelegateTarget: AnyObject {
 
 private final class MKMapViewDelegateImpl: NSObject, MKMapViewDelegate {
     private weak var target: MKMapViewDelegateTarget?
-
+    
     init(target: MKMapViewDelegateTarget) {
         self.target = target
-
+        
         super.init()
     }
-
+    
     func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
         self.target?.mapView(mapView, regionWillChangeAnimated: animated)
     }
-
+    
     func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
         self.target?.mapView(mapView, regionDidChangeAnimated: animated)
     }
-
+    
     func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
         self.target?.mapView(mapView, didUpdate: userLocation)
     }
-
+    
     func mapView(_ mapView: MKMapView, didFailToLocateUserWithError error: Error) {
         self.target?.mapView(mapView, didFailToLocateUserWithError: error)
     }
-
+    
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
         return self.target?.mapView(mapView, viewFor: annotation)
     }
-
+    
     func mapView(_ mapView: MKMapView, didAdd views: [MKAnnotationView]) {
         self.target?.mapView(mapView, didAdd: views)
     }
-
+    
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
         self.target?.mapView(mapView, didSelect: view)
     }
-
+    
     func mapView(_ mapView: MKMapView, didDeselect view: MKAnnotationView) {
         self.target?.mapView(mapView, didDeselect: view)
     }
-
+    
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
         return self.target?.mapView(mapView, rendererFor: overlay) ?? MKOverlayRenderer()
     }
@@ -194,11 +194,11 @@ private final class MKMapViewDelegateImpl: NSObject, MKMapViewDelegate {
 
 public final class LocationMapNode: ASDisplayNode, MKMapViewDelegateTarget {
     private var delegateImpl: MKMapViewDelegateImpl?
-
+    
     public static let defaultMapSpan = MKCoordinateSpan(latitudeDelta: 0.016, longitudeDelta: 0.016)
     public static let viewMapSpan = MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008)
     public static let globalMapSpan = MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
-
+    
     class ProximityCircleRenderer: MKCircleRenderer {
         override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
             super.draw(mapRect, zoomScale: zoomScale, in: context)
@@ -228,7 +228,7 @@ public final class LocationMapNode: ASDisplayNode, MKMapViewDelegateTarget {
     private weak var userLocationAnnotationView: MKAnnotationView?
     private var headingArrowView: UIImageView?
     private var compassView: MKCompassButton?
-
+    
     private weak var defaultUserLocationAnnotation: MKAnnotation?
     
     private let pinDisposable = MetaDisposable()
@@ -318,7 +318,7 @@ public final class LocationMapNode: ASDisplayNode, MKMapViewDelegateTarget {
         guard let mapView = self.mapView else {
             return
         }
-
+        
         self.headingArrowView = UIImageView()
         self.headingArrowView?.frame = CGRect(origin: CGPoint(), size: CGSize(width: 88.0, height: 88.0))
         self.headingArrowView?.image = generateHeadingArrowImage()
@@ -337,12 +337,12 @@ public final class LocationMapNode: ASDisplayNode, MKMapViewDelegateTarget {
         
         let delegateImpl = MKMapViewDelegateImpl(target: self)
         self.delegateImpl = delegateImpl
-
+        
         let compassView = MKCompassButton(mapView: mapView)
         compassView.isUserInteractionEnabled = true
         self.compassView = compassView
         mapView.addSubview(compassView)
-
+        
         mapView.delegate = delegateImpl
         mapView.mapType = self.mapMode.mapType
         mapView.isRotateEnabled = self.isRotateEnabled
@@ -402,14 +402,14 @@ public final class LocationMapNode: ASDisplayNode, MKMapViewDelegateTarget {
     var mapOffset: CGFloat = 0.0
     var hasValidLayout: Bool = false
     var pendingSetMapCenter: (coordinate: CLLocationCoordinate2D, span: MKCoordinateSpan, offset: CGPoint, isUserLocation: Bool, hidePicker: Bool, animated: Bool)?
-
+    
     public func setMapCenter(coordinate: CLLocationCoordinate2D, radius: Double, insets: UIEdgeInsets, offset: CGFloat, animated: Bool = false) {
         self.mapOffset = offset
         self.ignoreRegionChanges = true
         
         var insets = insets
         insets.top += self.topPadding
-
+        
         let mapRect = MKMapRect(region: MKCoordinateRegion(center: coordinate, latitudinalMeters: radius * 2.0, longitudinalMeters: radius * 2.0))
         self.mapView?.setVisibleMapRect(mapRect, edgePadding: insets, animated: animated)
         self.ignoreRegionChanges = false
@@ -421,12 +421,12 @@ public final class LocationMapNode: ASDisplayNode, MKMapViewDelegateTarget {
         self.pendingSetMapCenter = (
             coordinate, span, offset, isUserLocation, hidePicker, animated
         )
-
+        
         if self.hasValidLayout {
             self.applyPendingSetMapCenter()
         }
     }
-
+    
     private func applyPendingSetMapCenter() {
         if !self.hasValidLayout {
             return
@@ -435,7 +435,7 @@ public final class LocationMapNode: ASDisplayNode, MKMapViewDelegateTarget {
             return
         }
         self.pendingSetMapCenter = nil
-
+        
         let region = MKCoordinateRegion(center: coordinate, span: span)
         self.ignoreRegionChanges = true
         if offset == CGPoint() && self.topPadding == 0.0 {
@@ -863,19 +863,19 @@ public final class LocationMapNode: ASDisplayNode, MKMapViewDelegateTarget {
     
     public func updateLayout(size: CGSize, topPadding: CGFloat, inset: CGFloat, transition: ContainedViewLayoutTransition) {
         self.hasValidLayout = true
-
+        
         self.topPadding = topPadding
-
+        
         self.proximityDimView.frame = CGRect(origin: CGPoint(x: 0.0, y: self.topPadding + self.mapOffset), size: size)
         self.pickerAnnotationContainerView.frame = CGRect(x: 0.0, y: floorToScreenPixels((size.height - size.width) / 2.0), width: size.width, height: size.width)
         if let pickerAnnotationView = self.pickerAnnotationView {
             pickerAnnotationView.center = CGPoint(x: self.pickerAnnotationContainerView.frame.width / 2.0, y: self.pickerAnnotationContainerView.frame.height / 2.0)
         }
-
+        
         if let compassView = self.compassView {
             transition.updateFrame(view: compassView, frame:  CGRect(origin: CGPoint(x: size.width - compassView.frame.width - 11.0, y: inset + 110.0 + topPadding), size: compassView.frame.size))
         }
-
+        
         self.applyPendingSetMapCenter()
     }
 }

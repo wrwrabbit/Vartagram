@@ -72,7 +72,7 @@ public final class SharedWakeupManager {
     private var managedPausedInBackgroundPlayer: Disposable?
     private var keepIdleDisposable: Disposable?
     private var silenceAudioRenderer: MediaPlayerAudioRenderer?
-
+    
     private var accountsAndTasks: [(Account, Bool, AccountTasks)] = []
     
     private var activeBGTaskSchedulerTasks: Set<String> = []
@@ -163,7 +163,7 @@ public final class SharedWakeupManager {
                     }
                 }
                 |> distinctUntilChanged
-
+                
                 let keepUpdatesForCalls = combineLatest(queue: .mainQueue(), hasActiveCalls, hasActiveGroupCalls)
                 |> map { hasActiveCalls, hasActiveGroupCalls -> Bool in
                     return hasActiveCalls || hasActiveGroupCalls
@@ -447,7 +447,7 @@ public final class SharedWakeupManager {
                 keepIdleDisposable.dispose()
             }
         }
-
+        
         if !self.inForeground && hasPendingMessages && !self.hasActiveAudioSession {
             if self.silenceAudioRenderer == nil {
                 let audioSession = AVAudioSession()
@@ -457,7 +457,7 @@ public final class SharedWakeupManager {
                     audioSession: .custom({ control in
                         let _ = try? audioSession.setActive(true)
                         control.activate()
-
+                        
                         return EmptyDisposable
                     }),
                     forAudioVideoMessage: false,

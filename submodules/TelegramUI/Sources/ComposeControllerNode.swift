@@ -24,7 +24,7 @@ final class ComposeControllerNode: ASDisplayNode {
     var requestDeactivateSearch: (() -> Void)?
     var requestOpenPeerFromSearch: ((PeerId) -> Void)?
     var requestOpenDisabledPeerFromSearch: ((EnginePeer, ChatListDisabledPeerReason) -> Void)?
-
+    
     var openCreateNewGroup: (() -> Void)?
     var openCreateNewSecretChat: (() -> Void)?
     var openCreateContact: (() -> Void)?

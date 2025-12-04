@@ -44,7 +44,7 @@ private enum PasscodeOptionsEntry: ItemListNodeEntry {
     
     case autoLock(PresentationTheme, String, String)
     case touchId(PresentationTheme, String, Bool)
-
+    
     var section: ItemListSectionId {
         switch self {
             case .togglePasscode, .changePasscode, .settingInfo:

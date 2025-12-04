@@ -433,7 +433,7 @@ func managedUniqueStarGifts(accountPeerId: PeerId, postbox: Postbox, network: Ne
                 |> map { ($0, 0) }
             case let .emojiStatuses(hash, statuses):
                 let parsedStatuses = statuses.compactMap(PeerEmojiStatus.init(apiStatus:))
-
+                
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: parsedStatuses.flatMap(\.associatedFileIds))
                 |> map { files -> [OrderedItemListEntry] in
                     var items: [OrderedItemListEntry] = []
@@ -770,7 +770,7 @@ func managedDefaultTagReactions(postbox: Postbox, network: Network) -> Signal<Vo
                 |> map { ($0, hash) }
             case let .reactions(_, reactions):
                 let parsedReactions = reactions.compactMap(MessageReaction.Reaction.init(apiReaction:))
-
+                
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: parsedReactions.compactMap { reaction -> Int64? in
                     switch reaction {
                     case .builtin:

@@ -157,7 +157,7 @@ public func sendAuthorizationCode(accountManager: AccountManager<TelegramAccount
     |> castError(AuthorizationCodeRequestError.self)
     |> mapToSignal { localAuthTokens -> Signal<SendAuthorizationCodeResult, AuthorizationCodeRequestError> in
         var authTokens = localAuthTokens
-
+        
         for data in cloudValue {
             if !authTokens.contains(data) {
                 authTokens.insert(data, at: 0)
@@ -167,11 +167,11 @@ public func sendAuthorizationCode(accountManager: AccountManager<TelegramAccount
         if disableAuthTokens {
             authTokens.removeAll()
         }
-
+        
 #if DEBUG
         authTokens.removeAll()
 #endif
-
+        
         var flags: Int32 = 0
         flags |= 1 << 5 //allowMissedCall
         flags |= 1 << 6 //tokens
@@ -336,7 +336,7 @@ public func sendAuthorizationCode(accountManager: AccountManager<TelegramAccount
                                 }
                             }
                         }
-
+                                                
                         var previousCodeEntry: UnauthorizedAccountStateContents?
                         if let state = transaction.getState() as? UnauthorizedAccountState, case let .confirmationCodeEntry(_, type, _, _, _, _, previousCodeEntryValue, _) = state.contents {
                             if let previousCodeEntryValue {
@@ -407,7 +407,7 @@ private func internalResendAuthorizationCode(accountManager: AccountManager<Tele
         flags |= 1 << 0
         mappedReason = reason.rawValue
     }
-
+    
     return account.network.request(Api.functions.auth.resendCode(flags: flags, phoneNumber: number, phoneCodeHash: hash, reason: mappedReason), automaticFloodWait: false)
     |> mapError { error -> AuthorizationCodeRequestError in
         if error.errorDescription.hasPrefix("FLOOD_WAIT") {
@@ -496,7 +496,7 @@ private func internalResendAuthorizationCode(accountManager: AccountManager<Tele
                         }
                     }
                 }
-
+                
                 var previousCodeEntry: UnauthorizedAccountStateContents?
                 if let state = transaction.getState() as? UnauthorizedAccountState, case let .confirmationCodeEntry(_, type, _, _, _, _, previousCodeEntryValue, _) = state.contents {
                     if let previousCodeEntryValue {
@@ -516,7 +516,7 @@ private func internalResendAuthorizationCode(accountManager: AccountManager<Tele
                     }
                 }
                 transaction.setState(UnauthorizedAccountState(isTestingEnvironment: account.testingEnvironment, masterDatacenterId: account.masterDatacenterId, contents: .confirmationCodeEntry(number: number, type: SentAuthorizationCodeType(apiType: type), hash: phoneCodeHash, timeout: codeTimeout, nextType: parsedNextType, syncContacts: syncContacts, previousCodeEntry: previousCodeEntry, usePrevious: false)))
-
+                
                 return .single(.sentCode(account))
             case let .sentCodePaymentRequired(storeProduct, codeHash, supportEmailAddress, supportEmailSubject, _, _):
                 transaction.setState(UnauthorizedAccountState(isTestingEnvironment: account.testingEnvironment, masterDatacenterId: account.masterDatacenterId, contents: .payment(number: number, codeHash: codeHash, storeProduct: storeProduct, supportEmailAddress: supportEmailAddress, supportEmailSubject: supportEmailSubject, syncContacts: syncContacts)))
@@ -573,7 +573,7 @@ public func resendAuthorizationCode(accountManager: AccountManager<TelegramAccou
                                             }
                                         }
                                     }
-
+                                    
                                     var parsedNextType: AuthorizationCodeNextType?
                                     if let nextType = nextType {
                                         parsedNextType = AuthorizationCodeNextType(apiType: nextType)

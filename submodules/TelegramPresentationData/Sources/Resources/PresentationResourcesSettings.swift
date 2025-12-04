@@ -30,22 +30,22 @@ public func renderIcon(name: String, scaleFactor: CGFloat = 1.0, backgroundColor
     return generateImage(CGSize(width: 29.0, height: 29.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
         context.clear(bounds)
-
+        
         if let mask {
             context.clip(to: bounds, mask: mask)
         }
         if let backgroundColors {
             addRoundedRectPath(context: context, rect: CGRect(origin: CGPoint(), size: size), radius: 7.0)
             context.clip()
-
+            
             var locations: [CGFloat] = [0.0, 1.0]
             let colors: [CGColor] = backgroundColors.map(\.cgColor)
-
+            
             let colorSpace = CGColorSpaceCreateDeviceRGB()
             let gradient = CGGradient(colorsSpace: colorSpace, colors: colors as CFArray, locations: &locations)!
-
+            
             context.drawLinearGradient(gradient, start: CGPoint(x: size.width, y: size.height), end: CGPoint(x: 0.0, y: 0.0), options: CGGradientDrawingOptions())
-
+            
             context.resetClip()
             if let image = generateTintedImage(image: UIImage(bundleImageName: name), color: .white), let cgImage = image.cgImage {
                 let imageSize = CGSize(width: image.size.width * scaleFactor, height: image.size.height * scaleFactor)
@@ -89,7 +89,7 @@ public struct PresentationResourcesSettings {
     public static let affiliateProgram = renderIcon(name: "Settings/Menu/AffiliateProgram")
     public static let earnStars = renderIcon(name: "Settings/Menu/EarnStars")
     public static let channelMessages = renderIcon(name: "Chat/Info/ChannelMessages", backgroundColors: [UIColor(rgb: 0x5856D6)])
-
+    
     public static let premium = generateImage(CGSize(width: 29.0, height: 29.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
         context.clear(bounds)
@@ -113,36 +113,36 @@ public struct PresentationResourcesSettings {
         if let image = generateTintedImage(image: UIImage(bundleImageName: "Premium/ButtonIcon"), color: UIColor(rgb: 0xffffff)), let cgImage = image.cgImage {
             context.draw(cgImage, in: CGRect(origin: CGPoint(x: floorToScreenPixels((bounds.width - image.size.width) / 2.0), y: floorToScreenPixels((bounds.height - image.size.height) / 2.0)), size: image.size))
         }
-
+        
         drawBorder(context: context, rect: bounds)
     })
-
+    
     public static let ton = generateImage(CGSize(width: 29.0, height: 29.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
         context.clear(bounds)
-
+        
         let path = UIBezierPath(roundedRect: bounds, cornerRadius: 7.0)
         context.addPath(path.cgPath)
         context.clip()
 
         context.setFillColor(UIColor(rgb: 0x32ade6).cgColor)
         context.fill(bounds)
-
+        
         if let image = generateTintedImage(image: UIImage(bundleImageName: "Ads/TonAbout"), color: UIColor(rgb: 0xffffff)), let cgImage = image.cgImage {
             context.draw(cgImage, in: CGRect(origin: CGPoint(x: floorToScreenPixels((bounds.width - image.size.width) / 2.0), y: floorToScreenPixels((bounds.height - image.size.height) / 2.0)), size: image.size))
         }
-
+        
         drawBorder(context: context, rect: bounds)
     })
-
+    
     public static let stars = generateImage(CGSize(width: 29.0, height: 29.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
         context.clear(bounds)
-
+        
         let path = UIBezierPath(roundedRect: bounds, cornerRadius: 7.0)
         context.addPath(path.cgPath)
         context.clip()
-
+        
         let colorsArray: [CGColor] = [
             UIColor(rgb: 0xfec80f).cgColor,
             UIColor(rgb: 0xdd6f12).cgColor
@@ -151,29 +151,29 @@ public struct PresentationResourcesSettings {
         let gradient = CGGradient(colorsSpace: deviceColorSpace, colors: colorsArray as CFArray, locations: &locations)!
 
         context.drawLinearGradient(gradient, start: CGPoint(x: 0.0, y: 0.0), end: CGPoint(x: size.width, y: size.height), options: CGGradientDrawingOptions())
-
+        
         if let image = generateTintedImage(image: UIImage(bundleImageName: "Premium/ButtonIcon"), color: UIColor(rgb: 0xffffff)), let cgImage = image.cgImage {
             context.draw(cgImage, in: CGRect(origin: CGPoint(x: floorToScreenPixels((bounds.width - image.size.width) / 2.0), y: floorToScreenPixels((bounds.height - image.size.height) / 2.0)), size: image.size))
         }
-
+        
         drawBorder(context: context, rect: bounds)
     })
-
+    
     public static let bot = generateImage(CGSize(width: 29.0, height: 29.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
         context.clear(bounds)
-
+        
         let path = UIBezierPath(roundedRect: bounds, cornerRadius: 7.0)
         context.addPath(path.cgPath)
         context.clip()
 
         context.setFillColor(UIColor(rgb: 0x0088ff).cgColor)
         context.fill(bounds)
-
+        
         if let image = generateTintedImage(image: UIImage(bundleImageName: "Chat List/Filters/Bot"), color: UIColor(rgb: 0xffffff)), let cgImage = image.cgImage {
             context.draw(cgImage, in: CGRect(origin: CGPoint(x: floorToScreenPixels((bounds.width - image.size.width) / 2.0), y: floorToScreenPixels((bounds.height - image.size.height) / 2.0)), size: image.size))
         }
-
+        
         drawBorder(context: context, rect: bounds)
     })
 

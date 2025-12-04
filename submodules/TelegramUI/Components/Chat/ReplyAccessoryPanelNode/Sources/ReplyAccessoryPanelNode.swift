@@ -29,7 +29,7 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
     public let messageId: MessageId
     public let quote: EngineMessageReplyQuote?
     public let todoItemId: Int32?
-
+    
     private var previousMediaReference: AnyMediaReference?
     
     public let closeButton: HighlightableButtonNode
@@ -54,7 +54,7 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
         self.messageId = messageId
         self.quote = quote
         self.todoItemId = todoItemId
-
+        
         self.context = context
         self.theme = theme
         self.strings = strings

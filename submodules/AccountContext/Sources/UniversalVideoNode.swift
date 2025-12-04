@@ -20,7 +20,7 @@ public protocol UniversalVideoContentNode: AnyObject {
     var status: Signal<MediaPlayerStatus, NoError> { get }
     var bufferingStatus: Signal<(RangeSet<Int64>, Int64)?, NoError> { get }
     var isNativePictureInPictureActive: Signal<Bool, NoError> { get }
-
+        
     func updateLayout(size: CGSize, actualSize: CGSize, transition: ContainedViewLayoutTransition)
     
     func play()
@@ -120,7 +120,7 @@ public final class UniversalVideoNode: ASDisplayNode {
     public var duration: Double {
         return self.content.duration
     }
-
+    
     private let _status = Promise<MediaPlayerStatus?>()
     public var status: Signal<MediaPlayerStatus?, NoError> {
         return self._status.get()
@@ -135,7 +135,7 @@ public final class UniversalVideoNode: ASDisplayNode {
     public var isNativePictureInPictureActive: Signal<Bool, NoError> {
         return self._isNativePictureInPictureActive.get()
     }
-
+    
     private let _ready = Promise<Void>()
     public var ready: Signal<Void, NoError> {
         return self._ready.get()
@@ -197,7 +197,7 @@ public final class UniversalVideoNode: ASDisplayNode {
         self._status.set(self.manager.statusSignal(content: self.content))
         self._bufferingStatus.set(self.manager.bufferingStatusSignal(content: self.content))
         self._isNativePictureInPictureActive.set(self.manager.isNativePictureInPictureActiveSignal(content: self.content))
-
+        
         self.decoration.setStatus(self.status)
         
         if let backgroundNode = self.decoration.backgroundNode {
@@ -362,7 +362,7 @@ public final class UniversalVideoNode: ASDisplayNode {
             }
         })
     }
-
+    
     public func videoQualityState() -> (current: Int, preferred: UniversalVideoContentVideoQuality, available: [Int])? {
         var result: (current: Int, preferred: UniversalVideoContentVideoQuality, available: [Int])?
         self.manager.withUniversalVideoContent(id: self.content.id, { contentNode in
@@ -372,7 +372,7 @@ public final class UniversalVideoNode: ASDisplayNode {
         })
         return result
     }
-
+    
     public func videoQualityStateSignal() -> Signal<(current: Int, preferred: UniversalVideoContentVideoQuality, available: [Int])?, NoError> {
         var result: Signal<(current: Int, preferred: UniversalVideoContentVideoQuality, available: [Int])?, NoError>?
         self.manager.withUniversalVideoContent(id: self.content.id, { contentNode in
@@ -382,7 +382,7 @@ public final class UniversalVideoNode: ASDisplayNode {
         })
         return result ?? .single(nil)
     }
-
+    
     public func continuePlayingWithoutSound(actionAtEnd: MediaPlayerPlayOnceWithSoundActionAtEnd = .loopDisablingSound) {
         self.manager.withUniversalVideoContent(id: self.content.id, { contentNode in
             if let contentNode = contentNode {
@@ -444,7 +444,7 @@ public final class UniversalVideoNode: ASDisplayNode {
             }
         })
     }
-
+    
     public func enterNativePictureInPicture() -> Bool {
         var result = false
         self.manager.withUniversalVideoContent(id: self.content.id, { contentNode in
@@ -454,7 +454,7 @@ public final class UniversalVideoNode: ASDisplayNode {
         })
         return result
     }
-
+    
     public func exitNativePictureInPicture() {
         self.manager.withUniversalVideoContent(id: self.content.id, { contentNode in
             if let contentNode = contentNode {
@@ -462,7 +462,7 @@ public final class UniversalVideoNode: ASDisplayNode {
             }
         })
     }
-
+    
     public func setNativePictureInPictureIsActive(_ value: Bool) {
         self.manager.withUniversalVideoContent(id: self.content.id, { contentNode in
             if let contentNode = contentNode {

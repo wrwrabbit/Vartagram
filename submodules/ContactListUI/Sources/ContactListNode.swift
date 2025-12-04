@@ -879,7 +879,7 @@ private func contactListNodeEntries(
             index += 1
             existingHeaders.insert(headerId)
         }
-
+        
         entries.append(.peer(index, peer, presence, header, selection, theme, strings, dateTimeFormat, sortOrder, displayOrder, displayCallIcons, false, enabled, storyData, requiresPremiumForMessaging, nil))
         index += 1
     }
@@ -1220,11 +1220,11 @@ public final class ContactListNode: ASDisplayNode {
     private let displayPermissionPlaceholder: Bool
     private var authorizationDisposable: Disposable?
     public var authorizationUpdated: ((AccessType) -> Void)?
-
+    
     public var multipleSelection = false
     
     private let isPeerEnabled: ((EnginePeer) -> Bool)?
-
+        
     public init(
         context: AccountContext,
         updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil,
@@ -1299,7 +1299,7 @@ public final class ContactListNode: ASDisplayNode {
         super.init()
         
         self.backgroundColor = listStyle == .blocks ? self.presentationData.theme.list.blocksBackgroundColor : self.presentationData.theme.chatList.backgroundColor
-
+        
         if listStyle == .blocks {
             self.listNode.verticalScrollIndicatorColor = .clear
         } else {
@@ -1322,7 +1322,7 @@ public final class ContactListNode: ASDisplayNode {
                 self.authorizationUpdated?(authorization)
             }
         })
-
+        
         let processingQueue = Queue()
         let previousEntries = Atomic<[ContactListNodeEntry]?>(value: nil)
         let previousSelectionState = Atomic<ContactListNodeGroupSelectionState?>(value: nil)
@@ -1638,7 +1638,7 @@ public final class ContactListNode: ASDisplayNode {
                             
                             var existingPeerIds = Set<EnginePeer.Id>()
                             var disabledPeerIds = Set<EnginePeer.Id>()
-
+                            
                             var existingNormalizedPhoneNumbers = Set<DeviceContactNormalizedPhoneNumber>()
                             var excludeSelf = false
                             var requirePhoneNumbers = false
@@ -1971,7 +1971,7 @@ public final class ContactListNode: ASDisplayNode {
                             if !view.2.isEmpty {
                                 context.account.viewTracker.refreshCanSendMessagesForPeerIds(peerIds: Array(view.2.keys))
                             }
-
+                            
                             var peers = view.0.peers.map({ ContactListPeer.peer(peer: $0._asPeer(), isGlobal: false, participantCount: nil) })
                             for (peer, memberCount) in chatListPeers {
                                 peers.append(.peer(peer: peer._asPeer(), isGlobal: false, participantCount: memberCount))
@@ -1993,7 +1993,7 @@ public final class ContactListNode: ASDisplayNode {
                                     break
                                 }
                             }
-
+                            
                             peers = peers.filter { contact in
                                 switch contact {
                                 case let .peer(peer, _, _):
@@ -2009,19 +2009,19 @@ public final class ContactListNode: ASDisplayNode {
                                     return true
                                 }
                             }
-
+                            
                             var presences = view.0.presences
                             for peer in topPeers {
                                 if let presence = peer.presence {
                                     presences[peer.peer.id] = presence
                                 }
                             }
-
+                            
                             var isEmpty = false
                             if (authorizationStatus == .notDetermined || authorizationStatus == .denied) && peers.isEmpty && topPeers.isEmpty {
                                 isEmpty = true
                             }
-
+                            
                             let entries = contactListNodeEntries(
                                 listStyle: listStyle,
                                 accountPeer: view.1,
@@ -2051,7 +2051,7 @@ public final class ContactListNode: ASDisplayNode {
                             let previous = previousEntries.swap(entries)
                             let previousSelection = previousSelectionState.swap(selectionState)
                             let previousPendingRemovalPeerIds = previousPendingRemovalPeerIds.swap(pendingRemovalPeerIds)
-
+                            
                             var hadPermissionInfo = false
                             var previousOptionsCount = 0
                             if let previous = previous {
@@ -2074,7 +2074,7 @@ public final class ContactListNode: ASDisplayNode {
                                     optionsCount += 1
                                 }
                             }
-
+                            
                             let animation: ContactListAnimation
                             if (previousSelection == nil) != (selectionState == nil) {
                                 animation = .insertion
@@ -2087,7 +2087,7 @@ public final class ContactListNode: ASDisplayNode {
                             } else {
                                 animation = .none
                             }
-
+                            
                             return .single(preparedContactListNodeTransition(context: context, presentationData: presentationData, from: previous ?? [], to: entries, interaction: interaction, firstTime: previous == nil, isEmpty: isEmpty, hasOptions: optionsCount != 0, generateIndexSections: generateSections, animation: animation, isSearch: isSearch, listStyle: listStyle))
                         }
             
@@ -2293,7 +2293,7 @@ public final class ContactListNode: ASDisplayNode {
         }
         return result
     }
-
+    
     private func dequeueTransitions() {
         if self.validLayout != nil {
             while !self.queuedTransitions.isEmpty {

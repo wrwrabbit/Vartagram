@@ -98,7 +98,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.stringsPromise.set(.single(self.presentationData.strings))
-
+        
         var inviteImpl: (() -> Void)?
         var unavailableImpl: (() -> Void)?
 
@@ -152,7 +152,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 }
             }
         }).strict()
-
+                
         inviteImpl = { [weak self] in
             if let strongSelf = self {
                 strongSelf.openInvite?()
@@ -261,7 +261,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             }
             self.openStories?(peer, sourceNode)
         }
-
+        
         self.contactListNode.openContactAccessPicker = {
             presentContactAccessPicker(context: context)
         }
@@ -317,7 +317,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         let title: String
         let leftButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
         let rightButtons: [AnyComponentWithIdentity<NavigationButtonComponentEnvironment>]
-
+        
         if let selectionState = self.contactListNode.selectionState {
             title = self.presentationData.strings.Contacts_SelectedContacts(Int32(selectionState.selectedPeerIndices.count))
             leftButton = AnyComponentWithIdentity(id: "done", component: AnyComponent(NavigationButtonComponent(
@@ -354,7 +354,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 }
             )))]
         }
-
+        
         let primaryContent = ChatListHeaderComponent.Content(
             title: self.presentationData.strings.Contacts_Title,
             navigationBackTitle: nil,
@@ -594,11 +594,11 @@ private func presentContactAccessPicker(context: AccountContext) {
 struct ContactAccessPickerHostingView: View {
     @State var presented = true
     var handler: ([String]) -> ()
-
+    
     init(completionHandler: @escaping ([String]) -> ()) {
         self.handler = completionHandler
     }
-
+    
     var body: some View {
         Spacer()
             .contactAccessPicker(isPresented: $presented, completionHandler: handler)

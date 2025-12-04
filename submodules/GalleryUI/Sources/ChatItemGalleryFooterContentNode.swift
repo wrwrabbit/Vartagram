@@ -149,7 +149,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
     private var dustNode: InvisibleInkDustNode?
     private var buttonNode: SolidRoundedButtonNode?
     private var buttonIconNode: ASImageNode?
-
+    
     private var textSelectionNode: TextSelectionNode?
     
     private let animationCache: AnimationCache
@@ -168,7 +168,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
     private var currentMessageText: NSAttributedString?
     private var currentAuthorNameText: String?
     private var currentDateText: String?
-
+    
     private var currentMessage: Message?
     private var currentWebPageAndMedia: (TelegramMediaWebpage, Media)?
     private let messageContextDisposable = MetaDisposable()
@@ -189,7 +189,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
     var interacting: ((Bool) -> Void)?
     
     var shareMediaParameters: (() -> ShareControllerSubject.MediaParameters?)?
-
+    
     private var seekTimer: SwiftSignalKit.Timer?
     private var currentIsPaused: Bool = true
     private var seekRate: Double = 1.0
@@ -205,7 +205,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
         }
         return false
     }
-
+    
     var content: ChatItemGalleryFooterContent = .info {
         didSet {
             if self.content != oldValue {
@@ -222,7 +222,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
                         self.authorNameNode.isHidden = true
                         self.dateNode.isHidden = true
                         self.hasSeekControls = seekable && !self.isAd
-
+                    
                         if status == .Local && !self.isAd {
                             self.playbackControlButton.isHidden = false
                             self.playPauseIconNode.enqueueState(.play, animated: true)
@@ -263,7 +263,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
                         self.currentIsPaused = paused
                         self.authorNameNode.isHidden = true
                         self.dateNode.isHidden = true
-
+                        
                         if !self.isAd {
                             self.playbackControlButton.isHidden = false
                             let icon: PlayPauseIconNodeState
@@ -804,7 +804,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
     func setup(origin: GalleryItemOriginData?, caption: NSAttributedString, isAd: Bool = false) {
         var titleText = origin?.title
         var dateText = origin?.timestamp.flatMap { humanReadableStringForTimestamp(strings: self.strings, dateTimeFormat: self.dateTimeFormat, timestamp: $0).string }
-
+        
         let caption = caption.mutableCopy() as! NSMutableAttributedString
         if isAd {
             if let titleText, !titleText.isEmpty {
@@ -863,7 +863,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
         var canFullscreen = false
         var canDelete: Bool
         var canShare = !message.containsSecretMedia && !Namespaces.Message.allNonRegular.contains(message.id.namespace) && message.adAttribute == nil
-
+                
         var canEdit = false
         var isImage = false
         var isVideo = false
@@ -955,7 +955,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
             displayInfo = false
             canFullscreen = false
         }
-
+        
         var authorNameText: String?
         if let forwardInfo = message.forwardInfo, forwardInfo.flags.contains(.isImported), let authorSignature = forwardInfo.authorSignature {
             authorNameText = authorSignature
@@ -1045,7 +1045,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
                 messageText.insert(NSAttributedString(string: (authorNameText ?? "") + "\n", font: Font.semibold(17.0), textColor: .white), at: 0)
             }
         }
-
+        
         if !displayInfo {
             authorNameText = ""
             dateText = ""
@@ -1097,7 +1097,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
                     }
                     self.contentNode.addSubnode(buttonNode)
                     self.buttonNode = buttonNode
-
+                    
                     if !isTelegramMeLink(adAttribute.url) {
                         let buttonIconNode = ASImageNode()
                         buttonIconNode.displaysAsynchronously = false
@@ -1109,7 +1109,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
             } else if let buttonNode = self.buttonNode {
                 buttonNode.removeFromSupernode()
             }
-
+            
             self.requestLayout?(.immediate)
         }
     }
@@ -1261,15 +1261,15 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
                     self.scrollWrapperNode.layer.mask?.frame = self.scrollWrapperNode.bounds
                     self.scrollWrapperNode.layer.mask?.removeAllAnimations()
                 }
-
+                
                 if let buttonNode = self.buttonNode {
                     let buttonHeight = buttonNode.updateLayout(width: constrainSize.width, transition: transition)
                     transition.updateFrame(node: buttonNode, frame: CGRect(origin: CGPoint(x: sideInset, y: scrollWrapperNodeFrame.maxY + 8.0), size: CGSize(width: constrainSize.width, height: buttonHeight)))
-
+                    
                     if let buttonIconNode = self.buttonIconNode, let icon = buttonIconNode.image {
                         transition.updateFrame(node: buttonIconNode, frame: CGRect(origin: CGPoint(x: constrainSize.width - icon.size.width - 9.0, y: 9.0), size: icon.size))
                     }
-
+                    
                     if let _ = self.scrubberView {
                         panelHeight += 68.0
                     } else {
@@ -1314,7 +1314,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
             if let _ = self.buttonNode {
                 panelHeight -= 44.0
             }
-
+            
             let scrubberFrame = CGRect(origin: CGPoint(x: leftInset, y: scrubberY), size: CGSize(width: width - leftInset - rightInset, height: 34.0))
             scrubberView.updateLayout(size: size, leftInset: leftInset, rightInset: rightInset, transition: .immediate)
             transition.updateBounds(layer: scrubberView.layer, bounds: CGRect(origin: CGPoint(), size: scrubberFrame.size))
@@ -1396,7 +1396,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
         self.contentNode.alpha = 0.0
         transition.updateAlpha(node: self.contentNode, alpha: self.visibilityAlpha)
     }
-
+    
     override func animateIn(fromHeight: CGFloat, previousContentNode: GalleryFooterContentNode, transition: ContainedViewLayoutTransition) {
         if let scrubberView = self.scrubberView, scrubberView.superview == self.view {
             if let previousContentNode = previousContentNode as? ChatItemGalleryFooterContentNode, previousContentNode.scrubberView != nil {
@@ -1425,7 +1425,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
     override func animateOut(transition: ContainedViewLayoutTransition) {
         transition.updateAlpha(node: self.contentNode, alpha: 0.0)
     }
-
+    
     override func animateOut(toHeight: CGFloat, nextContentNode: GalleryFooterContentNode, transition: ContainedViewLayoutTransition, completion: @escaping () -> Void) {
         if let scrubberView = self.scrubberView, scrubberView.superview == self.view {
             if let nextContentNode = nextContentNode as? ChatItemGalleryFooterContentNode, nextContentNode.scrubberView != nil {
@@ -1775,10 +1775,10 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
                             } else {
                                 text = presentationData.strings.Conversation_LinkCopied
                             }
-
+                            
                             self.controllerInteraction?.presentController(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: nil, text: text), elevatedLayout: true, animateInAsReplacement: false, action: { _ in return true }), nil)
                         }
-
+                        
                         shareController.actionCompleted = { [weak self] in
                             if let strongSelf = self, let actionCompletionText = actionCompletionText {
                                 let presentationData = strongSelf.context.sharedContext.currentPresentationData.with { $0 }

@@ -909,7 +909,7 @@ final class StorageUsageScreenComponent: Component {
             }
             return result
         }
-
+        
         func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
             self.enableVelocityTracking = true
         }

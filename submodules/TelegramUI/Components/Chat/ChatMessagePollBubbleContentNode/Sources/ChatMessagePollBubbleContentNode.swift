@@ -417,7 +417,7 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
             }
         }
     }
-
+    
     override init() {
         self.highlightedBackgroundNode = ASDisplayNode()
         self.highlightedBackgroundNode.alpha = 0.0
@@ -507,7 +507,7 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
             let rightInset: CGFloat = 12.0
             
             let incoming = message.effectivelyIncoming(context.account.peerId)
-
+            
             var optionText = option.text
             var optionEntities = option.entities
             if let translation {
@@ -530,7 +530,7 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
                 blockQuoteFont: presentationData.messageFont,
                 message: message
             )
-
+            
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: optionAttributedText, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: max(1.0, constrainedWidth - leftInset - rightInset), height: CGFloat.greatestFiniteMagnitude), alignment: .left, cutout: nil, insets: UIEdgeInsets(top: 1.0, left: 0.0, bottom: 1.0, right: 0.0)))
             
             let contentHeight: CGFloat = max(46.0, titleLayout.size.height + 22.0)
@@ -657,7 +657,7 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
                             }
                         }
                     }
-
+                    
                     let titleNode = titleApply(TextNodeWithEntities.Arguments(
                         context: context,
                         cache: context.animationCache,
@@ -675,13 +675,13 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
                         node.titleNode = titleNode
                         node.addSubnode(titleNode.textNode)
                         titleNode.textNode.isUserInteractionEnabled = false
-
+                        
                         if let visibilityRect = node.visibilityRect {
                             titleNode.visibilityRect = visibilityRect.offsetBy(dx: 0.0, dy: titleNodeFrame.minY)
                         }
                     }
                     titleNode.textNode.frame = titleNodeFrame
-
+                    
                     if shouldHaveRadioNode {
                         let radioNode: ChatMessagePollOptionRadioNode
                         if let current = node.radioNode {
@@ -860,7 +860,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
     private let statusNode: ChatMessageDateAndStatusNode
     private var optionNodes: [ChatMessagePollOptionNode] = []
     private var shimmeringNodes: [ShimmeringLinkNode] = []
-
+    
     private var poll: TelegramMediaPoll?
     
     public var solutionTipSourceNode: ASDisplayNode {
@@ -888,7 +888,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
             }
         }
     }
-
+    
     required public init() {
         self.textNode = TextNodeWithEntities()
         self.textNode.textNode.isUserInteractionEnabled = false
@@ -1108,7 +1108,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                         statusType = nil
                     }
                 }
-
+                    
                 var statusSuggestedWidthAndContinue: (CGFloat, (CGFloat) -> (CGSize, (ListViewItemUpdateAnimation) -> Void))?
                 
                 if let statusType = statusType {
@@ -1154,14 +1154,14 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
 
                 let messageTheme = incoming ? item.presentationData.theme.theme.chat.message.incoming : item.presentationData.theme.theme.chat.message.outgoing
                 
-
+                
                 var pollTitleText = poll?.text ?? ""
                 if let poll = poll, item.context.shouldSuppressForeignAgentNotice(in: item.message) {
                     pollTitleText = removeForeignAgentNotice(text: poll.text, mayRemoveWholeText: false)
                 }
                 var pollTitleEntities = poll?.textEntities ?? []
                 var pollOptions: [TranslationMessageAttribute.Additional] = []
-
+                
                 var isTranslating = false
                 if let poll, let translateToLanguage = item.associatedData.translateToLanguage, !poll.text.isEmpty && incoming {
                     isTranslating = true
@@ -1175,7 +1175,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                         }
                     }
                 }
-
+                
                 let attributedText = stringWithAppliedEntities(
                     pollTitleText,
                     entities: pollTitleEntities,
@@ -1342,12 +1342,12 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                         } else if isClosed {
                             optionResult = ChatMessagePollOptionResult(normalized: 0, percent: 0, count: 0)
                         }
-
+                        
                         var translation: TranslationMessageAttribute.Additional?
                         if !pollOptions.isEmpty && i < pollOptions.count {
                             translation = pollOptions[i]
                         }
-
+                        
                         let result = makeLayout(item.context, item.presentationData, item.message, poll, option, translation, optionResult, constrainedSize.width - layoutConstants.bubble.borderInset * 2.0)
                         boundingSize.width = max(boundingSize.width, result.minimumWidth + layoutConstants.bubble.borderInset * 2.0)
                         pollOptionsFinalizeLayouts.append(result.1)
@@ -1475,7 +1475,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                                 } else {
                                     animation.animator.updateFrame(layer: optionNode.layer, frame: optionNodeFrame, completion: nil)
                                 }
-
+                                
                                 verticalOffset += size.height
                                 updatedOptionNodes.append(optionNode)
                                 optionNode.isUserInteractionEnabled = canVote && item.controllerInteraction.pollActionState.pollMessageIdsInProgress[item.message.id] == nil
@@ -1624,7 +1624,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                             let _ = votersApply()
                             let votersFrame = CGRect(origin: CGPoint(x: floor((resultSize.width - votersLayout.size.width) / 2.0), y: verticalOffset + optionsVotersSpacing), size: votersLayout.size)
                             animation.animator.updateFrame(layer: strongSelf.votersNode.layer, frame: votersFrame, completion: nil)
-
+                            
                             if animation.isAnimated, let previousPoll = previousPoll, let poll = poll {
                                 if previousPoll.results.totalVoters == nil && poll.results.totalVoters != nil {
                                     strongSelf.votersNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25)
@@ -1659,7 +1659,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                             
                             strongSelf.updateSelection()
                             strongSelf.updatePollTooltipMessageState(animated: false)
-
+                            
                             strongSelf.updateIsTranslating(isTranslating)
                         }
                     })
@@ -1667,7 +1667,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
             })
         }
     }
-
+    
     private func updateIsTranslating(_ isTranslating: Bool) {
         guard let item = self.item else {
             return
@@ -1675,14 +1675,14 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
         var rects: [[CGRect]] = []
         let titleRects = (self.textNode.textNode.rangeRects(in: NSRange(location: 0, length: self.textNode.textNode.cachedLayout?.attributedString?.length ?? 0))?.rects ?? []).map { self.textNode.textNode.view.convert($0, to: self.view) }
         rects.append(titleRects)
-
+        
         for optionNode in self.optionNodes {
             if let titleNode = optionNode.titleNode {
                 let optionRects = (titleNode.textNode.rangeRects(in: NSRange(location: 0, length: titleNode.textNode.cachedLayout?.attributedString?.length ?? 0))?.rects ?? []).map { titleNode.textNode.view.convert($0, to: self.view) }
                 rects.append(optionRects)
             }
         }
-
+        
         if isTranslating, !rects.isEmpty {
             if self.shimmeringNodes.isEmpty {
                 for rects in rects {
@@ -1698,7 +1698,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
         } else if !self.shimmeringNodes.isEmpty {
             let shimmeringNodes = self.shimmeringNodes
             self.shimmeringNodes = []
-
+            
             for shimmeringNode in shimmeringNodes {
                 shimmeringNode.alpha = 0.0
                 shimmeringNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, completion: { [weak shimmeringNode] _ in
@@ -1707,7 +1707,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
             }
         }
     }
-
+    
     private func updateSelection() {
         guard let item = self.item, let poll = self.poll else {
             return
@@ -1916,7 +1916,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
         }
         return nil
     }
-
+    
     override public func messageEffectTargetView() -> UIView? {
         if !self.statusNode.isHidden {
             return self.statusNode.messageEffectTargetView()
