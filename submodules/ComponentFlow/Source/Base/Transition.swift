@@ -1304,4 +1304,28 @@ public struct ComponentTransition {
             completion: completion
         )
     }
+    
+    public func animateBlur(layer: CALayer, fromRadius: CGFloat, toRadius: CGFloat, delay: Double = 0.0, removeOnCompletion: Bool = true, completion: ((Bool) -> Void)? = nil) {
+        let duration: Double
+        switch self.animation {
+        case let .curve(durationValue, _):
+            duration = durationValue
+        case .none:
+            return
+        }
+        
+        if let blurFilter = CALayer.blur() {
+            blurFilter.setValue(toRadius as NSNumber, forKey: "inputRadius")
+            layer.filters = [blurFilter]
+            layer.animate(from: fromRadius as NSNumber, to: toRadius as NSNumber, keyPath: "filters.gaussianBlur.inputRadius", timingFunction: CAMediaTimingFunctionName.easeOut.rawValue, duration: duration, delay: delay, removeOnCompletion: removeOnCompletion, completion: { [weak layer] flag in
+                if let layer {
+                    if toRadius <= 0.0 {
+                        layer.filters = nil
+                    }
+                }
+                
+                completion?(flag)
+            })
+        }
+    }
 }

@@ -19,6 +19,7 @@ import ChatListTitleView
 import ComponentFlow
 import SwiftUI
 import ContactsUI
+import EdgeEffect
 
 private final class ContextControllerContentSourceImpl: ContextControllerContentSource {
     let controller: ViewController
@@ -50,6 +51,7 @@ private final class ContextControllerContentSourceImpl: ContextControllerContent
 
 final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     let contactListNode: ContactListNode
+    private let edgeEffectView: EdgeEffectView
     
     private let context: AccountContext
     private(set) var searchDisplayController: SearchDisplayController?
@@ -96,7 +98,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.stringsPromise.set(.single(self.presentationData.strings))
-
+        
         var inviteImpl: (() -> Void)?
         var unavailableImpl: (() -> Void)?
 
@@ -120,6 +122,8 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             contextAction?(peer, node, gesture, location, isStories)
         })
         
+        self.edgeEffectView = EdgeEffectView()
+        
         super.init()
         
         self.setViewBlock({
@@ -129,6 +133,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         self.backgroundColor = self.presentationData.theme.chatList.backgroundColor
         
         self.addSubnode(self.contactListNode)
+        self.view.addSubview(self.edgeEffectView)
         
         self.presentationDataDisposable = (context.sharedContext.presentationData
         |> deliverOnMainQueue).start(next: { [weak self] presentationData in
@@ -147,7 +152,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 }
             }
         }).strict()
-
+                
         inviteImpl = { [weak self] in
             if let strongSelf = self {
                 strongSelf.openInvite?()
@@ -256,7 +261,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             }
             self.openStories?(peer, sourceNode)
         }
-
+        
         self.contactListNode.openContactAccessPicker = {
             presentContactAccessPicker(context: context)
         }
@@ -312,7 +317,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         let title: String
         let leftButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
         let rightButtons: [AnyComponentWithIdentity<NavigationButtonComponentEnvironment>]
-
+        
         if let selectionState = self.contactListNode.selectionState {
             title = self.presentationData.strings.Contacts_SelectedContacts(Int32(selectionState.selectedPeerIndices.count))
             leftButton = AnyComponentWithIdentity(id: "done", component: AnyComponent(NavigationButtonComponent(
@@ -349,7 +354,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 }
             )))]
         }
-
+        
         let primaryContent = ChatListHeaderComponent.Content(
             title: self.presentationData.strings.Contacts_Title,
             navigationBackTitle: nil,
@@ -453,6 +458,11 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         self.contactListNode.containerLayoutUpdated(innerLayout, headerInsets: headerInsets, storiesInset: navigationBarLayout.storiesInset, transition: transition)
         
         self.contactListNode.frame = CGRect(origin: CGPoint(), size: layout.size)
+        
+        let edgeEffectHeight: CGFloat = layout.intrinsicInsets.bottom
+        let edgeEffectFrame = CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - edgeEffectHeight), size: CGSize(width: layout.size.width, height: edgeEffectHeight))
+        transition.updateFrame(view: self.edgeEffectView, frame: edgeEffectFrame)
+        self.edgeEffectView.update(content: self.presentationData.theme.list.plainBackgroundColor, rect: edgeEffectFrame, edge: .bottom, edgeSize: edgeEffectFrame.height, transition: ComponentTransition(transition))
         
         self.updateNavigationScrolling(transition: transition)
         
@@ -584,11 +594,11 @@ private func presentContactAccessPicker(context: AccountContext) {
 struct ContactAccessPickerHostingView: View {
     @State var presented = true
     var handler: ([String]) -> ()
-
+    
     init(completionHandler: @escaping ([String]) -> ()) {
         self.handler = completionHandler
     }
-
+    
     var body: some View {
         Spacer()
             .contactAccessPicker(isPresented: $presented, completionHandler: handler)

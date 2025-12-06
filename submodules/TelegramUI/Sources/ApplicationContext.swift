@@ -248,7 +248,7 @@ final class AuthorizedApplicationContext {
             }
             self.sharedApplicationContext.minimizedContainer[self.context.account.id] = minimizedContainer
         }
-
+        
         self.rootController.globalOverlayControllersUpdated = { [weak self] in
             guard let strongSelf = self else {
                 return
@@ -501,7 +501,7 @@ final class AuthorizedApplicationContext {
                                     return
                                 }
                             }
-
+                            
                             if inAppNotificationSettings.displayPreviews {
                                 let presentationData = strongSelf.context.sharedContext.currentPresentationData.with { $0 }
                                 strongSelf.notificationController.enqueue(ChatMessageNotificationItem(context: strongSelf.context, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat, nameDisplayOrder: presentationData.nameDisplayOrder, messages: messages, threadData: threadData, tapAction: {
@@ -536,7 +536,7 @@ final class AuthorizedApplicationContext {
                                         }  else if let topContoller = strongSelf.rootController.topViewController as? BrowserScreen {
                                             topContoller.requestMinimize(topEdgeOffset: nil, initialVelocity: nil)
                                         }
-
+                                        
                                         for controller in strongSelf.rootController.viewControllers {
                                             if let controller = controller as? ChatControllerImpl, controller.chatLocation.peerId == chatLocation.peerId, (controller.chatLocation.threadId == nil || controller.chatLocation.threadId == chatLocation.threadId) {
                                                 return true
@@ -881,7 +881,7 @@ final class AuthorizedApplicationContext {
                 }
             }
         })
-
+        
         self.rootController.setForceInCallStatusBar((self.context.sharedContext as! SharedAccountContextImpl).currentCallStatusBarNode)
         if let groupCallController = self.context.sharedContext.currentGroupCallController as? VoiceChatController {
             if let overlayController = groupCallController.currentOverlayController {
@@ -1035,7 +1035,7 @@ final class AuthorizedApplicationContext {
     func openAppIcon() {
         self.rootController.openAppIcon()
     }
-
+    
     func switchAccount() {
         let _ = (combineLatest(activeAccountsAndPeers(context: self.context), self.context.sharedContext.allHidableAccountIds)
         |> take(1)

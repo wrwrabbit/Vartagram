@@ -7,15 +7,22 @@ import MultilineTextComponent
 
 final class TableComponent: CombinedComponent {
     class Item: Equatable {
+        enum TitleFont {
+            case regular
+            case bold
+        }
+        
         public let id: AnyHashable
         public let title: String?
+        public let titleFont: TitleFont
         public let hasBackground: Bool
         public let component: AnyComponent<Empty>
         public let insets: UIEdgeInsets?
 
-        public init<IdType: Hashable>(id: IdType, title: String?, hasBackground: Bool = false, component: AnyComponent<Empty>, insets: UIEdgeInsets? = nil) {
+        public init<IdType: Hashable>(id: IdType, title: String?, titleFont: TitleFont = .regular, hasBackground: Bool = false, component: AnyComponent<Empty>, insets: UIEdgeInsets? = nil) {
             self.id = AnyHashable(id)
             self.title = title
+            self.titleFont = titleFont
             self.hasBackground = hasBackground
             self.component = component
             self.insets = insets
@@ -26,6 +33,9 @@ final class TableComponent: CombinedComponent {
                 return false
             }
             if lhs.title != rhs.title {
+                return false
+            }
+            if lhs.titleFont != rhs.titleFont {
                 return false
             }
             if lhs.hasBackground != rhs.hasBackground {
@@ -60,6 +70,8 @@ final class TableComponent: CombinedComponent {
     }
     
     final class State: ComponentState {
+        var cachedLastBackgroundImage: (UIImage, PresentationTheme)?
+        var cachedLeftColumnImage: (UIImage, PresentationTheme)?
         var cachedBorderImage: (UIImage, PresentationTheme)?
     }
     
@@ -68,8 +80,8 @@ final class TableComponent: CombinedComponent {
     }
 
     public static var body: Body {
-        let leftColumnBackground = Child(Rectangle.self)
-        let lastBackground = Child(Rectangle.self)
+        let leftColumnBackground = Child(Image.self)
+        let lastBackground = Child(Image.self)
         let verticalBorder = Child(Rectangle.self)
         let titleChildren = ChildMap(environment: Empty.self, keyedBy: AnyHashable.self)
         let valueChildren = ChildMap(environment: Empty.self, keyedBy: AnyHashable.self)
@@ -99,7 +111,7 @@ final class TableComponent: CombinedComponent {
                 }
                 let titleChild = titleChildren[item.id].update(
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: title, font: Font.regular(15.0), textColor: context.component.theme.list.itemPrimaryTextColor))
+                        text: .plain(NSAttributedString(string: title, font: item.titleFont == .bold ? Font.semibold(15.0) : Font.regular(15.0), textColor: context.component.theme.list.itemPrimaryTextColor))
                     )),
                     availableSize: context.availableSize,
                     transition: context.transition
@@ -119,7 +131,9 @@ final class TableComponent: CombinedComponent {
             var rowHeights: [Int: CGFloat] = [:]
             var totalHeight: CGFloat = 0.0
             var innerTotalHeight: CGFloat = 0.0
-            var hasLastBackground = false
+            var innerTotalOffset: CGFloat = 0.0
+            var hasRowBackground = false
+            var rowBackgroundIsLast = false
             
             for item in context.component.items {
                 let insets: UIEdgeInsets
@@ -153,6 +167,8 @@ final class TableComponent: CombinedComponent {
                 totalHeight += rowHeight
                 if titleHeight > 0.0 {
                     innerTotalHeight += rowHeight
+                } else if i == 0 {
+                    innerTotalOffset += rowHeight
                 }
                 
                 if i < context.component.items.count - 1 {
@@ -165,44 +181,95 @@ final class TableComponent: CombinedComponent {
                 }
                 
                 if item.hasBackground {
-                    hasLastBackground = true
+                    if i != 0 {
+                        rowBackgroundIsLast = true
+                    }
+                    hasRowBackground = true
                 }
                 
                 i += 1
             }
             
-            if hasLastBackground {
-                let lastRowHeight = rowHeights[i - 1] ?? 0
+            let borderRadius: CGFloat = 14.0
+            
+            if hasRowBackground {
+                let lastBackgroundImage: UIImage
+                if let (currentImage, theme) = context.state.cachedLastBackgroundImage, theme === context.component.theme {
+                    lastBackgroundImage = currentImage
+                } else {
+                    lastBackgroundImage = generateImage(CGSize(width: borderRadius * 2.0 + 4.0, height: borderRadius * 2.0 + 4.0), rotatedContext: { size, context in
+                        let bounds = CGRect(origin: .zero, size: CGSize(width: size.width, height: size.height + borderRadius))
+                        context.clear(bounds)
+                        
+                        let path = CGPath(roundedRect: bounds.insetBy(dx: borderWidth / 2.0, dy: borderWidth / 2.0).insetBy(dx: 0.0, dy: rowBackgroundIsLast ? -borderRadius * 2.0 : 0.0), cornerWidth: borderRadius, cornerHeight: borderRadius, transform: nil)
+                        context.setFillColor(secondaryBackgroundColor.cgColor)
+                        context.addPath(path)
+                        context.fillPath()
+                    })!.stretchableImage(withLeftCapWidth: Int(borderRadius), topCapHeight: Int(borderRadius))
+                    context.state.cachedLastBackgroundImage = (lastBackgroundImage, context.component.theme)
+                }
+                
+                let lastRowHeight: CGFloat
+                let position: CGFloat
+                if !rowBackgroundIsLast {
+                    lastRowHeight = rowHeights[0] ?? 0
+                    position = lastRowHeight / 2.0
+                } else {
+                    lastRowHeight = rowHeights[i - 1] ?? 0
+                    position = totalHeight - lastRowHeight / 2.0
+                }
                 let lastBackground = lastBackground.update(
-                    component: Rectangle(color: secondaryBackgroundColor),
+                    component: Image(image: lastBackgroundImage),
                     availableSize: CGSize(width: context.availableSize.width, height: lastRowHeight),
                     transition: context.transition
                 )
+                
                 context.add(
                     lastBackground
-                        .position(CGPoint(x: context.availableSize.width / 2.0, y: totalHeight - lastRowHeight / 2.0))
+                        .position(CGPoint(x: context.availableSize.width / 2.0, y: position))
                 )
             }
             
+            let leftColumnImage: UIImage
+            if let (currentImage, theme) = context.state.cachedLeftColumnImage, theme === context.component.theme {
+                leftColumnImage = currentImage
+            } else {
+                leftColumnImage = generateImage(CGSize(width: borderRadius * 2.0 + 4.0, height: borderRadius * 2.0 + 4.0), rotatedContext: { size, context in
+                    var bounds = CGRect(origin: .zero, size: CGSize(width: size.width + borderRadius, height: size.height))
+                    context.clear(bounds)
+                    
+                    var offset: CGFloat = 0.0
+                    if hasRowBackground {
+                        offset = rowBackgroundIsLast ? borderRadius : -borderRadius
+                        
+                        bounds.origin.y += offset
+                        bounds.size.height += borderRadius
+                    }
+                    
+                    let path = CGPath(roundedRect: bounds.insetBy(dx: borderWidth / 2.0, dy: borderWidth / 2.0), cornerWidth: borderRadius, cornerHeight: borderRadius, transform: nil)
+                    context.setFillColor(secondaryBackgroundColor.cgColor)
+                    context.addPath(path)
+                    context.fillPath()
+                })!.stretchableImage(withLeftCapWidth: Int(borderRadius), topCapHeight: Int(borderRadius))
+                context.state.cachedLeftColumnImage = (leftColumnImage, context.component.theme)
+            }
+            
             let leftColumnBackground = leftColumnBackground.update(
-                component: Rectangle(color: secondaryBackgroundColor),
+                component: Image(image: leftColumnImage),
                 availableSize: CGSize(width: leftColumnWidth, height: innerTotalHeight),
                 transition: context.transition
             )
-            context.add(
-                leftColumnBackground
-                    .position(CGPoint(x: leftColumnWidth / 2.0, y: innerTotalHeight / 2.0))
+            context.add(leftColumnBackground
+                .position(CGPoint(x: leftColumnWidth / 2.0, y: innerTotalOffset + innerTotalHeight / 2.0))
             )
             
             let borderImage: UIImage
             if let (currentImage, theme) = context.state.cachedBorderImage, theme === context.component.theme {
                 borderImage = currentImage
             } else {
-                let borderRadius: CGFloat = 10.0
-                borderImage = generateImage(CGSize(width: 24.0, height: 24.0), rotatedContext: { size, context in
+                borderImage = generateImage(CGSize(width: borderRadius * 2.0 + 4.0, height: borderRadius * 2.0 + 4.0), rotatedContext: { size, context in
                     let bounds = CGRect(origin: .zero, size: size)
-                    context.setFillColor(backgroundColor.cgColor)
-                    context.fill(bounds)
+                    context.clear(bounds)
                     
                     let path = CGPath(roundedRect: bounds.insetBy(dx: borderWidth / 2.0, dy: borderWidth / 2.0), cornerWidth: borderRadius, cornerHeight: borderRadius, transform: nil)
                     context.setBlendMode(.clear)
@@ -214,7 +281,7 @@ final class TableComponent: CombinedComponent {
                     context.setLineWidth(borderWidth)
                     context.addPath(path)
                     context.strokePath()
-                })!.stretchableImage(withLeftCapWidth: 10, topCapHeight: 10)
+                })!.stretchableImage(withLeftCapWidth: Int(borderRadius), topCapHeight: Int(borderRadius))
                 context.state.cachedBorderImage = (borderImage, context.component.theme)
             }
             
@@ -234,7 +301,7 @@ final class TableComponent: CombinedComponent {
             )
             context.add(
                 verticalBorder
-                    .position(CGPoint(x: leftColumnWidth - borderWidth / 2.0, y: innerTotalHeight / 2.0))
+                    .position(CGPoint(x: leftColumnWidth - borderWidth / 2.0, y: innerTotalOffset + innerTotalHeight / 2.0))
             )
             
             i = 0
@@ -250,7 +317,7 @@ final class TableComponent: CombinedComponent {
                     )
                     valueFrame = CGRect(origin: CGPoint(x: leftColumnWidth + valueInsets.left, y: originY + verticalPadding), size: valueChild.size)
                 } else {
-                    if hasLastBackground {
+                    if hasRowBackground && rowBackgroundIsLast {
                         valueFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((context.availableSize.width - valueChild.size.width) / 2.0), y: originY + verticalPadding), size: valueChild.size)
                     } else {
                         valueFrame = CGRect(origin: CGPoint(x: horizontalPadding, y: originY + verticalPadding), size: valueChild.size)
@@ -259,12 +326,16 @@ final class TableComponent: CombinedComponent {
                 
                 context.add(valueChild
                     .position(valueFrame.center)
+                    .appear(.default(alpha: true))
+                    .disappear(.default(alpha: true))
                 )
                 
                 if i < updatedBorderChildren.count {
                     let borderChild = updatedBorderChildren[i]
                     context.add(borderChild
                         .position(CGPoint(x: context.availableSize.width / 2.0, y: originY + rowHeight - borderWidth / 2.0))
+                        .appear(.default(alpha: true))
+                        .disappear(.default(alpha: true))
                     )
                 }
                 

@@ -125,12 +125,12 @@ public final class AccountContextImpl: AccountContext {
     public let downloadedMediaStoreManager: DownloadedMediaStoreManager
     
     public let liveLocationManager: LiveLocationManager?
-    public let peersNearbyManager: PeersNearbyManager?
     public let wallpaperUploadManager: WallpaperUploadManager?
     private let themeUpdateManager: ThemeUpdateManager?
     public let inAppPurchaseManager: InAppPurchaseManager?
     public let starsContext: StarsContext?
     public let tonContext: StarsContext?
+public let giftAuctionsManager: GiftAuctionsManager?
 
     public let peerChannelMemberCategoriesContextsManager = PeerChannelMemberCategoriesContextsManager()
     
@@ -157,7 +157,7 @@ public final class AccountContextImpl: AccountContext {
     public var countriesConfiguration: Signal<CountriesConfiguration, NoError> {
         return self._countriesConfiguration.get()
     }
-
+    
     private var storedPassword: (String, CFAbsoluteTime, SwiftSignalKit.Timer)?
     private var limitsConfigurationDisposable: Disposable?
     private var contentSettingsDisposable: Disposable?
@@ -255,7 +255,7 @@ public final class AccountContextImpl: AccountContext {
         }
         return availableMessageEffectsValue.get()
     }
-
+    
     private var userLimitsConfigurationDisposable: Disposable?
     public private(set) var userLimits: EngineConfiguration.UserLimits
     
@@ -294,7 +294,7 @@ public final class AccountContextImpl: AccountContext {
     
     private var isFrozenDisposable: Disposable?
     public private(set) var isFrozen: Bool
-
+    
     public let imageCache: AnyObject?
     
     public init(sharedContext: SharedAccountContextImpl, account: Account, limitsConfiguration: LimitsConfiguration, contentSettings: ContentSettings, appConfiguration: AppConfiguration, availableReplyColors: EngineAvailableColorOptions, availableProfileColors: EngineAvailableColorOptions, temp: Bool = false)
@@ -337,6 +337,7 @@ public final class AccountContextImpl: AccountContext {
             self.inAppPurchaseManager = nil//InAppPurchaseManager(engine: .authorized(self.engine))
             self.starsContext = self.engine.payments.peerStarsContext()
             self.tonContext = self.engine.payments.peerTonContext()
+            self.giftAuctionsManager = GiftAuctionsManager(account: account)
         } else {
             self.prefetchManager = nil
             self.wallpaperUploadManager = nil
@@ -344,13 +345,13 @@ public final class AccountContextImpl: AccountContext {
             self.inAppPurchaseManager = nil
             self.starsContext = nil
             self.tonContext = nil
+            self.giftAuctionsManager = nil
         }
         
         self.account.stateManager.starsContext = self.starsContext
         self.account.stateManager.tonContext = self.starsContext
+                
 
-        self.peersNearbyManager = nil
-        
         self.cachedGroupCallContexts = AccountGroupCallContextCacheImpl()
         
         let cacheStorageBox = self.account.postbox.mediaBox.cacheStorageBox
@@ -363,7 +364,7 @@ public final class AccountContextImpl: AccountContext {
         })
         self.animationRenderer = MultiAnimationRendererImpl()
         (self.animationRenderer as? MultiAnimationRendererImpl)?.useYuvA = sharedContext.immediateExperimentalUISettings.compressedEmojiCache
-
+        
         let updatedLimitsConfiguration = account.postbox.preferencesView(keys: [PreferencesKeys.limitsConfiguration])
         |> map { preferences -> LimitsConfiguration in
             return preferences.values[PreferencesKeys.limitsConfiguration]?.get(LimitsConfiguration.self) ?? LimitsConfiguration.defaultValue
@@ -408,9 +409,21 @@ public final class AccountContextImpl: AccountContext {
         self.appConfigurationDisposable = (self._appConfiguration.get()
         |> deliverOnMainQueue).start(next: { value in
             let _ = currentAppConfiguration.swap(value)
-
-            if let data = appConfiguration.data, data["ios_killswitch_contact_diffing"] != nil {
+            
+            guard let data = appConfiguration.data else {
+                return
+            }
+            
+            if data["ios_killswitch_contact_diffing"] != nil {
                 sharedDisableDeviceContactDataDiffing = true
+            }
+            
+            if let url = data["ios_update_url"] as? String, !url.isEmpty {
+                let _ = (sharedContext.accountManager.transaction { transaction -> Void in
+                    transaction.updateSharedData(ApplicationSpecificSharedDataKeys.updateSettings, { _ in
+                        return PreferencesEntry(UpdateSettings(url: url))
+                    })
+                }).start()
             }
         })
         
@@ -542,7 +555,7 @@ public final class AccountContextImpl: AccountContext {
             }
             self.audioTranscriptionTrial = audioTranscriptionTrial
         })
-
+        
         self.isFrozenDisposable = (self.appConfiguration
         |> map { appConfiguration in
             return AccountFreezeConfiguration.with(appConfiguration: appConfiguration).freezeUntilDate != nil
@@ -554,7 +567,7 @@ public final class AccountContextImpl: AccountContext {
             }
             self.isFrozen = isFrozen
         })
-
+        
         self.experimentalUISettingsDisposable = (sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.experimentalUISettings])
         |> deliverOnMainQueue).start(next: { [weak self] sharedData in
             guard let self else {
@@ -791,7 +804,7 @@ public final class AccountContextImpl: AccountContext {
             }
         }
     }
-
+    
     public func joinConferenceCall(call: JoinCallLinkInformation, isVideo: Bool, unmuteByDefault: Bool) {
         guard let callManager = self.sharedContext.callManager else {
             return
@@ -821,7 +834,7 @@ public final class AccountContextImpl: AccountContext {
             } else {
                 dataInput = .single(nil)
             }
-
+            
             let _ = (dataInput
             |> deliverOnMainQueue).start(next: { [weak self] current in
                 guard let strongSelf = self else {
@@ -918,7 +931,7 @@ public final class AccountContextImpl: AccountContext {
             })
         }
     }
-
+    
     public func requestCall(peerId: PeerId, isVideo: Bool, completion: @escaping () -> Void) {
         guard let callResult = self.sharedContext.callManager?.requestCall(context: self, peerId: peerId, isVideo: isVideo, endCurrentIfAny: false) else {
             return

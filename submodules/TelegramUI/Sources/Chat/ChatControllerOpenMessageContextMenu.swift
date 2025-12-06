@@ -70,7 +70,7 @@ extension ChatControllerImpl {
                 case .custom, .twoLists:
                     break
                 }
-
+                
                 if allowedReactions != nil, case let .customChatContents(customChatContents) = self.presentationInterfaceState.subject {
                     if case let .hashTagSearch(publicPosts) = customChatContents.kind, publicPosts {
                         allowedReactions = nil
@@ -107,7 +107,7 @@ extension ChatControllerImpl {
                         }
                     }
                 }
-
+                
                 if messages.contains(where: { $0.pendingProcessingAttribute != nil }) {
                     tip = .videoProcessing
                 }
@@ -132,7 +132,7 @@ extension ChatControllerImpl {
                         }
                         actions.allPresetReactionsAreAvailable = true
                     }
-
+                    
                     if let channel = self.presentationInterfaceState.renderedPeer?.peer as? TelegramChannel, case .broadcast = channel.info {
                         actions.alwaysAllowPremiumReactions = true
                     }
@@ -302,7 +302,7 @@ extension ChatControllerImpl {
                         keepDefaultContentTouches = true
                     }
                 }
-
+                
                 let source: ContextContentSource
                 if let location = location {
                     source = .location(ChatMessageContextLocationContentSource(controller: self, location: node.view.convert(node.bounds, to: nil).origin.offsetBy(dx: location.x, dy: location.y)))
@@ -325,19 +325,13 @@ extension ChatControllerImpl {
                         }
                     }
                 }
-
+                
                 let isSecret = self.presentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
                 let controller = ContextController(presentationData: self.presentationData, source: source, items: actionsSignal, recognizer: recognizer, gesture: gesture, disableScreenshots: isSecret, hideReactionPanelTail: hideReactionPanelTail)
                 controller.dismissed = { [weak self] in
                     self?.canReadHistory.set(true)
                 }
                 controller.immediateItemsTransitionAnimation = disableTransitionAnimations
-                controller.getOverlayViews = { [weak self] in
-                    guard let self else {
-                        return []
-                    }
-                    return [self.chatDisplayNode.navigateButtons.view]
-                }
                 self.currentContextController = controller
                 
                 controller.premiumReactionsSelected = { [weak self, weak controller] in
@@ -356,12 +350,12 @@ extension ChatControllerImpl {
                     guard let self else {
                         return
                     }
-
+                    
                     guard !self.presentAccountFrozenInfoIfNeeded(delay: true) else {
                         controller?.dismiss(completion: {})
                         return
                     }
-
+                    
                     guard let message = messages.first else {
                         return
                     }
@@ -380,9 +374,9 @@ extension ChatControllerImpl {
                             }
                             return
                         }
-
+                        
                         let isFirst = !"".isEmpty
-
+                        
                         self.chatDisplayNode.historyNode.forEachItemNode { itemNode in
                             if let itemNode = itemNode as? ChatMessageItemView, let item = itemNode.item {
                                 if item.message.id == message.id {
@@ -393,12 +387,12 @@ extension ChatControllerImpl {
                                         }
                                         if let itemNode = itemNode, let targetView = itemNode.targetReactionView(value: chosenReaction) {
                                             self.chatDisplayNode.messageTransitionNode.addMessageContextController(messageId: item.message.id, contextController: controller)
-
+                                            
                                             var hideTargetButton: UIView?
                                             if isFirst {
                                                 hideTargetButton = targetView.superview
                                             }
-
+                                            
                                             controller.dismissWithReaction(value: chosenReaction, targetView: targetView, hideNode: true, animateTargetContainer: hideTargetButton, addStandaloneReactionAnimation: { [weak self] standaloneReactionAnimation in
                                                 guard let self else {
                                                     return
@@ -425,7 +419,7 @@ extension ChatControllerImpl {
                                 }
                             }
                         }
-
+                        
                         guard let starsContext = self.context.starsContext else {
                             return
                         }
@@ -438,7 +432,7 @@ extension ChatControllerImpl {
                             guard let strongSelf = self, let balance = state?.balance else {
                                 return
                             }
-
+                            
                             if case let .known(reactionSettings) = reactionSettings, let starsAllowed = reactionSettings.starsAllowed, !starsAllowed {
                                 if let peer = strongSelf.presentationInterfaceState.renderedPeer?.chatMainPeer {
                                     strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: nil, text: strongSelf.presentationData.strings.Chat_ToastStarsReactionsDisabled(peer.debugDisplayTitle).string, actions: [
@@ -447,13 +441,13 @@ extension ChatControllerImpl {
                                 }
                                 return
                             }
-
+                            
                             if balance < StarsAmount(value: 1, nanos: 0) {
                                 controller?.dismiss(completion: {
                                     guard let strongSelf = self else {
                                         return
                                     }
-
+                                    
                                     let _ = (strongSelf.context.engine.payments.starsTopUpOptions()
                                     |> take(1)
                                     |> deliverOnMainQueue).startStandalone(next: { [weak strongSelf] options in
@@ -463,17 +457,17 @@ extension ChatControllerImpl {
                                         guard let starsContext = strongSelf.context.starsContext else {
                                             return
                                         }
-
-                                        let purchaseScreen = strongSelf.context.sharedContext.makeStarsPurchaseScreen(context: strongSelf.context, starsContext: starsContext, options: options, purpose: .reactions(peerId: message.id.peerId, requiredStars: 1), completion: { result in
+                                        
+                                        let purchaseScreen = strongSelf.context.sharedContext.makeStarsPurchaseScreen(context: strongSelf.context, starsContext: starsContext, options: options, purpose: .reactions(peerId: message.id.peerId, requiredStars: 1), targetPeerId: nil, customTheme: nil, completion: { result in
                                             let _ = result
                                         })
                                         strongSelf.push(purchaseScreen)
                                     })
                                 })
-
+                                
                                 return
                             }
-
+                            
                             let _ = (strongSelf.context.engine.messages.sendStarsReaction(id: message.id, count: 1, privacy: nil)
                             |> deliverOnMainQueue).startStandalone(next: { privacy in
                                 guard let strongSelf = self else {
@@ -484,12 +478,12 @@ extension ChatControllerImpl {
                         })
                     } else {
                         let chosenReaction: MessageReaction.Reaction = chosenUpdatedReaction.reaction
-
+                        
                         let currentReactions = mergedMessageReactions(attributes: message.attributes, isTags: message.areReactionsTags(accountPeerId: self.context.account.peerId))?.reactions ?? []
                         var updatedReactions: [MessageReaction.Reaction] = currentReactions.filter(\.isSelected).map(\.value)
                         var removedReaction: MessageReaction.Reaction?
                         var isFirst = false
-
+                        
                         if let index = updatedReactions.firstIndex(where: { $0 == chosenReaction }) {
                             removedReaction = chosenReaction
                             updatedReactions.remove(at: index)
@@ -497,7 +491,7 @@ extension ChatControllerImpl {
                             updatedReactions.append(chosenReaction)
                             isFirst = !currentReactions.contains(where: { $0.value == chosenReaction })
                         }
-
+                        
                         if message.areReactionsTags(accountPeerId: self.context.account.peerId) {
                             if removedReaction == nil, !topReactions.contains(where: { $0.reaction.rawValue == chosenReaction }) {
                                 if !self.presentationInterfaceState.isPremium {
@@ -516,7 +510,7 @@ extension ChatControllerImpl {
                                 }
                             }
                         }
-
+                        
                         self.chatDisplayNode.historyNode.forEachItemNode { itemNode in
                             if let itemNode = itemNode as? ChatMessageItemView, let item = itemNode.item {
                                 if item.message.id == message.id {
@@ -527,12 +521,12 @@ extension ChatControllerImpl {
                                             }
                                             if let itemNode = itemNode, let targetView = itemNode.targetReactionView(value: chosenReaction) {
                                                 self.chatDisplayNode.messageTransitionNode.addMessageContextController(messageId: item.message.id, contextController: controller)
-
+                                                
                                                 var hideTargetButton: UIView?
                                                 if isFirst {
                                                     hideTargetButton = targetView.superview
                                                 }
-
+                                                
                                                 controller.dismissWithReaction(value: chosenReaction, targetView: targetView, hideNode: true, animateTargetContainer: hideTargetButton, addStandaloneReactionAnimation: { [weak self] standaloneReactionAnimation in
                                                     guard let self else {
                                                         return
@@ -544,7 +538,7 @@ extension ChatControllerImpl {
                                                     guard let self, let itemNode, let targetView else {
                                                         return
                                                     }
-
+                                                    
                                                     if self.chatLocation.peerId == self.context.account.peerId {
                                                         let _ = (ApplicationSpecificNotice.getSavedMessageTagLabelSuggestion(accountManager: self.context.sharedContext.accountManager)
                                                                  |> take(1)
@@ -555,15 +549,15 @@ extension ChatControllerImpl {
                                                             if value >= 3 {
                                                                 return
                                                             }
-
+                                                            
                                                             let _ = itemNode
-
+                                                            
                                                             let rect = self.chatDisplayNode.view.convert(targetView.bounds, from: targetView).insetBy(dx: -8.0, dy: -8.0)
                                                             let tooltipScreen = TooltipScreen(account: self.context.account, sharedContext: self.context.sharedContext, text: .plain(text: self.presentationData.strings.Chat_TooltipAddTagLabel), location: .point(rect, .bottom), displayDuration: .manual, shouldDismissOnTouch: { _, _ in
                                                                 return .dismiss(consume: false)
                                                             })
                                                             self.present(tooltipScreen, in: .current)
-
+                                                            
                                                             let _ = ApplicationSpecificNotice.incrementSavedMessageTagLabelSuggestion(accountManager: self.context.sharedContext.accountManager).startStandalone()
                                                         })
                                                     }
@@ -580,7 +574,7 @@ extension ChatControllerImpl {
                                 }
                             }
                         }
-
+                        
                         let mappedUpdatedReactions = updatedReactions.map { reaction -> UpdateMessageReaction in
                             switch reaction {
                             case let .builtin(value):
@@ -595,7 +589,7 @@ extension ChatControllerImpl {
                                 return .stars
                             }
                         }
-
+                        
                         let _ = updateMessageReactionsInteractively(account: self.context.account, messageIds: [message.id], reactions: mappedUpdatedReactions, isLarge: isLarge, storeAsRecentlyUsed: true).startStandalone()
                     }
                 }
@@ -617,25 +611,25 @@ final class ChatContextControllerContentSourceImpl: ContextControllerContentSour
     weak var sourceNode: ASDisplayNode?
     weak var sourceView: UIView?
     let sourceRect: CGRect?
-
+    
     let navigationController: NavigationController? = nil
 
     let passthroughTouches: Bool
-
+    
     init(controller: ViewController, sourceNode: ASDisplayNode?, sourceRect: CGRect? = nil, passthroughTouches: Bool) {
         self.controller = controller
         self.sourceNode = sourceNode
         self.sourceRect = sourceRect
         self.passthroughTouches = passthroughTouches
     }
-
+    
     init(controller: ViewController, sourceView: UIView?, sourceRect: CGRect? = nil, passthroughTouches: Bool) {
         self.controller = controller
         self.sourceView = sourceView
         self.sourceRect = sourceRect
         self.passthroughTouches = passthroughTouches
     }
-
+    
     func transitionInfo() -> ContextControllerTakeControllerInfo? {
         let sourceView = self.sourceView
         let sourceNode = self.sourceNode
@@ -650,7 +644,7 @@ final class ChatContextControllerContentSourceImpl: ContextControllerContentSour
             }
         })
     }
-
+    
     func animatedIn() {
     }
 }
@@ -660,14 +654,14 @@ final class ChatControllerContextReferenceContentSource: ContextReferenceContent
     let sourceView: UIView
     let insets: UIEdgeInsets
     let contentInsets: UIEdgeInsets
-
+    
     init(controller: ViewController, sourceView: UIView, insets: UIEdgeInsets, contentInsets: UIEdgeInsets = UIEdgeInsets()) {
         self.controller = controller
         self.sourceView = sourceView
         self.insets = insets
         self.contentInsets = contentInsets
     }
-
+    
     func transitionInfo() -> ContextControllerReferenceViewInfo? {
         return ContextControllerReferenceViewInfo(referenceView: self.sourceView, contentAreaInScreenSpace: UIScreen.main.bounds.inset(by: self.insets), insets: self.contentInsets)
     }

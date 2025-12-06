@@ -32,6 +32,11 @@ func telegramMediaWebpageAttributeFromApiWebpageAttribute(_ attribute: Api.WebPa
         var files: [TelegramMediaFile] = []
         files = icons.compactMap { telegramMediaFileFromApiDocument($0, altDocuments: []) }
         return .giftCollection(TelegramMediaWebpageGiftCollectionAttribute(files: files))
+    case let .webPageAttributeStarGiftAuction(apiGift, endDate, centerColor, edgeColor, textColor):
+        guard let gift = StarGift(apiStarGift: apiGift) else {
+            return nil
+        }
+        return .giftAuction(TelegramMediaWebpageGiftAuctionAttribute(gift: gift, endDate: endDate, centerColor: centerColor, edgeColor: edgeColor, textColor: textColor))
     case .webPageAttributeStory:
         return nil
     }

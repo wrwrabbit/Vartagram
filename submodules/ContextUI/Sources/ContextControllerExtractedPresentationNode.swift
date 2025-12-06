@@ -100,7 +100,7 @@ private extension ContextControllerTakeViewInfo.ContainingItem {
             return containingView.onDismiss
         }
     }
-
+    
     var layoutUpdated: ((CGSize, ListViewItemUpdateAnimation) -> Void)? {
         get {
             switch self {
@@ -135,7 +135,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
         var animateClippingFromContentAreaInScreenSpace: CGRect?
         var storedGlobalFrame: CGRect?
         var storedGlobalBoundsFrame: CGRect?
-
+        
         init(containingItem: ContextControllerTakeViewInfo.ContainingItem) {
             self.offsetContainerNode = ASDisplayNode()
             self.containingItem = containingItem
@@ -411,7 +411,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                 }
                 return result
             }
-
+            
             return nil
         } else {
             return nil
@@ -661,7 +661,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
         var animateReactionsIn = false
         var contentTopInset: CGFloat = topInset
         var removedReactionContextNode: ReactionContextNode?
-
+        
         if let reactionItems = self.actionsStackNode.topReactionItems, !reactionItems.reactionItems.isEmpty, let controller = self.getController() as? ContextController {
             let reactionContextNode: ReactionContextNode
             if let current = self.reactionContextNode {
@@ -724,7 +724,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                             return
                         }
                     }
-
+                    
                     if let file = file, let reactionContextNode = strongSelf.reactionContextNode {
                         let position: UndoOverlayController.Position
                         let insets = validLayout.insets(options: .statusBar)
@@ -750,7 +750,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                         controller.premiumReactionsSelected?()
                     }
                 }
-
+                
                 reactionContextNode.updateLayout(size: layout.size, insets: UIEdgeInsets(top: topInset, left: layout.safeInsets.left, bottom: 0.0, right: layout.safeInsets.right), anchorRect: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height), size: CGSize(width: 1.0, height: 1.0)), isCoveredByInput: false, isAnimatingOut: false, transition: .immediate)
             }
             contentTopInset += reactionContextNode.contentHeight + 18.0
@@ -771,18 +771,18 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                 self.reactionPreviewView = reactionPreviewView
                 self.view.addSubview(reactionPreviewView)
             }
-
+            
             contentTopInset += reactionPreviewSize.height + reactionPreviewInset
         } else {
             removedReactionPreviewView = self.reactionPreviewView
             self.reactionPreviewView = nil
         }
-
+        
         if let contentNode = itemContentNode {
             switch stateTransition {
             case .animateIn, .animateOut:
                 contentNode.storedGlobalFrame = convertFrame(contentNode.containingItem.contentRect, from: contentNode.containingItem.view, to: self.view)
-
+                
                 var rect = convertFrame(contentNode.containingItem.view.bounds, from: contentNode.containingItem.view, to: self.view)
                 if rect.origin.x < 0.0 {
                     rect.origin.x += layout.size.width
@@ -881,7 +881,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
         var contentParentGlobalFrameOffsetX: CGFloat = 0.0
         if case let .extracted(extracted) = self.source, extracted.adjustContentForSideInset {
             let contentSideInset: CGFloat = actionsSideInset + 6.0
-
+            
             var updatedFrame = contentParentGlobalFrame
             if updatedFrame.origin.x + updatedFrame.width > layout.size.width - contentSideInset {
                 updatedFrame.origin.x = layout.size.width - contentSideInset - updatedFrame.width
@@ -889,11 +889,11 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
             if updatedFrame.origin.x < contentSideInset {
                 updatedFrame.origin.x = contentSideInset
             }
-
+            
             contentParentGlobalFrameOffsetX = updatedFrame.minX - contentParentGlobalFrame.minX
             contentParentGlobalFrame = updatedFrame
         }
-
+        
         let keepInPlace: Bool
         let actionsHorizontalAlignment: ContextActionsHorizontalAlignment
         switch self.source {
@@ -935,8 +935,12 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
             switch self.source {
             case .location, .reference, .controller:
                 actionsStackPresentation = .inline
-            case .extracted:
-                actionsStackPresentation = .modal
+            case let .extracted(extracted):
+                if extracted.blurBackground {
+                    actionsStackPresentation = .modal
+                } else {
+                    actionsStackPresentation = .inline
+                }
             }
             
             let additionalActionsSize = self.additionalActionsStackNode.update(
@@ -1019,12 +1023,12 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
             
             if let reactionPreviewView = self.reactionPreviewView {
                 let anchorRect = contentRect.offsetBy(dx: contentParentGlobalFrame.minX, dy: 0.0)
-
+                
                 let reactionPreviewFrame = CGRect(origin: CGPoint(x: floor((anchorRect.midX - reactionPreviewSize.width * 0.5)), y: anchorRect.minY - reactionPreviewInset - reactionPreviewSize.height), size: reactionPreviewSize)
                 transition.updateFrame(view: reactionPreviewView, frame: reactionPreviewFrame)
                 reactionPreviewView.update(size: reactionPreviewFrame.size)
             }
-
+            
             if let _ = self.currentReactionsPositionLock {
                 transition.updateAlpha(node: self.actionsStackNode, alpha: 0.0)
             } else {
@@ -1043,7 +1047,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     removedReactionPreviewView?.removeFromSuperview()
                 })
             }
-
+            
             transition.updateFrame(node: self.contentRectDebugNode, frame: contentRect, beginWithCurrentState: true)
             
             var actionsFrame: CGRect
@@ -1241,7 +1245,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     if actionsSize.height.isZero {
                         var initialContentRect = contentRect
                         initialContentRect.origin.y += extracted.initialAppearanceOffset.y
-
+                        
                         let fixedContentY = floorToScreenPixels((layout.size.height - contentHeight) / 2.0)
                         animationInContentYDistance = fixedContentY - initialContentRect.minY
                     } else if contentX + contentWidth > layout.size.width / 2.0, actionsSize.height > 0.0 {
@@ -1251,7 +1255,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                 } else {
                     animationInContentXDistance = contentParentGlobalFrameOffsetX
                 }
-
+                
                 if animationInContentXDistance != 0.0 {
                     contentNode.layer.animateSpring(
                         from: -animationInContentXDistance as NSNumber, to: 0.0 as NSNumber,
@@ -1273,7 +1277,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     damping: springDamping,
                     additive: true
                 )
-
+                
                 if let reactionPreviewView = self.reactionPreviewView {
                     reactionPreviewView.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
                     reactionPreviewView.layer.animateSpring(
@@ -1442,7 +1446,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
             }
             
             let currentContentScreenFrame: CGRect
-
+                        
             switch self.source {
             case let .location(location):
                 if let putBackInfo = location.transitionInfo() {
@@ -1531,12 +1535,12 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     let originalSuperview = view.superview
                     let originalIndex = view.superview?.subviews.firstIndex(of: view)
                     let originalGroupOpacity = view.layer.allowsGroupOpacity
-
+                    
                     contentNodeSupernode.view.insertSubview(view, aboveSubview: itemContentNode.view)
                     view.frame = view.convert(view.bounds, to: contentNodeSupernode.view)
                     view.layer.allowsGroupOpacity = true
                     view.layer.animateAlpha(from: 0.0, to: view.alpha, duration: 0.2)
-
+                    
                     restoreOverlayViews.append({
                         view.frame = originalFrame
                         view.layer.allowsGroupOpacity = originalGroupOpacity
@@ -1548,7 +1552,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     })
                 }
             }
-
+            
             let completeWithActionStack = itemContentNode == nil && controllerContentNode == nil
             if let contentNode = itemContentNode {
                 contentNode.containingItem.willUpdateIsExtractedToContextPreview?(false, transition)
@@ -1570,7 +1574,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                 } else {
                     animationInContentXDistance = -contentParentGlobalFrameOffsetX
                 }
-
+                
                 if animationInContentXDistance != 0.0 {
                     contentNode.offsetContainerNode.layer.animate(
                         from: -animationInContentXDistance as NSNumber,
@@ -1607,13 +1611,13 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                             contentNode.containingItem.isExtractedToContextPreview = false
                             contentNode.containingItem.isExtractedToContextPreviewUpdated?(false)
                             contentNode.containingItem.onDismiss?()
-
+                            
                             restoreOverlayViews.forEach({ $0() })
                             completion()
                         })
                     }
                 )
-
+                
                 if let reactionPreviewView = self.reactionPreviewView {
                     reactionPreviewView.layer.animate(
                         from: 0.0 as NSNumber,
@@ -1783,7 +1787,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
         if self.reactionContextNodeIsAnimatingOut, let reactionContextNode = self.reactionContextNode {
             reactionContextNode.bounds = reactionContextNode.bounds.offsetBy(dx: 0.0, dy: offset.y)
             transition.animateOffsetAdditive(node: reactionContextNode, offset: -offset.y)
-
+            
             if let itemContentNode = self.itemContentNode {
                 itemContentNode.bounds = itemContentNode.bounds.offsetBy(dx: 0.0, dy: offset.y)
                 transition.animateOffsetAdditive(node: itemContentNode, offset: -offset.y)

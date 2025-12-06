@@ -77,11 +77,11 @@ private enum DebugAccountsControllerEntry: ItemListNodeEntry {
         let arguments = arguments as! DebugAccountsControllerArguments
         switch self {
             case let .record(_, record, current):
-                return ItemListCheckboxItem(presentationData: presentationData, title: "\(UInt64(bitPattern: record.id.int64))", style: .left, checked: current, zeroSeparatorInsets: false, sectionId: self.section, action: {
+                return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: "\(UInt64(bitPattern: record.id.int64))", style: .left, checked: current, zeroSeparatorInsets: false, sectionId: self.section, action: {
                     arguments.switchAccount(record.id)
                 })
             case .loginNewAccount:
-                return ItemListActionItem(presentationData: presentationData, title: "Login to another account", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: "Login to another account", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
                     arguments.loginNewAccount()
                 })
         }
@@ -127,6 +127,10 @@ public func debugAccountsController(context: AccountContext, accountManager: Acc
                     
                     if case .internal = context.sharedContext.applicationBindings.appBuildType {
                         context.sharedContext.beginNewAuth(testingEnvironment: false)
+                    } else {
+                        #if DEBUG
+                        context.sharedContext.beginNewAuth(testingEnvironment: false)
+                        #endif
                     }
                 }),
                 ActionSheetButtonItem(title: "Test", color: .accent, action: {

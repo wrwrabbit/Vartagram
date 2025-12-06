@@ -227,7 +227,7 @@ public final class PeerInfoAvatarListItemNode: ASDisplayNode {
     private var hasProgress = false
 
     private let hierarchyTrackingLayer = HierarchyTrackingLayer()
-
+    
     public let isReady = Promise<Bool>()
     private var didSetReady: Bool = false
     
@@ -384,7 +384,7 @@ public final class PeerInfoAvatarListItemNode: ASDisplayNode {
         if !self.hierarchyTrackingLayer.isInHierarchy {
             return
         }
-
+        
         let mediaManager = self.context.sharedContext.mediaManager
         let videoNode = UniversalVideoNode(context: self.context, postbox: self.context.account.postbox, audioSession: mediaManager.audioSession, manager: mediaManager.universalVideoManager, decoration: GalleryVideoDecoration(), content: videoContent, priority: .secondaryOverlay, sourceAccountId: self.context.account.id)
         videoNode.isUserInteractionEnabled = false
@@ -674,10 +674,10 @@ private final class VariableBlurView: UIVisualEffectView {
         variableBlur.setValue(self.maxBlurRadius, forKey: "inputRadius")
         variableBlur.setValue(gradientImageRef, forKey: "inputMaskImage")
         variableBlur.setValue(true, forKey: "inputNormalizeEdges")
-        variableBlur.setValue(UIScreenScale, forKey: "scale")
         
         let backdropLayer = self.subviews.first?.layer
         backdropLayer?.filters = [variableBlur]
+        backdropLayer?.setValue(UIScreenScale, forKey: "scale")
     }
 }
 

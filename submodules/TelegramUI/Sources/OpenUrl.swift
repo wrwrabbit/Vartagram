@@ -258,7 +258,7 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
                 }
             }
         }
-
+        
         if let scheme = parsedUrl.scheme, (scheme == "tg" || scheme == context.sharedContext.applicationBindings.appSpecificScheme) {
             var convertedUrl: String?
             if let query = parsedUrl.query {
@@ -669,6 +669,22 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
                         }
                         if let slug {
                             convertedUrl = "https://t.me/nft/\(slug)"
+                        }
+                    }
+                } else if parsedUrl.host == "stargift_auction" {
+                    if let components = URLComponents(string: "/?" + query) {
+                        var slug: String?
+                        if let queryItems = components.queryItems {
+                            for queryItem in queryItems {
+                                if let value = queryItem.value {
+                                    if queryItem.name == "slug" {
+                                        slug = value
+                                    }
+                                }
+                            }
+                        }
+                        if let slug {
+                            convertedUrl = "https://t.me/auction/\(slug)"
                         }
                     }
                 } else if parsedUrl.host == "privatepost" {
@@ -1090,6 +1106,8 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
                         #endif
                         case "phone_privacy":
                             section = .phonePrivacy
+                        case "login_email":
+                            section = .loginEmail
                         default:
                             break
                         }
@@ -1137,9 +1155,9 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
         if urlScheme == "tonsite" {
             isInternetUrl = true
         }
-
+        
         if isInternetUrl {
-            if parsedUrl.host == "t.me" || parsedUrl.host == "telegram.me" {
+            if parsedUrl.host == "t.me" || parsedUrl.host == "telegram.me" || parsedUrl.host == "telegram.dog" {
                 handleInternalUrl(parsedUrl.absoluteString)
             } else {
                 let settings = combineLatest(context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.webBrowserSettings, ApplicationSpecificSharedDataKeys.presentationPasscodeSettings]), context.sharedContext.accountManager.accessChallengeData())
@@ -1161,11 +1179,6 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
                     return settings
                 }
 
-//                var isCompact = false
-//                if let metrics = navigationController?.validLayout?.metrics, case .compact = metrics.widthClass {
-//                    isCompact = true
-//                }
-                
                 let _ = (settings
                 |> deliverOnMainQueue).startStandalone(next: { settings in
                     var isTonSite = false
@@ -1174,7 +1187,7 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
                     } else if let scheme = parsedUrl.scheme, scheme.lowercased().hasPrefix("tonsite") {
                         isTonSite = true
                     }
-
+                    
                     if let defaultWebBrowser = settings.defaultWebBrowser, defaultWebBrowser != "inApp" && !isTonSite {
                         let openInOptions = availableOpenInOptions(context: context, item: .url(url: url))
                         if let option = openInOptions.first(where: { $0.identifier == settings.defaultWebBrowser }) {
@@ -1218,7 +1231,7 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
     }
     
     if parsedUrl.scheme?.lowercased() == "http" || parsedUrl.scheme?.lowercased() == "https" {
-        let nativeHosts = ["t.me", "telegram.me"]
+        let nativeHosts = ["t.me", "telegram.me", "telegram.dog"]
         if let host = parsedUrl.host?.lowercased(), nativeHosts.contains(host) {
             continueHandling()
         } else {

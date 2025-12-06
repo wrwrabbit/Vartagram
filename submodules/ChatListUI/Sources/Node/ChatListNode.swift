@@ -117,7 +117,7 @@ public final class ChatListNodeInteraction {
     let openAdInfo: (ASDisplayNode, AdPeer) -> Void
     let openAccountFreezeInfo: () -> Void
     let openUrl: (String) -> Void
-
+    
     public var searchTextHighightState: String?
     var highlightedChatLocation: ChatListHighlightedLocation?
     
@@ -1258,7 +1258,7 @@ public final class ChatListNode: ListView {
     public var openPhotoSetup: (() -> Void)?
     public var openAdInfo: ((ASDisplayNode, AdPeer) -> Void)?
     public var openAccountFreezeInfo: (() -> Void)?
-
+    
     private var theme: PresentationTheme
     
     private let viewProcessingQueue = Queue()
@@ -1941,7 +1941,7 @@ public final class ChatListNode: ListView {
         } else {
             shouldLoadCanMessagePeer = false
         }
-
+        
         let chatListViewUpdate = self.chatListLocation.get()
         |> distinctUntilChanged
         |> mapToSignal { listLocation -> Signal<(ChatListNodeViewUpdate, ChatListFilter?), NoError> in
@@ -2001,9 +2001,9 @@ public final class ChatListNode: ListView {
         } else {
             displayArchiveIntro = .single(false)
         }
-
+        
         let starsSubscriptionsContextPromise = Promise<StarsSubscriptionsContext?>(nil)
-
+    
         self.updateIsMainTabDisposable = (self.isMainTab.get()
         |> deliverOnMainQueue).startStrict(next: { [weak self] isMainTab in
             guard let self else {
@@ -2028,7 +2028,7 @@ public final class ChatListNode: ListView {
             |> map { appConfiguration -> AccountFreezeConfiguration in
                 return AccountFreezeConfiguration.with(appConfiguration: appConfiguration)
             })
-
+            
             let suggestedChatListNoticeSignal: Signal<ChatListNotice?, NoError> = combineLatest(
                 context.engine.notices.getServerProvidedSuggestions(),
                 context.engine.notices.getServerDismissedSuggestions(),
@@ -2044,7 +2044,7 @@ public final class ChatListNode: ListView {
             )
             |> mapToSignal { suggestions, dismissedSuggestions, configuration, newSessionReviews, data, birthdays, starsSubscriptionsContext, accountFreezeConfiguration -> Signal<ChatListNotice?, NoError> in
                 let (accountPeer, birthday) = data
-
+                                
                 if let newSessionReview = newSessionReviews.first {
                     return .single(.reviewLogin(newSessionReview: newSessionReview, totalCount: newSessionReviews.count))
                 }
@@ -2062,7 +2062,7 @@ public final class ChatListNode: ListView {
                         return .single(.setupPassword)
                     }
                 }
-
+                
                 let today = Calendar(identifier: .gregorian).component(.day, from: Date())
                 var todayBirthdayPeerIds: [EnginePeer.Id] = []
                 for (peerId, birthday) in birthdays {
@@ -2073,11 +2073,11 @@ public final class ChatListNode: ListView {
                 todayBirthdayPeerIds.sort { lhs, rhs in
                     return lhs < rhs
                 }
-
+                
                 if dismissedSuggestions.contains(ServerProvidedSuggestion.todayBirthdays.id) {
                     todayBirthdayPeerIds = []
                 }
-
+                     
                 if let _ = accountFreezeConfiguration.freezeUntilDate {
                     return .single(.accountFreeze)
                 } else if suggestions.contains(.starsSubscriptionLowBalance) {
@@ -2260,7 +2260,7 @@ public final class ChatListNode: ListView {
         }
         
         let currentPeerId: EnginePeer.Id = context.account.peerId
-
+        
         let contacts: Signal<[ChatListContactPeer], NoError>
         if case .chatList(groupId: .root) = location, chatListFilter == nil, case .chatList = mode {
             contacts = ApplicationSpecificNotice.displayChatListContacts(accountManager: context.sharedContext.accountManager)
@@ -2343,9 +2343,9 @@ public final class ChatListNode: ListView {
             chatListFilters = .single(nil)
         }
         let previousChatListFilters = Atomic<[ChatListFilter]?>(value: nil)
-
+        
         let previousAccountIsPremium = Atomic<Bool?>(value: nil)
-
+        
         let accountIsPremium = context.engine.data.subscribe(
             TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId)
         )
@@ -2353,7 +2353,7 @@ public final class ChatListNode: ListView {
             return peer?.isPremium ?? false
         }
         |> distinctUntilChanged
-
+        
         let chatListNodeViewTransition = combineLatest(queue: viewProcessingQueue,
             hideArchivedFolderByDefault,
             displayArchiveIntro,
@@ -2515,7 +2515,7 @@ public final class ChatListNode: ListView {
                                 case let .user(userType):
                                     if case let .user(user) = peer {
                                         match = true
-                                        if user.id.isVerificationCodes {
+                                        if user.id.isVerificationCodes || user.id.isTelegramNotifications {
                                             match = false
                                         }
                                         if let isBot = userType.isBot {
@@ -2567,7 +2567,7 @@ public final class ChatListNode: ListView {
                                             }
                                         }
                                         if let isForum = groupType.isForum {
-                                            if isForum != channel.flags.contains(.isForum) {
+                                            if isForum != channel.isForum {
                                                 match = false
                                             }
                                         }
@@ -2839,7 +2839,7 @@ public final class ChatListNode: ListView {
             if accountIsPremium != previousAccountIsPremium.swap(accountIsPremium) {
                 forceAllUpdated = true
             }
-
+            
             return preparedChatListNodeViewTransition(from: previousView, to: processedView, reason: reason, previewing: previewing, disableAnimations: disableAnimations, account: context.account, scrollPosition: updatedScrollPosition, searchMode: searchMode, forceAllUpdated: forceAllUpdated)
             |> map {
                 if _animationsTemporarilyDisabledForCoverUp {
@@ -4054,7 +4054,7 @@ public final class ChatListNode: ListView {
                     guard case let .chatList(groupId) = self.location else {
                         return
                     }
-
+                    
                     let shouldLoadCanMessagePeer: Bool
                     if case .peers = self.mode {
                         shouldLoadCanMessagePeer = true
@@ -4481,7 +4481,7 @@ func chatListItemTags(location: ChatListControllerLocation, accountPeerId: Engin
     guard let peer else {
         return []
     }
-
+    
     var result: [ChatListItemContent.Tag] = []
     for case let .filter(id, title, _, data) in chatListFilters {
         if data.color != nil {

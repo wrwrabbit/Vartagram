@@ -262,7 +262,7 @@ public class ChatMessageMapBubbleContentNode: ChatMessageBubbleContentNode {
                         statusType = nil
                     }
                 }
-
+                
                 var statusSize = CGSize()
                 var statusApply: ((ListViewItemUpdateAnimation) -> Void)?
                 
@@ -434,7 +434,7 @@ public class ChatMessageMapBubbleContentNode: ChatMessageBubbleContentNode {
                                     if strongSelf.timeoutTimer?.1 != timeoutDeadline {
                                         strongSelf.timeoutTimer?.0.invalidate()
                                         let currentTimestamp = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
-
+                                        
                                         let timer = SwiftSignalKit.Timer(timeout: Double(max(0, timeoutDeadline - currentTimestamp)), repeat: false, completion: {
                                             if let strongSelf = self {
                                                 strongSelf.timeoutTimer?.0.invalidate()
@@ -548,7 +548,7 @@ public class ChatMessageMapBubbleContentNode: ChatMessageBubbleContentNode {
         }
         return nil
     }
-
+    
     override public func messageEffectTargetView() -> UIView? {
         if !self.dateAndStatusNode.isHidden {
             return self.dateAndStatusNode.messageEffectTargetView()

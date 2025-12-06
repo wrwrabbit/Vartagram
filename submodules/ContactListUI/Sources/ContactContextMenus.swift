@@ -230,7 +230,7 @@ func contactContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, con
                 f(.default)
             })))
         }
-
+        
         items.append(.action(ContextMenuActionItem(text: strings.ContactList_Context_Delete, textColor: .destructive, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Delete"), color: theme.contextMenu.destructiveColor)
         }, action: { [weak contactsController] _, f in
             if let contactsController {
@@ -238,9 +238,9 @@ func contactContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, con
             }
             f(.dismissWithoutContent)
         })))
-
+        
         items.append(.separator)
-
+        
         items.append(.action(ContextMenuActionItem(text: strings.ContactList_Context_Select, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Select"), color: theme.contextMenu.primaryColor)
         }, action: { [weak contactsController] _, f in
             if let contactsController {
@@ -248,7 +248,7 @@ func contactContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, con
             }
             f(.default)
         })))
-
+        
         return items
     }
 }

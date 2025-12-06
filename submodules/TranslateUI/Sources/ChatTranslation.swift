@@ -85,7 +85,7 @@ private func cachedChatTranslationState(engine: TelegramEngine, peerId: EnginePe
         key = EngineDataBuffer(length: 8)
         key.setInt64(0, value: peerId.id._internalGetInt64Value())
     }
-
+    
     return engine.data.subscribe(TelegramEngine.EngineData.Item.ItemCache.Item(collectionId: ApplicationSpecificItemCacheCollectionId.translationState, id: key))
     |> map { entry -> ChatTranslationState? in
         return entry?.get(ChatTranslationState.self)
@@ -102,7 +102,7 @@ private func updateChatTranslationState(engine: TelegramEngine, peerId: EnginePe
         key = EngineDataBuffer(length: 8)
         key.setInt64(0, value: peerId.id._internalGetInt64Value())
     }
-
+    
     if let state {
         return engine.itemCache.put(collectionId: ApplicationSpecificItemCacheCollectionId.translationState, id: key, item: state)
     } else {
@@ -120,7 +120,7 @@ public func updateChatTranslationStateInteractively(engine: TelegramEngine, peer
         key = EngineDataBuffer(length: 8)
         key.setInt64(0, value: peerId.id._internalGetInt64Value())
     }
-
+    
     return engine.data.get(TelegramEngine.EngineData.Item.ItemCache.Item(collectionId: ApplicationSpecificItemCacheCollectionId.translationState, id: key))
     |> map { entry -> ChatTranslationState? in
         return entry?.get(ChatTranslationState.self)
@@ -161,7 +161,7 @@ public func translateMessageIds(context: AccountContext, messageIds: [EngineMess
                 if let translation = message.attributes.first(where: { $0 is TranslationMessageAttribute }) as? TranslationMessageAttribute, translation.toLang == toLang {
                     continue
                 }
-
+                
                 if !message.text.isEmpty {
                     if !messageIdsSet.contains(messageId) {
                         messageIdsToTranslate.append(messageId)
@@ -180,7 +180,7 @@ public func translateMessageIds(context: AccountContext, messageIds: [EngineMess
                 }
             }
         }
-
+        
         let translationConfiguration = TranslationConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
         var enableLocalIfPossible = false
         switch translationConfiguration.auto {
@@ -206,7 +206,7 @@ public func chatTranslationState(context: AccountContext, peerId: EnginePeer.Id,
     guard canTranslateChats(context: context) else {
         return .single(nil)
     }
-
+    
     let loggingEnabled = context.sharedContext.immediateExperimentalUISettings.logLanguageRecognition
     
     if #available(iOS 12.0, *) {
@@ -296,7 +296,7 @@ public func chatTranslationState(context: AccountContext, peerId: EnginePeer.Id,
                                     languageRecognizer.processString(text)
                                     let hypotheses = languageRecognizer.languageHypotheses(withMaximum: 4)
                                     languageRecognizer.reset()
-
+                                                                        
                                     let filteredLanguages = hypotheses.filter { supportedTranslationLanguages.contains(normalizeTranslationLanguage($0.key.rawValue)) }.sorted(by: { $0.value > $1.value })
                                     if let language = filteredLanguages.first {
                                         var fromLang = normalizeTranslationLanguage(language.key.rawValue)
@@ -335,7 +335,7 @@ public func chatTranslationState(context: AccountContext, peerId: EnginePeer.Id,
                             if loggingEnabled {
                                 Logger.shared.log("ChatTranslation", "Ended with: \(fromLang)")
                             }
-
+                            
                             let isEnabled: Bool
                             if let currentIsEnabled = cached?.isEnabled {
                                 isEnabled = currentIsEnabled
@@ -344,7 +344,7 @@ public func chatTranslationState(context: AccountContext, peerId: EnginePeer.Id,
                             } else {
                                 isEnabled = false
                             }
-
+                            
                             let state = ChatTranslationState(
                                 baseLang: baseLang,
                                 fromLang: fromLang,

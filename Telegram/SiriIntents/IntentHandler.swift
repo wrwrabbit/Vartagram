@@ -264,7 +264,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
                 return .notRequired()
             }
         }
-
+        
         var contactResolutionResult: INStartCallContactResolutionResult {
             switch self {
             case let .success(person):

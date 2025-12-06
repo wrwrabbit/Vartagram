@@ -44,6 +44,7 @@ private enum ApplicationSpecificSharedDataKeyValues: Int32 {
     case translationSettings = 18
     case drawingSettings = 19
     case mediaDisplaySettings = 20
+    case updateSettings = 21
 
     // ptgSettings = 102
     // ptgSecretPasscodes = 103
@@ -73,6 +74,7 @@ extension ApplicationSpecificSharedDataKeys {
     public static let translationSettings = applicationSpecificPreferencesKey(ApplicationSpecificSharedDataKeyValues.translationSettings.rawValue)
     public static let drawingSettings = applicationSpecificPreferencesKey(ApplicationSpecificSharedDataKeyValues.drawingSettings.rawValue)
     public static let mediaDisplaySettings = applicationSpecificPreferencesKey(ApplicationSpecificSharedDataKeyValues.mediaDisplaySettings.rawValue)
+    public static let updateSettings = applicationSpecificPreferencesKey(ApplicationSpecificSharedDataKeyValues.updateSettings.rawValue)
 }
 
 private enum ApplicationSpecificItemCacheCollectionIdValues: Int8 {

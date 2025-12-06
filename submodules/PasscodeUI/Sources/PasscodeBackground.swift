@@ -37,7 +37,7 @@ public final class CustomPasscodeBackground: PasscodeBackground {
     
     public func makeForegroundNode(backgroundNode: ASDisplayNode?) -> ASDisplayNode? {
         if self.inverted, let backgroundNode = backgroundNode as? GradientBackgroundNode {
-            return GradientBackgroundNode.CloneNode(parentNode: backgroundNode)
+            return GradientBackgroundNode.CloneNode(parentNode: backgroundNode, isDimmed: true)
         } else {
             return nil
         }

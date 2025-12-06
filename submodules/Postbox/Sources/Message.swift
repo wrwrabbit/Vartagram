@@ -480,7 +480,7 @@ public struct MessageFlags: OptionSet {
         if flags.contains(StoreMessageFlags.ReactionsArePossible) {
             rawValue |= MessageFlags.ReactionsArePossible.rawValue
         }
-
+        
         self.rawValue = rawValue
     }
     
@@ -495,7 +495,7 @@ public struct MessageFlags: OptionSet {
     public static let CopyProtected = MessageFlags(rawValue: 512)
     public static let IsForumTopic = MessageFlags(rawValue: 1024)
     public static let ReactionsArePossible = MessageFlags(rawValue: 2048)
-
+    
     public static let IsIncomingMask = MessageFlags([.Incoming, .CountedAsIncoming])
 }
 
@@ -644,7 +644,7 @@ public extension MessageAttribute {
 
 public struct MessageGroupInfo: Equatable {
     public let stableId: UInt32
-
+    
     public init(stableId: UInt32) {
         self.stableId = stableId
     }
@@ -652,7 +652,7 @@ public struct MessageGroupInfo: Equatable {
 
 public final class Message {
     public static let newTopicThreadId: Int64 = Int64(Int32.max - 1)
-
+    
     public final class AssociatedThreadInfo: Equatable {
         public let title: String
         public let icon: Int64?
@@ -746,11 +746,11 @@ public final class Message {
     public func withUpdatedStableId(stableId: UInt32) -> Message {
         return Message(stableId: stableId, stableVersion: self.stableVersion, id: self.id, globallyUniqueId: self.globallyUniqueId, groupingKey: self.groupingKey, groupInfo: self.groupInfo, threadId: self.threadId, timestamp: self.timestamp, flags: self.flags, tags: self.tags, globalTags: self.globalTags, localTags: self.localTags, customTags: self.customTags, forwardInfo: self.forwardInfo, author: self.author, text: self.text, attributes: self.attributes, media: self.media, peers: self.peers, associatedMessages: self.associatedMessages, associatedMessageIds: self.associatedMessageIds, associatedMedia: self.associatedMedia, associatedThreadInfo: self.associatedThreadInfo, associatedStories: self.associatedStories)
     }
-
+    
     public func withUpdatedId(id: MessageId) -> Message {
         return Message(stableId: self.stableId, stableVersion: self.stableVersion, id: id, globallyUniqueId: self.globallyUniqueId, groupingKey: self.groupingKey, groupInfo: self.groupInfo, threadId: self.threadId, timestamp: self.timestamp, flags: self.flags, tags: self.tags, globalTags: self.globalTags, localTags: self.localTags, customTags: self.customTags, forwardInfo: self.forwardInfo, author: self.author, text: self.text, attributes: self.attributes, media: self.media, peers: self.peers, associatedMessages: self.associatedMessages, associatedMessageIds: self.associatedMessageIds, associatedMedia: self.associatedMedia, associatedThreadInfo: self.associatedThreadInfo, associatedStories: self.associatedStories)
     }
-
+    
     public func withUpdatedStableVersion(stableVersion: UInt32) -> Message {
         return Message(stableId: self.stableId, stableVersion: stableVersion, id: self.id, globallyUniqueId: self.globallyUniqueId, groupingKey: self.groupingKey, groupInfo: self.groupInfo, threadId: self.threadId, timestamp: self.timestamp, flags: self.flags, tags: self.tags, globalTags: self.globalTags, localTags: self.localTags, customTags: self.customTags, forwardInfo: self.forwardInfo, author: self.author, text: self.text, attributes: self.attributes, media: self.media, peers: self.peers, associatedMessages: self.associatedMessages, associatedMessageIds: self.associatedMessageIds, associatedMedia: self.associatedMedia, associatedThreadInfo: self.associatedThreadInfo, associatedStories: self.associatedStories)
     }
@@ -853,7 +853,7 @@ public struct StoreMessageFlags: OptionSet {
         if flags.contains(.ReactionsArePossible) {
             rawValue |= StoreMessageFlags.ReactionsArePossible.rawValue
         }
-
+        
         self.rawValue = rawValue
     }
     
@@ -868,7 +868,7 @@ public struct StoreMessageFlags: OptionSet {
     public static let CopyProtected = StoreMessageFlags(rawValue: 512)
     public static let IsForumTopic = StoreMessageFlags(rawValue: 1024)
     public static let ReactionsArePossible = StoreMessageFlags(rawValue: 2048)
-
+    
     public static let IsIncomingMask = StoreMessageFlags([.Incoming, .CountedAsIncoming])
 }
 
@@ -987,7 +987,7 @@ public final class StoreMessage {
     public func withUpdatedCustomStableId(_ customStableId: UInt32?) -> StoreMessage {
         return StoreMessage(id: self.id, customStableId: customStableId, globallyUniqueId: self.globallyUniqueId, groupingKey: self.groupingKey, threadId: self.threadId, timestamp: self.timestamp, flags: self.flags, tags: self.tags, globalTags: self.globalTags, localTags: self.localTags, forwardInfo: self.forwardInfo, authorId: self.authorId, text: self.text, attributes: attributes, media: self.media)
     }
-
+    
     public func withUpdatedFlags(_ flags: StoreMessageFlags) -> StoreMessage {
         if flags == self.flags {
             return self
@@ -995,11 +995,11 @@ public final class StoreMessage {
             return StoreMessage(id: self.id, customStableId: self.customStableId, globallyUniqueId: self.globallyUniqueId, groupingKey: self.groupingKey, threadId: self.threadId, timestamp: self.timestamp, flags: flags, tags: self.tags, globalTags: self.globalTags, localTags: self.localTags, forwardInfo: self.forwardInfo, authorId: self.authorId, text: self.text, attributes: attributes, media: self.media)
         }
     }
-
+    
     public func withUpdatedMedia(_ media: [Media]) -> StoreMessage {
         return StoreMessage(id: self.id, customStableId: self.customStableId, globallyUniqueId: self.globallyUniqueId, groupingKey: self.groupingKey, threadId: self.threadId, timestamp: self.timestamp, flags: self.flags, tags: self.tags, globalTags: self.globalTags, localTags: self.localTags, forwardInfo: self.forwardInfo, authorId: self.authorId, text: self.text, attributes: self.attributes, media: media)
     }
-
+    
     public func withUpdatedAttributes(_ attributes: [MessageAttribute]) -> StoreMessage {
         return StoreMessage(id: self.id, customStableId: self.customStableId, globallyUniqueId: self.globallyUniqueId, groupingKey: self.groupingKey, threadId: self.threadId, timestamp: self.timestamp, flags: self.flags, tags: self.tags, globalTags: self.globalTags, localTags: self.localTags, forwardInfo: self.forwardInfo, authorId: self.authorId, text: self.text, attributes: attributes, media: self.media)
     }
@@ -1075,7 +1075,7 @@ public enum MessageIdNamespaces: Equatable {
 public struct PeerAndThreadId: Hashable {
     public var peerId: PeerId
     public var threadId: Int64?
-
+    
     public init(peerId: PeerId, threadId: Int64?) {
         self.peerId = peerId
         self.threadId = threadId
@@ -1085,7 +1085,7 @@ public struct PeerAndThreadId: Hashable {
 public struct PeerAndBoundThreadId: Hashable {
     public var peerId: PeerId
     public var threadId: Int64
-
+    
     public init(peerId: PeerId, threadId: Int64) {
         self.peerId = peerId
         self.threadId = threadId
@@ -1095,7 +1095,7 @@ public struct PeerAndBoundThreadId: Hashable {
 public struct MessageAndThreadId: Hashable {
     public var messageId: MessageId
     public var threadId: Int64?
-
+    
     public init(messageId: MessageId, threadId: Int64?) {
         self.messageId = messageId
         self.threadId = threadId

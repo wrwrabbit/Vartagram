@@ -111,7 +111,12 @@ public final class GiftCompositionComponent: Component {
         private var animatePreviewTransition = false
         private var animateBackdropSwipe = false
         
-        private enum SpinState { case idle, spinning, decelerating, settled }
+        private enum SpinState {
+            case idle
+            case spinning
+            case decelerating
+            case settled
+        }
         private var spinState: SpinState = .idle
         private var spinLink: SharedDisplayLinkDriver.Link?
         private var lastSpawnTime: CFTimeInterval?
@@ -124,18 +129,17 @@ public final class GiftCompositionComponent: Component {
         private var decelerationStepIndex: Int = 0
         private var decelContainer: UIView?
         private var decelItemHosts: [UIView] = []
-        private let decelAnimationKey = "decel.container.move"
         
         private var activeWrappers: [UIView] = []
 
-        private struct SpinGeom {
+        private struct SpinParams {
             var availableSize: CGSize
             var iconSize: CGSize
             var scale: CGFloat
             var centerX: CGFloat
             var centerY: CGFloat
         }
-        private var spinGeom: SpinGeom?
+        private var spinGeom: SpinParams?
 
         private var spinPool: [StarGift.UniqueGift.Attribute] = []
         private var spinPoolIndex: Int = 0
@@ -285,7 +289,7 @@ public final class GiftCompositionComponent: Component {
             self.spinPoolIndex = 0
             let centerY = 88.0 + (self.component?.animationOffset?.y ?? 0.0)
 
-            self.spinGeom = SpinGeom(
+            self.spinGeom = SpinParams(
                 availableSize: availableSize,
                 iconSize: iconSize,
                 scale: scale,
@@ -893,7 +897,7 @@ public final class GiftCompositionComponent: Component {
                     )
                 } else if self.spinState == .spinning {
                     let centerY = 88.0 + (component.animationOffset?.y ?? 0.0)
-                    self.spinGeom = SpinGeom(
+                    self.spinGeom = SpinParams(
                         availableSize: availableSize,
                         iconSize: iconSize,
                         scale: scaleValue,

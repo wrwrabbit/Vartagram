@@ -57,13 +57,13 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                 case .automaticPlayback:
                     openChatMessageMode = .automaticPlayback
             }
-
+            
             if !item.controllerInteraction.isOpeningMedia {
                 let params = OpenMessageParams(mode: openChatMessageMode, mediaIndex: self.mediaIndex, progress: self.itemNode?.makeProgress())
                 let _ = item.controllerInteraction.openMessage(item.message, params)
             }
         }
-
+        
         self.interactiveImageNode.activateAgeRestrictedMedia = { [weak self] in
             guard let self, let item = self.item else {
                 return
@@ -204,7 +204,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                     }
                 }
             }
-
+                        
             if let extendedMedia, case let .full(media) = extendedMedia {
                 if let telegramImage = media as? TelegramMediaImage {
                     if shouldDownloadMediaAutomatically(settings: item.controllerInteraction.automaticMediaDownloadSettings, peerType: item.associatedData.automaticDownloadPeerType, networkType: item.associatedData.automaticDownloadNetworkType, authorPeerId: item.message.author?.id, contactsPeerIds: item.associatedData.contactsPeerIds, media: telegramImage) {
@@ -216,7 +216,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                     } else if shouldPredownloadMedia(settings: item.controllerInteraction.automaticMediaDownloadSettings, peerType: item.associatedData.automaticDownloadPeerType, networkType: item.associatedData.automaticDownloadNetworkType, media: telegramFile) {
                         automaticDownload = .prefetch
                     }
-
+                    
                     if !item.message.containsSecretMedia {
                         if telegramFile.isAnimated && item.context.sharedContext.energyUsageSettings.autoplayGif {
                             if case .full = automaticDownload {
@@ -576,14 +576,14 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
         }
         return nil
     }
-
+    
     override public func messageEffectTargetView() -> UIView? {
         if !self.interactiveImageNode.dateAndStatusNode.isHidden {
             return self.interactiveImageNode.dateAndStatusNode.messageEffectTargetView()
         }
         return nil
     }
-
+    
     override public func getStatusNode() -> ASDisplayNode? {
         if !self.interactiveImageNode.dateAndStatusNode.isHidden {
             return self.interactiveImageNode.dateAndStatusNode

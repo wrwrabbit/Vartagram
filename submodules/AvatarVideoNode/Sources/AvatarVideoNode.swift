@@ -215,7 +215,7 @@ public final class AvatarVideoNode: ASDisplayNode {
             if videoContent.id != self.videoContent?.id {
                 self.videoNode?.removeFromSupernode()
                 self.videoContent = videoContent
-
+                
                 self.videoFileDisposable?.dispose()
                 self.videoFileDisposable = fetchedMediaResource(mediaBox: self.context.account.postbox.mediaBox, userLocation: .peer(peer.id), userContentType: .avatar, reference: videoFileReference.resourceReference(videoFileReference.media.resource)).startStrict()
             }
@@ -242,7 +242,7 @@ public final class AvatarVideoNode: ASDisplayNode {
             if self.internalSize.width <= 200.0 {
                 useDirectCache = true
             }
-
+            
             if useDirectCache {
                 if self.videoItemLayer == nil {
                     let animationData = EntityKeyboardAnimationData(file: TelegramMediaFile.Accessor(videoContent.fileReference.media))
@@ -275,7 +275,7 @@ public final class AvatarVideoNode: ASDisplayNode {
                             }
                         }
                     }
-
+                    
                     self.videoItemLayer = videoItemLayer
                     self.layer.addSublayer(videoItemLayer)
                 }
@@ -285,7 +285,7 @@ public final class AvatarVideoNode: ASDisplayNode {
                     videoItemLayer.removeFromSuperlayer()
                 }
             }
-
+            
             if useDirectCache {
                 if let videoNode = self.videoNode {
                     self.videoNode = nil
@@ -312,7 +312,7 @@ public final class AvatarVideoNode: ASDisplayNode {
                             }
                         }
                     }
-
+                    
                     if let _ = videoContent.startTimestamp {
                         self.playbackStartDisposable.set((videoNode.status
                         |> map { status -> Bool in
@@ -339,7 +339,7 @@ public final class AvatarVideoNode: ASDisplayNode {
                     }
                     videoNode.canAttachContent = true
                     videoNode.play()
-
+                    
                     self.addSubnode(videoNode)
                     self.videoNode = videoNode
                 }
@@ -367,7 +367,7 @@ public final class AvatarVideoNode: ASDisplayNode {
         if let videoItemLayer = self.videoItemLayer {
             videoItemLayer.frame = CGRect(origin: .zero, size: size)
         }
-
+        
         let itemSize = CGSize(width: size.width * 0.67, height: size.height * 0.67)
         let itemFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - itemSize.width) / 2.0), y: floorToScreenPixels((size.height - itemSize.height) / 2.0)), size: itemSize)
         if let animationNode = self.animationNode {

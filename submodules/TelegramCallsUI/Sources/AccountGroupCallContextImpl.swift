@@ -96,10 +96,12 @@ public final class AccountGroupCallContextImpl: AccountGroupCallContext {
                             recordingStartTimestamp: nil,
                             sortAscending: state.sortAscending,
                             defaultParticipantsAreMuted: state.defaultParticipantsAreMuted,
+                            messagesAreEnabled: state.messagesAreEnabled,
                             isVideoEnabled: state.isVideoEnabled,
                             unmutedVideoLimit: state.unmutedVideoLimit,
                             isStream: state.isStream,
-                            isCreator: state.isCreator
+                            isCreator: state.isCreator,
+                            defaultSendAs: state.defaultSendAs
                         ),
                         topParticipants: topParticipants,
                         participantCount: state.totalCount,

@@ -108,3 +108,49 @@ public final class UniqueGiftPreviewMedia: Media {
         return self.isEqual(to: other)
     }
 }
+
+
+public final class GiftAuctionPreviewMedia: Media {
+    public var id: MediaId? {
+        return nil
+    }
+    public let peerIds: [PeerId] = []
+    
+    public let content: StarGift.Gift?
+    public let centerColor: UIColor
+    public let edgeColor: UIColor
+    public let endTime: Int32
+    
+    public init(content: StarGift.Gift, centerColor: UIColor, edgeColor: UIColor, endTime: Int32) {
+        self.content = content
+        self.centerColor = centerColor
+        self.edgeColor = edgeColor
+        self.endTime = endTime
+    }
+    
+    public init(decoder: PostboxDecoder) {
+        self.content = nil
+        self.centerColor = .clear
+        self.edgeColor = .clear
+        self.endTime = 0
+    }
+    
+    public func encode(_ encoder: PostboxEncoder) {
+    }
+    
+    public func isEqual(to other: Media) -> Bool {
+        guard let other = other as? GiftAuctionPreviewMedia else {
+            return false
+        }
+        
+        if self.content != other.content {
+            return false
+        }
+        
+        return true
+    }
+    
+    public func isSemanticallyEqual(to other: Media) -> Bool {
+        return self.isEqual(to: other)
+    }
+}

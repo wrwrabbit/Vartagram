@@ -121,7 +121,7 @@ public final class Transaction {
             return nil
         }
     }
-
+    
     #if TEST_BUILD
     public func getMessageCount(peerId: PeerId, namespace: MessageId.Namespace, tag: MessageTags?, fromId: Int32, toId: Int32) -> Int? {
         assert(!self.disposed)
@@ -455,7 +455,7 @@ public final class Transaction {
         assert(!self.disposed)
         return self.postbox?.chatListTable.getAllPeerIds(groupId: groupId) ?? []
     }
-
+    
     public func updateCurrentPeerNotificationSettings(_ notificationSettings: [PeerId: PeerNotificationSettings]) {
         assert(!self.disposed)
         self.postbox?.updateCurrentPeerNotificationSettings(notificationSettings)
@@ -1088,7 +1088,7 @@ public final class Transaction {
         assert(!self.disposed)
         return self.postbox!.messageHistoryTagsSummaryTable.getCustomTags(tag: tagMask, peerId: peerId, threadId: threadId, namespace: namespace)
     }
-
+    
     public func replaceMessageTagSummary(peerId: PeerId, threadId: Int64?, tagMask: MessageTags, namespace: MessageId.Namespace, customTag: MemoryBuffer?, count: Int32, maxId: MessageId.Id) {
         assert(!self.disposed)
         self.postbox?.replaceMessageTagSummary(peerId: peerId, threadId: threadId, tagMask: tagMask, namespace: namespace, customTag: customTag, count: count, maxId: maxId)
@@ -1118,7 +1118,7 @@ public final class Transaction {
         }
         return postbox.messageHistoryTable.fetch(peerId: peerId, namespace: namespace, tag: nil, customTag: nil, threadId: threadId, from: from, includeFrom: includeFrom, to: to, ignoreMessagesInTimestampRange: nil, ignoreMessageIds: Set(), limit: limit).map(postbox.renderIntermediateMessage(_:))
     }
-
+    
     public func getMessagesWithCustomTag(peerId: PeerId, namespace: MessageId.Namespace, threadId: Int64?, customTag: MemoryBuffer, from: MessageIndex, includeFrom: Bool, to: MessageIndex, limit: Int) -> [Message] {
         assert(!self.disposed)
         guard let postbox = self.postbox else {
@@ -1260,7 +1260,7 @@ public final class Transaction {
         assert(!self.disposed)
         self.postbox?.resetCustomTagHoles()
     }
-
+    
     public func reindexUnreadCounters() {
         assert(!self.disposed)
         self.postbox?.reindexUnreadCounters(currentTransaction: self)
@@ -1399,9 +1399,9 @@ public final class Transaction {
         self.postbox!.setStoryItems(peerId: peerId, items: items)
     }
     
-    public func setStoryItemsInexactMaxId(peerId: PeerId, id: Int32) {
+    public func setStoryItemsInexactMaxId(peerId: PeerId, id: Int32, hasLiveItems: Bool) {
         assert(!self.disposed)
-        self.postbox!.setStoryItemsInexactMaxId(peerId: peerId, id: id)
+        self.postbox!.setStoryItemsInexactMaxId(peerId: peerId, id: id, hasLiveItems: hasLiveItems)
     }
     
     public func clearStoryItemsInexactMaxId(peerId: PeerId) {
@@ -1449,12 +1449,12 @@ public final class Transaction {
         }
         return matchingPeers.sorted(by: { $0.1 > $1.1 }).map(\.0)
     }
-
+    
     public func reindexSavedMessagesCustomTagsWithTagsIfNeeded(peerId: PeerId, threadId: Int64?, tag: MemoryBuffer) {
         assert(!self.disposed)
         self.postbox!.reindexSavedMessagesCustomTagsWithTagsIfNeeded(peerId: peerId, threadId: threadId, tag: tag)
     }
-
+    
     public func getCurrentTypingDraft(location: PeerAndThreadId) -> (id: Int64, stableId: UInt32, authorId: PeerId, timestamp: Int32, text: String, attributes: [MessageAttribute])? {
         assert(!self.disposed)
         if let value = self.postbox!.currentTypingDrafts[location] {
@@ -1470,7 +1470,7 @@ public final class Transaction {
             return nil
         }
     }
-
+    
     public func combineTypingDrafts(locations: Set<PeerAndThreadId>, update: (PeerAndThreadId, (id: Int64, threadId: Int64?, authorId: PeerId, timestamp: Int32, text: String, attributes: [MessageAttribute])?) -> (id: Int64, threadId: Int64?, authorId: PeerId, timestamp: Int32, text: String, attributes: [MessageAttribute])?) {
         assert(!self.disposed)
         self.postbox!.combineTypingDrafts(locations: locations, update: update)
@@ -1727,7 +1727,7 @@ final class PostboxImpl {
         var text: String
         var attributes: [MessageAttribute]
         var addedAtTimestamp: Double
-
+        
         init(id: Int64, stableId: UInt32, stableVersion: UInt32, threadId: Int64?, authorId: PeerId, timestamp: Int32, text: String, attributes: [MessageAttribute], addedAtTimestamp: Double) {
             self.id = id
             self.stableId = stableId
@@ -1739,7 +1739,7 @@ final class PostboxImpl {
             self.attributes = attributes
             self.addedAtTimestamp = addedAtTimestamp
         }
-
+        
         static func ==(lhs: TypingDraft, rhs: TypingDraft) -> Bool {
             if lhs.id != rhs.id {
                 return false
@@ -1777,16 +1777,16 @@ final class PostboxImpl {
             return true
         }
     }
-
+    
     struct TypingDraftUpdate {
         var value: TypingDraft?
     }
-
+    
     fileprivate(set) var currentTypingDrafts: [PeerAndThreadId: TypingDraft] = [:]
     private var currentUpdatedTypingDrafts: [PeerAndThreadId: TypingDraftUpdate] = [:]
     private var nextTypingDraftExpirationTimestamp: Double?
     private var nextTypingDraftExpirationTimer: SwiftSignalKit.Timer?
-
+    
     var hiddenChatIds: Set<PeerId> {
         if self.currentHiddenChatIds.isEmpty {
             return Set()
@@ -2305,7 +2305,7 @@ final class PostboxImpl {
             }
         }
     }
-
+    
     fileprivate func removeHole(peerId: PeerId, threadId: Int64?, namespace: MessageId.Namespace, space: MessageHistoryHoleOperationSpace, range: ClosedRange<MessageId.Id>) {
         switch space {
         case let .customTag(customTag, regularTag):
@@ -2513,10 +2513,10 @@ final class PostboxImpl {
         }
     }
     
-    fileprivate func setStoryItemsInexactMaxId(peerId: PeerId, id: Int32) {
+    fileprivate func setStoryItemsInexactMaxId(peerId: PeerId, id: Int32, hasLiveItems: Bool) {
         if let value = self.storyTopItemsTable.get(peerId: peerId), value.id >= id {
         } else {
-            self.storyTopItemsTable.set(peerId: peerId, entry: StoryTopItemsTable.Entry(id: id, isExact: false), events: &self.currentStoryTopItemEvents)
+            self.storyTopItemsTable.set(peerId: peerId, entry: StoryTopItemsTable.Entry(id: id, isExact: false, hasLiveItems: hasLiveItems), events: &self.currentStoryTopItemEvents)
         }
     }
     
@@ -2554,7 +2554,7 @@ final class PostboxImpl {
             self.messageHistoryMetadataTable.setPeerCustomTagReindexed(peerId: peerId, threadId: threadId, tag: mappedTag)
         }
     }
-
+    
     fileprivate func combineTypingDrafts(locations: Set<PeerAndThreadId>, update: (PeerAndThreadId, (id: Int64, threadId: Int64?, authorId: PeerId, timestamp: Int32, text: String, attributes: [MessageAttribute])?) -> (id: Int64, threadId: Int64?, authorId: PeerId, timestamp: Int32, text: String, attributes: [MessageAttribute])?) {
         for location in locations {
             var updated: (id: Int64, threadId: Int64?, authorId: PeerId, timestamp: Int32, text: String, attributes: [MessageAttribute])?
@@ -2585,10 +2585,10 @@ final class PostboxImpl {
             }
         }
     }
-
+    
     private func restartTypingDraftExpirationTimerIfNeeded() {
         let expirationTimeout: Double = 20.0
-
+        
         var nextTypingDraftExpirationTimestamp: Double?
         for (_, draft) in self.currentTypingDrafts {
             if let nextTypingDraftExpirationTimestampValue = nextTypingDraftExpirationTimestamp {
@@ -2597,11 +2597,11 @@ final class PostboxImpl {
                 nextTypingDraftExpirationTimestamp = draft.addedAtTimestamp + expirationTimeout
             }
         }
-
+        
         if let nextTypingDraftExpirationTimestamp {
             if self.nextTypingDraftExpirationTimer == nil || nextTypingDraftExpirationTimestamp != self.nextTypingDraftExpirationTimestamp {
                 let timeout = nextTypingDraftExpirationTimestamp - CFAbsoluteTimeGetCurrent()
-
+                
                 self.nextTypingDraftExpirationTimer?.invalidate()
                 self.nextTypingDraftExpirationTimer = SwiftSignalKit.Timer(timeout: max(0.0, timeout - 0.1), repeat: false, completion: { [weak self] in
                     guard let self else {
@@ -2621,7 +2621,7 @@ final class PostboxImpl {
             }
         }
     }
-
+    
     private func processTypingDraftExpirations(expirationTimeout: Double) {
         let timestamp = CFAbsoluteTimeGetCurrent()
         var removedKeys: [PeerAndThreadId] = []
@@ -2637,7 +2637,7 @@ final class PostboxImpl {
             }
         }
     }
-
+    
     func renderIntermediateMessage(_ message: IntermediateMessage) -> Message {
         let renderedMessage = self.messageHistoryTable.renderMessage(message, peerTable: self.peerTable, threadIndexTable: self.messageHistoryThreadIndexTable, storyTable: self.storyTable)
         
@@ -2838,10 +2838,10 @@ final class PostboxImpl {
         
         if !self.currentUpdatedTypingDrafts.isEmpty {
             self.currentUpdatedTypingDrafts.removeAll()
-
+            
             self.restartTypingDraftExpirationTimerIfNeeded()
         }
-
+        
         for table in self.tables {
             table.beforeCommit()
         }
@@ -3306,7 +3306,7 @@ final class PostboxImpl {
         let _ = self.isInTransaction.swap(true)
         
         let startTime = CFAbsoluteTimeGetCurrent()
-
+        
         self.valueBox.begin()
         let transaction = Transaction(queue: self.queue, postbox: self)
         self.afterBegin(transaction: transaction)
@@ -3320,7 +3320,7 @@ final class PostboxImpl {
         if transactionDuration > 0.01 {
             postboxLog("Postbox transaction took \(transactionDuration * 1000.0) ms, from: \(file):\(line)")
         }
-
+        
         let _ = self.isInTransaction.swap(false)
         
         if let currentUpdatedState = self.currentUpdatedState {
@@ -4605,7 +4605,7 @@ final class PostboxImpl {
             }
         }
     }
-
+    
     fileprivate func resetCustomTagHoles() {
         self.messageCustomTagHoleIndexTable.resetAll()
         self.messageCustomTagWithTagHoleIndexTable.resetAll()

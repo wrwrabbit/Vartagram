@@ -422,7 +422,7 @@ public final class ShareController: ViewController {
     private let segmentedValues: [ShareControllerSegmentedValue]?
     private let fromForeignApp: Bool
     private let collectibleItemInfo: TelegramCollectibleItemInfo?
-
+    
     private let peers = Promise<([(peer: EngineRenderedPeer, presence: EnginePeer.Presence?, requiresPremiumForMessaging: Bool, requiresStars: Int64?)], EnginePeer)>()
     private let peersDisposable = MetaDisposable()
     private let readyDisposable = MetaDisposable()
@@ -447,7 +447,7 @@ public final class ShareController: ViewController {
             }
         }
     }
-
+        
     public var shareStory: (() -> Void)?
     public var canSendInHighQuality = false {
         didSet {
@@ -460,9 +460,9 @@ public final class ShareController: ViewController {
     public var debugAction: (() -> Void)?
     
     public var onMediaTimestampLinkCopied: ((Int32?) -> Void)?
-
+    
     public var parentNavigationController: NavigationController?
-
+    
     public convenience init(context: AccountContext, subject: ShareControllerSubject, presetText: String? = nil, preferredAction: ShareControllerPreferredAction = .default, showInChat: ((Message) -> Void)? = nil, fromForeignApp: Bool = false, segmentedValues: [ShareControllerSegmentedValue]? = nil, externalShare: Bool = true, immediateExternalShare: Bool = false, switchableAccounts: [AccountWithInfo] = [], immediatePeerId: PeerId? = nil, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil, forceTheme: PresentationTheme? = nil, forcedActionTitle: String? = nil, shareAsLink: Bool = false, collectibleItemInfo: TelegramCollectibleItemInfo? = nil) {
         self.init(
             environment: ShareControllerAppEnvironment(sharedContext: context.sharedContext),
@@ -501,7 +501,7 @@ public final class ShareController: ViewController {
         self.forceTheme = forceTheme
         self.shareAsLink = shareAsLink
         self.collectibleItemInfo = collectibleItemInfo
-
+        
         self.presentationData = updatedPresentationData?.initial ?? environment.presentationData
         if let forceTheme = self.forceTheme {
             self.presentationData = self.presentationData.withUpdated(theme: forceTheme)
@@ -511,7 +511,7 @@ public final class ShareController: ViewController {
         
         self.statusBar.statusBarStyle = .Ignore
         self.automaticallyControlPresentationContextLayout = false
-
+        
         switch subject {
             case let .url(text):
                 self.defaultAction = ShareControllerAction(title: forcedActionTitle ?? self.presentationData.strings.ShareMenu_CopyShareLink, action: { [weak self] in
@@ -702,12 +702,12 @@ public final class ShareController: ViewController {
         } else if case let .fromExternal(count, _) = self.subject {
             messageCount = count
         }
-
+        
         var mediaParameters: ShareControllerSubject.MediaParameters?
         if case let .media(_, parameters) = self.subject {
             mediaParameters = parameters
         }
-
+        
         self.displayNode = ShareControllerNode(
             controller: self,
             environment: self.environment,
@@ -1251,14 +1251,14 @@ public final class ShareController: ViewController {
             guard let self else {
                 return
             }
-
+            
             self.forEachController { c in
                 if let c = c as? UndoOverlayController {
                     c.dismiss()
                 }
                 return true
             }
-
+            
             var hasAction = false
             if let context = self.currentContext as? ShareControllerAppAccountContext {
                 let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.context.currentAppConfiguration.with { $0 })
@@ -1266,7 +1266,7 @@ public final class ShareController: ViewController {
                     hasAction = true
                 }
             }
-
+            
             self.present(UndoOverlayController(presentationData: presentationData, content: .premiumPaywall(title: nil, text: presentationData.strings.Chat_ToastMessagingRestrictedToPremium_Text(peer.compactDisplayTitle).string, customUndoText: hasAction ? presentationData.strings.Chat_ToastMessagingRestrictedToPremium_Action : nil, timeout: nil, linkAction: { _ in
             }), elevatedLayout: false, animateInAsReplacement: false, action: { [weak self] action in
                 guard let self, let parentNavigationController = self.parentNavigationController, let context = self.currentContext as? ShareControllerAppAccountContext else {
@@ -1274,7 +1274,7 @@ public final class ShareController: ViewController {
                 }
                 if case .undo = action {
                     self.controllerNode.cancel?()
-
+                    
                     let premiumController = context.context.sharedContext.makePremiumIntroController(context: context.context, source: .settings, forceDark: false, dismissed: nil)
                     parentNavigationController.pushViewController(premiumController)
                 }
@@ -2024,7 +2024,7 @@ public final class ShareController: ViewController {
             }
             
             var correlationIds: [Int64] = []
-
+            
             switch subject {
             case let .url(url):
                 for peerId in peerIds {
@@ -2170,7 +2170,7 @@ public final class ShareController: ViewController {
                 if case let .message(message, _) = mediaReference, let sourceMessageId = message.id, (sourceMessageId.peerId.namespace == Namespaces.Peer.CloudUser || sourceMessageId.peerId.namespace == Namespaces.Peer.CloudGroup || sourceMessageId.peerId.namespace == Namespaces.Peer.CloudChannel) {
                     forwardSourceMessageId = sourceMessageId
                 }
-
+                
                 var sendTextAsCaption = false
                 if forwardSourceMessageId == nil {
                     if mediaReference.media is TelegramMediaImage || mediaReference.media is TelegramMediaFile {
@@ -2596,15 +2596,15 @@ public final class ShareController: ViewController {
             }
 
             let peerPresencesKey = PostboxViewKey.peerPresences(peerIds: Set(peers.map(\.peerId)))
-
+            
             var keys: [PostboxViewKey] = []
             keys.append(peerPresencesKey)
-
+            
             for id in possiblePremiumRequiredPeers {
                 keys.append(.peer(peerId: id, components: []))
                 keys.append(.cachedPeerData(peerId: id))
             }
-
+            
             return account.stateManager.postbox.combinedView(keys: keys)
             |> map { views -> ([EnginePeer.Id: EnginePeer.Presence?], [EnginePeer.Id: Bool], [EnginePeer.Id: Int64]) in
                 var result: [EnginePeer.Id: EnginePeer.Presence?] = [:]

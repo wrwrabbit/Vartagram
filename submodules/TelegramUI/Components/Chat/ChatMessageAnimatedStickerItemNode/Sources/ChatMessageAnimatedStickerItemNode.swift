@@ -144,9 +144,9 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
     private var didChangeFromPendingToSent: Bool = false
     
     private var fetchEffectDisposable: Disposable?
-
+    
     private var suggestedPostInfoNode: ChatMessageSuggestedPostInfoNode?
-
+    
     required public init(rotated: Bool) {
         self.contextSourceNode = ContextExtractedContentContainingNode()
         self.containerNode = ContextControllerSourceNode()
@@ -589,12 +589,12 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
         }
         
         let isPlaying = self.visibilityStatus == true && !self.forceStopAnimations
-
+        
         var effectiveVisibility = self.visibility
         if !isPlaying {
             effectiveVisibility = .none
         }
-
+        
         switch effectiveVisibility {
         case .none:
             self.textNode.visibilityRect = nil
@@ -604,17 +604,17 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             subRect.size.width = 10000.0
             self.textNode.visibilityRect = subRect
         }
-
+        
         var canPlayEffects = isPlaying
         if !item.controllerInteraction.canReadHistory {
             canPlayEffects = false
         }
-
+        
         if !canPlayEffects {
             self.removeAdditionalAnimations()
             self.removeEffectAnimations()
         }
-
+        
         if let animationNode = self.animationNode as? AnimatedStickerNode {
             if self.isPlaying != isPlaying || (isPlaying && !self.didSetUpAnimationNode) {
                 self.isPlaying = isPlaying
@@ -660,7 +660,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                     }
                 }
             }
-
+            
             var alreadySeen = true
             if isEmoji && self.emojiString == nil {
                 if !item.controllerInteraction.seenOneTimeAnimatedMedia.contains(item.message.id) {
@@ -697,7 +697,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                     animationNode.playOnce()
                 }
             }
-
+            
             if !effectAlreadySeen {
                 self.playMessageEffect(force: false)
             }
@@ -828,7 +828,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
         let textLayout = TextNodeWithEntities.asyncLayout(self.textNode)
         
         let makeSuggestedPostInfoNodeLayout: ChatMessageSuggestedPostInfoNode.AsyncLayout = ChatMessageSuggestedPostInfoNode.asyncLayout(self.suggestedPostInfoNode)
-
+        
         func continueAsyncLayout(_ weakSelf: Weak<ChatMessageAnimatedStickerItemNode>, _ item: ChatMessageItem, _ params: ListViewItemLayoutParams, _ mergedTop: ChatMessageMerge, _ mergedBottom: ChatMessageMerge, _ dateHeaderAtBottom: ChatMessageHeaderSpec) -> (ListViewItemNodeLayout, (ListViewItemUpdateAnimation, ListViewItemApply, Bool) -> Void) {
             let accessibilityData = ChatMessageAccessibilityData(item: item, isSelected: nil)
             let layoutConstants = chatMessageItemLayoutConstants(layoutConstants, params: params, presentationData: item.presentationData)
@@ -877,7 +877,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                             }
                             isMonoforum = peer.isMonoForum
                         }
-
+                        
                         if replyThreadMessage.isChannelPost, replyThreadMessage.effectiveTopId == item.message.id {
                             isBroadcastChannel = true
                         }
@@ -894,7 +894,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             }
             
             if hasAvatar {
-                avatarInset = layoutConstants.avatarDiameter
+                avatarInset = layoutConstants.avatarInset
             } else {
                 avatarInset = 0.0
             }
@@ -1035,7 +1035,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                     layoutInsets.top += layoutConstants.timestampHeaderHeight
                 }
             }
-
+            
             var deliveryFailedInset: CGFloat = 0.0
             if isFailed {
                 deliveryFailedInset += 24.0
@@ -1100,7 +1100,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             }
             
             let messageEffect = item.message.messageEffect(availableMessageEffects: item.associatedData.availableMessageEffects)
-
+            
             let statusSuggestedWidthAndContinue = makeDateAndStatusLayout(ChatMessageDateAndStatusNode.Arguments(
                 context: item.context,
                 presentationData: item.presentationData,
@@ -1193,7 +1193,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             }
             
             var hasReply = replyMessage != nil || replyForward != nil || replyStory != nil
-            if case let .peer(peerId) = item.chatLocation, (peerId == replyMessage?.id.peerId || item.message.threadId == 1), let channel = item.message.peers[item.message.id.peerId] as? TelegramChannel, channel.isForumOrMonoForum, item.message.associatedThreadInfo != nil {
+            if case let .peer(peerId) = item.chatLocation, (peerId == replyMessage?.id.peerId || item.message.threadId == 1), let peer = item.message.peers[item.message.id.peerId], peer.isForumOrMonoForum, item.message.associatedThreadInfo != nil {
                 if let threadId = item.message.threadId, let replyMessage = replyMessage, Int64(replyMessage.id.id) == threadId {
                     hasReply = false
                 }
@@ -1304,7 +1304,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             }
             
             let baseWidth = params.width - params.leftInset - params.rightInset
-
+            
             var maxContentWidth = imageSize.width
             var actionButtonsFinalize: ((CGFloat) -> (CGSize, (_ animation: ListViewItemUpdateAnimation) -> ChatMessageActionButtonsNode))?
             if let replyMarkup = replyMarkup {
@@ -1316,14 +1316,14 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                 if let peer = item.message.peers[item.message.id.peerId] as? TelegramChannel, peer.isMonoForum, let linkedMonoforumId = peer.linkedMonoforumId, let mainChannel = item.message.peers[linkedMonoforumId] as? TelegramChannel, mainChannel.hasPermission(.manageDirect), !mainChannel.hasPermission(.sendSomething) {
                     canApprove = false
                 }
-
+                
                 var buttonDeclineValue: UInt8 = 0
                 let buttonDecline = MemoryBuffer(data: Data(bytes: &buttonDeclineValue, count: 1))
                 var buttonApproveValue: UInt8 = 1
                 let buttonApprove = MemoryBuffer(data: Data(bytes: &buttonApproveValue, count: 1))
                 var buttonSuggestChangesValue: UInt8 = 2
                 let buttonSuggestChanges = MemoryBuffer(data: Data(bytes: &buttonSuggestChangesValue, count: 1))
-
+                
                 let customInfos: [MemoryBuffer: ChatMessageActionButtonsNode.CustomInfo] = [
                     buttonDecline: ChatMessageActionButtonsNode.CustomInfo(
                         isEnabled: true,
@@ -1338,7 +1338,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                         icon: .suggestedPostEdit
                     )
                 ]
-
+                
                 let (minWidth, buttonsLayout) = actionButtonsLayout(
                     item.context,
                     item.presentationData.theme,
@@ -1416,14 +1416,14 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                     suggestedPostInfoNodeLayout = suggestedPostInfoNodeLayoutValue
                 }
             }
-
+            
             var additionalTopHeight: CGFloat = 0.0
             if let suggestedPostInfoNodeLayout {
                 additionalTopHeight += 4.0 + suggestedPostInfoNodeLayout.0.height + 8.0
             }
             layoutSize.height += additionalTopHeight
             imageFrame.origin.y += additionalTopHeight
-
+            
             var headersOffset: CGFloat = additionalTopHeight
             if let (threadInfoSize, _) = threadInfoApply {
                 headersOffset += threadInfoSize.height + 10.0
@@ -1478,7 +1478,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                     strongSelf.disablesComments = disablesComments
 
                     strongSelf.updateAttachedDateHeader(hasDate: dateHeaderAtBottom.hasDate, hasPeer: dateHeaderAtBottom.hasTopic)
-
+                    
                     if let (suggestedPostInfoSize, suggestedPostInfoApply) = suggestedPostInfoNodeLayout {
                         let suggestedPostInfoNode = suggestedPostInfoApply()
                         if suggestedPostInfoNode !== strongSelf.suggestedPostInfoNode {
@@ -1492,7 +1492,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                         strongSelf.suggestedPostInfoNode = nil
                         suggestedPostInfoNode.removeFromSupernode()
                     }
-
+                    
                     strongSelf.messageAccessibilityArea.frame = CGRect(origin: CGPoint(), size: layoutSize)
                     strongSelf.containerNode.frame = CGRect(origin: CGPoint(), size: layoutSize)
                     strongSelf.contextSourceNode.frame = CGRect(origin: CGPoint(), size: layoutSize)
@@ -1832,7 +1832,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                                 }
                             }
                             strongSelf.addSubnode(actionButtonsNode)
-
+                            
                             if animation.isAnimated {
                                 actionButtonsNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25)
                             }
@@ -2536,7 +2536,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                     }
                 }
             }
-
+            
             if item.content.firstMessage.id.peerId.isReplies {
                 item.controllerInteraction.openReplyThreadOriginalMessage(item.content.firstMessage)
             } else if item.content.firstMessage.id.peerId.isRepliesOrSavedMessages(accountPeerId: item.context.account.peerId) {
@@ -2557,7 +2557,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             item.controllerInteraction.displayQuickShare(item.message.id, node, gesture)
         }
     }
-
+    
     private var playedSwipeToReplyHaptic = false
     @objc private func swipeToReplyGesture(_ recognizer: ChatSwipeToReplyRecognizer) {
         var offset: CGFloat = 0.0
@@ -3060,18 +3060,18 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
     }
     
     public final class AnimationTransitionReplyPanel {
-        public let titleNode: ASDisplayNode
-        public let textNode: ASDisplayNode
-        public let lineNode: ASDisplayNode
-        public let imageNode: ASDisplayNode
+        public let titleView: UIView
+        public let textView: UIView
+        public let lineView: UIView
+        public let imageView: UIView?
         public let relativeSourceRect: CGRect
         public let relativeTargetRect: CGRect
 
-        public init(titleNode: ASDisplayNode, textNode: ASDisplayNode, lineNode: ASDisplayNode, imageNode: ASDisplayNode, relativeSourceRect: CGRect, relativeTargetRect: CGRect) {
-            self.titleNode = titleNode
-            self.textNode = textNode
-            self.lineNode = lineNode
-            self.imageNode = imageNode
+        public init(titleView: UIView, textView: UIView, lineView: UIView, imageView: UIView?, relativeSourceRect: CGRect, relativeTargetRect: CGRect) {
+            self.titleView = titleView
+            self.textView = textView
+            self.lineView = lineView
+            self.imageView = imageView
             self.relativeSourceRect = relativeSourceRect
             self.relativeTargetRect = relativeTargetRect
         }
@@ -3082,10 +3082,10 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             let localRect = self.contextSourceNode.contentNode.view.convert(sourceReplyPanel.relativeSourceRect, to: replyInfoNode.view)
 
             let mappedPanel = ChatMessageReplyInfoNode.TransitionReplyPanel(
-                titleNode: sourceReplyPanel.titleNode,
-                textNode: sourceReplyPanel.textNode,
-                lineNode: sourceReplyPanel.lineNode,
-                imageNode: sourceReplyPanel.imageNode,
+                titleView: sourceReplyPanel.titleView,
+                textView: sourceReplyPanel.textView,
+                lineView: sourceReplyPanel.lineView,
+                imageView: sourceReplyPanel.imageView,
                 relativeSourceRect: sourceReplyPanel.relativeSourceRect,
                 relativeTargetRect: sourceReplyPanel.relativeTargetRect
             )
@@ -3168,12 +3168,12 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
         
         return (image, self.imageNode.frame)
     }
-
+    
     override public func messageEffectTargetView() -> UIView? {
         if let result = self.dateAndStatusNode.messageEffectTargetView() {
             return result
         }
-
+        
         return nil
     }
 }

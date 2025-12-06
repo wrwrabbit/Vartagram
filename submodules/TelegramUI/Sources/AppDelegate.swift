@@ -89,7 +89,7 @@ private func isKeyboardViewContainer(view: NSObject) -> Bool {
 
 private class ApplicationStatusBarHost: StatusBarHost {
     private weak var scene: UIWindowScene?
-
+    
     init(scene: UIWindowScene?) {
         self.scene = scene
     }
@@ -177,7 +177,7 @@ final class SharedApplicationContext {
     let wakeupManager: SharedWakeupManager
     let overlayMediaController: ViewController & OverlayMediaController
     var minimizedContainer: [AccountRecordId: MinimizedContainer] = [:]
-
+    
     init(sharedContext: SharedAccountContextImpl, notificationManager: SharedNotificationManager, wakeupManager: SharedWakeupManager) {
         self.sharedContext = sharedContext
         self.notificationManager = notificationManager
@@ -288,7 +288,7 @@ extension UserDefaults {
         }
     }
     private let firebaseRequestVerificationSecretStream = Promise<[String: String]>([:])
-
+    
     private var urlSessions: [URLSession] = []
     private func urlSession(identifier: String) -> URLSession {
         if let existingSession = self.urlSessions.first(where: { $0.configuration.identifier == identifier }) {
@@ -327,7 +327,7 @@ extension UserDefaults {
     
     private let voipDeviceToken = Promise<Data?>(nil)
     private let regularDeviceToken = Promise<Data?>(nil)
-
+    
     private var recaptchaClientsBySiteKey: [String: Promise<RecaptchaClient>] = [:]
         
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
@@ -342,7 +342,7 @@ extension UserDefaults {
         })
         
         let launchStartTime = CFAbsoluteTimeGetCurrent()
-
+        
         let (window, hostView) = nativeWindowHostView()
         let statusBarHost = ApplicationStatusBarHost(scene: window.windowScene)
         self.mainWindow = Window1(hostView: hostView, statusBarHost: statusBarHost)
@@ -368,7 +368,7 @@ extension UserDefaults {
         if !UIDevice.current.isBatteryMonitoringEnabled {
             UIDevice.current.isBatteryMonitoringEnabled = true
         }
-
+        
         let clearNotificationsManager = ClearNotificationsManager(getNotificationIds: { completion in
             if #available(iOS 10.0, *) {
                 UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { notifications in
@@ -511,7 +511,7 @@ extension UserDefaults {
             #else
             tokenEnvironment = "production"
             #endif
-
+            
             let data = buildConfig.bundleData(withAppToken: token, tokenType: "apns", tokenEnvironment: tokenEnvironment, signatureDict: signatureDict)
             if let data = data, let _ = String(data: data, encoding: .utf8) {
             } else {
@@ -526,7 +526,7 @@ extension UserDefaults {
                 } else {
                     recaptchaClient = Promise<RecaptchaClient>()
                     self.recaptchaClientsBySiteKey[siteKey] = recaptchaClient
-
+                    
                     Recaptcha.fetchClient(withSiteKey: siteKey) { client, error in
                         Queue.mainQueue().async {
                             guard let client else {
@@ -537,7 +537,7 @@ extension UserDefaults {
                         }
                     }
                 }
-
+                
                 return (recaptchaClient.get()
                 |> take(1)
                 |> mapToSignal { recaptchaClient -> Signal<String?, NoError> in
@@ -549,11 +549,11 @@ extension UserDefaults {
                         default:
                             break
                         }
-
+                        
                         guard let recaptchaAction else {
                             subscriber.putNext(nil)
                             subscriber.putCompletion()
-
+                            
                             return EmptyDisposable
                         }
                         recaptchaClient.execute(withAction: recaptchaAction) { token, error in
@@ -566,7 +566,7 @@ extension UserDefaults {
                             }
                             subscriber.putCompletion()
                         }
-
+                        
                         return ActionDisposable {
                         }
                     }
@@ -886,16 +886,12 @@ extension UserDefaults {
                 return nil
             }
         }, requestSetAlternateIconName: { name, completion in
-            if #available(iOS 10.3, *) {
-                application.setAlternateIconName(name, completionHandler: { error in
-                    if let error = error {
-                       Logger.shared.log("App \(self.episodeId)", "failed to set alternate icon with error \(error.localizedDescription)")
-                    }
-                    completion(error == nil)
-                })
-            } else {
-                completion(false)
-            }
+            application.setAlternateIconName(name, completionHandler: { error in
+                if let error = error {
+                   Logger.shared.log("App \(self.episodeId)", "failed to set alternate icon with error \(error.localizedDescription)")
+                }
+                completion(error == nil)
+            })
         }, forceOrientation: { orientation in
             let value = orientation.rawValue
             if #available(iOSApplicationExtension 16.0, iOS 16.0, *) {
@@ -1088,7 +1084,7 @@ extension UserDefaults {
                     return .single(nil)
                 }
             }
-
+            
             let wakeupManager = SharedWakeupManager(beginBackgroundTask: { name, expiration in
                 let id = application.beginBackgroundTask(withName: name, expirationHandler: expiration)
                 Logger.shared.log("App \(self.episodeId)", "Begin background task \(name): \(id)")
@@ -1118,7 +1114,7 @@ extension UserDefaults {
             
             return .single(sharedApplicationContext)
         })
-
+            
         self.context.set(self.sharedContextPromise.get()
         |> deliverOnMainQueue
         |> mapToSignal { sharedApplicationContext -> Signal<AuthorizedApplicationContext?, NoError> in
@@ -1284,24 +1280,6 @@ extension UserDefaults {
                             }
                         })
                     }
-                    self.mainWindow.forEachViewController({ controller in
-                        if let controller = controller as? TabBarAccountSwitchController {
-                            if let rootController = self.mainWindow.viewController as? TelegramRootController {
-                                if let tabsController = rootController.viewControllers.first as? TabBarController {
-                                    for i in 0 ..< tabsController.controllers.count {
-                                        if let _ = tabsController.controllers[i] as? (SettingsController & ViewController) {
-                                            let sourceNodes = tabsController.sourceNodesForController(at: i)
-                                            if let sourceNodes = sourceNodes {
-                                                controller.dismiss(sourceNodes: sourceNodes)
-                                            }
-                                            return false
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        return true
-                    })
                     self.mainWindow.topLevelOverlayControllers = [context.sharedApplicationContext.overlayMediaController, context.notificationController]
                     (context.context.sharedContext as? SharedAccountContextImpl)?.notificationController = context.notificationController
                     var authorizeNotifications = true
@@ -1416,7 +1394,7 @@ extension UserDefaults {
                 return updated
             }).start()
         }))
-
+        
         self.resetBadge()
         
         if #available(iOS 9.1, *) {
@@ -1610,7 +1588,7 @@ extension UserDefaults {
                 })
             }
         }
-
+        
         let reindexCacheFirstTime = reindexCacheOnce
         |> delay(20.0, queue: Queue.concurrentDefaultQueue())
         let reindexCacheRepeatedly = (
@@ -1754,14 +1732,14 @@ extension UserDefaults {
         #endif
 
         //self.addBackgroundDownloadTask()
-
+        
         let reflectorBenchmarkDisposable = MetaDisposable()
         let runReflectorBenchmarkDisposable = MetaDisposable()
         let _ = (self.context.get()
         |> deliverOnMainQueue).startStandalone(next: { context in
             reflectorBenchmarkDisposable.set(nil)
             runReflectorBenchmarkDisposable.set(nil)
-
+            
             guard let context = context?.context else {
                 return
             }
@@ -1780,7 +1758,7 @@ extension UserDefaults {
                                 subscriber.putNext(results)
                                 subscriber.putCompletion()
                             })
-
+                            
                             return ActionDisposable {
                                 reflectorBenchmark = nil
                             }
@@ -1796,7 +1774,7 @@ extension UserDefaults {
                 }))
             }
         })
-
+        
         return true
     }
     
@@ -1961,20 +1939,20 @@ extension UserDefaults {
         let task = session.uploadTask(with: request, fromFile: URL(fileURLWithPath: uploadFilePath))
         task.resume()
     }
-
+    
     private func addBackgroundDownloadTask() {
         let baseAppBundleId = Bundle.main.bundleIdentifier!
         let session = self.urlSession(identifier: "\(baseAppBundleId).backroundSession")
 
         var request = URLRequest(url: URL(string: "https://example.com/\(UInt64.random(in: 0 ... UInt64.max))")!)
         request.httpMethod = "GET"
-
+        
         let task = session.downloadTask(with: request)
         Logger.shared.log("App \(self.episodeId)", "adding download task \(String(describing: request.url))")
         task.earliestBeginDate = Date(timeIntervalSinceNow: 30.0)
         task.resume()
     }
-
+    
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         Logger.shared.log("App \(self.episodeId)", "completed download task \(String(describing: task.originalRequest?.url)) error: \(String(describing: error))")
         if let response = task.response as? HTTPURLResponse {
@@ -2095,7 +2073,7 @@ extension UserDefaults {
                 extendNow = false
             }
             sharedApplicationContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0, extendNow: extendNow)
-
+            
             let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
              |> take(1)
              |> deliverOnMainQueue).start(next: { activeAccounts in
@@ -2113,9 +2091,9 @@ extension UserDefaults {
         final class TaskIdHolder {
             var taskId: UIBackgroundTaskIdentifier?
         }
-
+        
         let taskIdHolder = TaskIdHolder()
-
+        
         taskIdHolder.taskId = application.beginBackgroundTask(withName: "lock", expirationHandler: {
             if let taskId = taskIdHolder.taskId {
                 UIApplication.shared.endBackgroundTask(taskId)
@@ -2184,7 +2162,7 @@ extension UserDefaults {
         #endif
 
         SharedDisplayLinkDriver.shared.updateForegroundState(self.isActiveValue)
-
+        
         func cancelWindowPanGestures(view: UIView) {
             if let gestureRecognizers = view.gestureRecognizers {
                 for recognizer in gestureRecognizers {
@@ -2193,12 +2171,12 @@ extension UserDefaults {
                     }
                 }
             }
-
+            
             for subview in view.subviews {
                 cancelWindowPanGestures(view: subview)
             }
         }
-
+        
         //cancelWindowPanGestures(view: self.mainWindow.hostView.containerView)
     }
     
@@ -2259,12 +2237,12 @@ extension UserDefaults {
             completionHandler(.newData)
             return
         }
-
+        
         if let nonce = redactedPayload["verify_nonce"] as? String, let secret = redactedPayload["verify_secret"] as? String {
             var firebaseRequestVerificationSecrets = self.firebaseRequestVerificationSecrets
             firebaseRequestVerificationSecrets[nonce] = secret
             self.firebaseRequestVerificationSecrets = firebaseRequestVerificationSecrets
-
+            
             completionHandler(.newData)
             return
         }
@@ -2385,14 +2363,14 @@ extension UserDefaults {
         }
         
         let phoneNumber = payloadJson["phoneNumber"] as? String
-
+        
         if let fromIdString = payloadJson["from_id"] as? String, let fromId = Int64(fromIdString), let groupCallIdString = payloadJson["group_call_id"] as? String, let groupCallId = Int64(groupCallIdString), let messageIdString = payloadJson["msg_id"] as? String, let messageId = Int32(messageIdString), let fromTitle = payloadJson["from_title"] as? String {
             guard let callKitIntegration = CallKitIntegration.shared else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "CallKitIntegration is not available")
                 completion()
                 return
             }
-
+            
             var isVideo = false
             if let isVideoString = payloadJson["video"] as? String, let isVideoValue = Int32(isVideoString) {
                 isVideo = isVideoValue != 0
@@ -2402,9 +2380,9 @@ extension UserDefaults {
 
             let fromPeerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(fromId))
             let messageId = MessageId(peerId: fromPeerId, namespace: Namespaces.Message.Cloud, id: messageId)
-
+            
             let internalId = CallSessionManager.getStableIncomingUUID(peerId: fromPeerId.id._internalGetInt64Value(), messageId: messageId.id)
-
+            
             var strings: PresentationStrings = defaultPresentationStrings
             let _ = (self.sharedContextPromise.get()
             |> take(1)
@@ -2418,7 +2396,7 @@ extension UserDefaults {
             } else {
                 displayTitle = strings.Call_IncomingGroupCallTitle_Single(fromTitle).string
             }
-
+            
             callKitIntegration.reportIncomingCall(
                 uuid: internalId,
                 stableId: groupCallId,
@@ -2441,7 +2419,7 @@ extension UserDefaults {
                     }
                 }
             )
-
+            
             let _ = (self.sharedContextPromise.get()
             |> take(1)
             |> deliverOnMainQueue).start(next: { sharedApplicationContext in
@@ -2452,10 +2430,10 @@ extension UserDefaults {
                     for (_, context, _) in activeAccounts.accounts {
                         if context.account.id == accountId {
                             context.account.callSessionManager.addConferenceInvitationMessages(ids: [(messageId, IncomingConferenceTermporaryExternalInfo(callId: groupCallId, isVideo: isVideo))])
-
+                            
                             let disposable = MetaDisposable()
                             self.watchedCallsDisposables.add(disposable)
-
+                            
                             if let callManager = context.sharedContext.callManager {
                                 let signal = combineLatest(queue: .mainQueue(), context.account.callSessionManager.ringingStates()
                                     |> map { ringingStates -> Bool in
@@ -2483,27 +2461,27 @@ extension UserDefaults {
                                     }
                                     return .never()
                                 }
-
+                                
                                 disposable.set((signal
                                 |> take(1)
                                 |> deliverOnMainQueue).startStrict(next: { _ in
                                     callKitIntegration.dropCall(uuid: internalId)
                                 }))
                             }
-
+                            
                             processed = true
-
+                            
                             break
                         }
                     }
-
+                    
                     if !processed {
                         callKitIntegration.dropCall(uuid: internalId)
                     }
                 })
-
+                
                 sharedApplicationContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0)
-
+                
                 if case PKPushType.voIP = type {
                     Logger.shared.log("App \(self.episodeId) PushRegistry", "pushRegistry payload: \(payload.dictionaryPayload)")
                     sharedApplicationContext.notificationManager.addNotification(payload.dictionaryPayload)
@@ -2516,7 +2494,7 @@ extension UserDefaults {
                 completion()
                 return
             }
-
+            
             updateString = updateString.replacingOccurrences(of: "-", with: "+")
             updateString = updateString.replacingOccurrences(of: "_", with: "/")
             while updateString.count % 4 != 0 {
@@ -2687,7 +2665,7 @@ extension UserDefaults {
             })
         }
     }
-
+    
     private func authorizedContext() -> Signal<AuthorizedApplicationContext, NoError> {
         return self.context.get()
         |> mapToSignal { context -> Signal<AuthorizedApplicationContext, NoError> in
@@ -3209,7 +3187,7 @@ extension UserDefaults {
                                 let reactionMessageCategory: UNNotificationCategory
                                 let storyCategory: UNNotificationCategory
                                 let storyReactionCategory: UNNotificationCategory
-
+                                
                                 var options: UNNotificationCategoryOptions = []
                                 if includeNames {
                                     options.insert(.hiddenPreviewsShowTitle)
@@ -3230,7 +3208,7 @@ extension UserDefaults {
                                 reactionMessageCategory = UNNotificationCategory(identifier: "t", actions: [], intentIdentifiers: [], hiddenPreviewsBodyPlaceholder: hiddenReactionContentString, options: options)
                                 storyCategory = UNNotificationCategory(identifier: "st", actions: [], intentIdentifiers: [], hiddenPreviewsBodyPlaceholder: hiddenStoryContentString, options: options)
                                 storyReactionCategory = UNNotificationCategory(identifier: "str", actions: [], intentIdentifiers: [], hiddenPreviewsBodyPlaceholder: hiddenStoryReactionContentString, options: options)
-
+                                
                                 UNUserNotificationCenter.current().setNotificationCategories([
                                     unknownMessageCategory,
                                     repliableMessageCategory,
@@ -3311,19 +3289,30 @@ extension UserDefaults {
     private func maybeCheckForUpdates() {
         #if targetEnvironment(simulator)
         #else
-        guard let buildConfig = self.buildConfig, let appCenterId = buildConfig.appCenterId, !appCenterId.isEmpty else {
+        guard let buildConfig = self.buildConfig else {
             return
         }
         let timestamp = CFAbsoluteTimeGetCurrent()
         if self.lastCheckForUpdatesTimestamp == nil || self.lastCheckForUpdatesTimestamp! < timestamp - 10.0 * 60.0 {
             self.lastCheckForUpdatesTimestamp = timestamp
             
-            if let url = URL(string: "https://api.appcenter.ms/v0.1/public/sdk/apps/\(appCenterId)/releases/latest") {
+            let _ = (self.sharedContextPromise.get()
+            |> take(1)
+            |> mapToSignal { sharedContext in
+                return sharedContext.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.updateSettings])
+                |> map { sharedData in
+                    return (sharedContext, sharedData.entries[ApplicationSpecificSharedDataKeys.updateSettings]?.get(UpdateSettings.self)?.url)
+                }
+            }
+            |> deliverOnMainQueue).start(next: { sharedContext, urlString in
+                guard buildConfig.isInternalBuild || sharedContext.sharedContext.immediateExperimentalUISettings.enableUpdates else {
+                    return
+                }
+                guard let url = urlString.flatMap({ URL(string: $0) }) else {
+                    return
+                }
                 self.currentCheckForUpdatesDisposable.set((downloadHTTPData(url: url)
-                |> deliverOnMainQueue).start(next: { [weak self] data in
-                    guard let strongSelf = self else {
-                        return
-                    }
+                |> deliverOnMainQueue).start(next: { data in
                     guard let json = try? JSONSerialization.jsonObject(with: data, options: []) else {
                         return
                     }
@@ -3333,27 +3322,23 @@ extension UserDefaults {
                     guard let versionString = dict["version"] as? String, let version = Int(versionString) else {
                         return
                     }
-                    guard let releaseNotesUrl = dict["release_notes_url"] as? String else {
+                    guard let releaseNotesUrl = dict["url"] as? String else {
                         return
                     }
                     guard let currentVersionString = Bundle.main.infoDictionary?["CFBundleVersion"] as? String, let currentVersion = Int(currentVersionString) else {
                         return
                     }
                     if currentVersion < version {
-                        let _ = (strongSelf.sharedContextPromise.get()
-                        |> take(1)
-                        |> deliverOnMainQueue).start(next: { sharedContext in
-                            let presentationData = sharedContext.sharedContext.currentPresentationData.with { $0 }
-                            sharedContext.sharedContext.mainWindow?.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: nil, text: "A new build is available", actions: [
-                                TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
-                                TextAlertAction(type: .defaultAction, title: "Show", action: {
-                                    sharedContext.sharedContext.applicationBindings.openUrl(releaseNotesUrl)
-                                })
-                            ]), on: .root, blockInteraction: false, completion: {})
-                        })
+                        let presentationData = sharedContext.sharedContext.currentPresentationData.with { $0 }
+                        sharedContext.sharedContext.mainWindow?.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: nil, text: "A new build is available", actions: [
+                            TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                            TextAlertAction(type: .defaultAction, title: "Show", action: {
+                                sharedContext.sharedContext.applicationBindings.openUrl(releaseNotesUrl)
+                            })
+                        ]), on: .root, blockInteraction: false, completion: {})
                     }
                 }))
-            }
+            })
         }
         #endif
     }
@@ -3569,3 +3554,15 @@ private func getMemoryConsumption() -> Int {
     return Int(info.phys_footprint)
 }
 #endif
+
+final class UpdateSettings: Codable, Equatable {
+    let url: String?
+    
+    init(url: String?) {
+        self.url = url
+    }
+    
+    static func ==(lhs: UpdateSettings, rhs: UpdateSettings) -> Bool {
+        return lhs.url == rhs.url
+    }
+}

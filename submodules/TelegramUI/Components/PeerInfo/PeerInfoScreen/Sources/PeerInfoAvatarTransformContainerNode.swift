@@ -33,7 +33,7 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
     private var videoStartTimestamp: Double?
     
     private let hierarchyTrackingLayer = HierarchyTrackingLayer()
-
+    
     var isExpanded: Bool = false
     var canAttachVideo: Bool = true {
         didSet {
@@ -52,7 +52,7 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
     
     private let playbackStartDisposable = MetaDisposable()
     
-    var storyData: (totalCount: Int, unseenCount: Int, hasUnseenCloseFriends: Bool)?
+    var storyData: (totalCount: Int, unseenCount: Int, hasUnseenCloseFriends: Bool, hasLiveItems: Bool)?
     var storyProgress: Float?
     
     init(context: AccountContext) {
@@ -85,7 +85,7 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
             guard let self else {
                 return
             }
-
+            
             if value {
                 self.updateFromParams()
             } else {
@@ -109,12 +109,12 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
             let innerColor = UIColor(rgb: UInt32(bitPattern: innerColorValue))
             let outerColor = UIColor(rgb: UInt32(bitPattern: outerColorValue))
             regularNavigationContentsSecondaryColor = UIColor(white: 1.0, alpha: 0.6).blitOver(innerColor.withMultiplied(hue: 1.0, saturation: 2.2, brightness: 1.5), alpha: 1.0)
-
+                    
             let baseBackgroundColor = UIColor(white: 1.0, alpha: 0.75)
-
+    
             let topColor = baseBackgroundColor.blendOver(background: innerColor.mixedWith(outerColor, alpha: 0.1)).withMultiplied(hue: 1.0, saturation: 1.2, brightness: 1.5)
             let bottomColor = baseBackgroundColor.blendOver(background: outerColor).withMultiplied(hue: 1.0, saturation: 1.2, brightness: 1.5)
-
+        
             colors.unseenColors = [topColor, bottomColor]
             colors.unseenCloseFriendsColors = colors.unseenColors
             colors.seenColors = colors.unseenColors
@@ -146,6 +146,7 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
                 totalCount: storyData.totalCount,
                 unseenCount: storyData.unseenCount,
                 hasUnseenCloseFriendsItems: storyData.hasUnseenCloseFriends,
+                hasLiveItems: storyData.hasLiveItems,
                 progress: self.storyProgress
             )
         } else if let storyProgress = self.storyProgress {
@@ -153,15 +154,16 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
                 totalCount: 1,
                 unseenCount: 1,
                 hasUnseenCloseFriendsItems: false,
+                hasLiveItems: false,
                 progress: storyProgress
             )
         }
-
+        
         var isForum = false
         if let peer, let channel = peer as? TelegramChannel, channel.isForumOrMonoForum {
             isForum = true
         }
-
+        
         self.avatarNode.setStoryStats(storyStats: storyStats, presentationParams: AvatarNode.StoryPresentationParams(
             colors: colors,
             lineWidth: 3.0,
@@ -228,7 +230,7 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
             self.isSettings = isSettings
         }
     }
-
+        
     var removedPhotoResourceIds = Set<String>()
     private var params: Params?
 
@@ -410,7 +412,7 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
                             let videoNode = UniversalVideoNode(context: self.context, postbox: self.context.account.postbox, audioSession: mediaManager.audioSession, manager: mediaManager.universalVideoManager, decoration: GalleryVideoDecoration(), content: videoContent, priority: .embedded, sourceAccountId: self.context.account.id)
                             videoNode.isUserInteractionEnabled = false
                             videoNode.isHidden = true
-
+                            
                             if let startTimestamp = video.representation.startTimestamp {
                                 self.videoStartTimestamp = startTimestamp
                                 self.playbackStartDisposable.set((videoNode.status
@@ -437,10 +439,10 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
                                 self.playbackStartDisposable.set(nil)
                                 videoNode.isHidden = false
                             }
-
+                            
                             self.videoContent = videoContent
                             self.videoNode = videoNode
-
+                            
                             let maskPath: UIBezierPath
                             if isForum {
                                 maskPath = UIBezierPath(roundedRect: CGRect(origin: CGPoint(), size: self.avatarNode.frame.size), cornerRadius: avatarCornerRadius)
@@ -450,7 +452,7 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
                             let shape = CAShapeLayer()
                             shape.path = maskPath.cgPath
                             videoNode.layer.mask = shape
-
+                            
                             self.avatarNode.contentNode.addSubnode(videoNode)
                         }
                     }

@@ -94,7 +94,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
         }
         return displayNode.isCallVideoOptionSelected
     }
-
+    
     init(_ params: ContactMultiselectionControllerParams) {
         self.params = params
         self.context = params.context
@@ -174,7 +174,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                 if strongSelf.isNodeLoaded {
                     strongSelf.requestLayout(transition: .immediate)
                 }
-
+                
                 strongSelf.updateTitle()
             })
         case let .premiumGifting(birthdays, selectToday, _):
@@ -186,7 +186,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                         todayPeers.append(peerId)
                     }
                 }
-
+                
                 let _ = (self.context.engine.data.get(
                     EngineDataList(
                         todayPeers.map(TelegramEngine.EngineData.Item.Peer.Peer.init)
@@ -247,7 +247,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
             }
             break
         }
-
+        
         switch self.mode {
         case let .groupCreation(isCall):
             let maxCount: Int32
@@ -315,7 +315,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                 self.navigationItem.rightBarButtonItem = self.rightNavigationButton
             }
         }
-
+        
         switch self.mode {
         case .peerSelection, .chatSelection:
             let hasEditableTokens = !self.contactsNode.editableTokens.isEmpty
@@ -378,7 +378,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                                 var selectedPeerMap = updatedState.selectedPeerMap
                                 selectedPeerMap[.peer(peer.id)] = .peer(peer: peer, isGlobal: false, participantCount: nil)
                                 updatedState = updatedState.withSelectedPeerMap(selectedPeerMap)
-
+                                
                                 if updatedState.selectedPeerIndices.count >= maxRegularCount {
                                     displayCountAlert = true
                                     updatedState = updatedState.withToggledPeerId(.peer(peer.id))
@@ -425,7 +425,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                         return selectionState
                     }
                 }
-
+                
                 if let addedToken = addedToken {
                     strongSelf.contactsNode.editableTokens.append(addedToken)
                 } else if let removedTokenId = removedTokenId {
@@ -433,13 +433,13 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                         return token.id != removedTokenId
                     }
                 }
-
+                
                 let _ = updatedCount
-
+                
                 strongSelf.requestLayout(transition: ContainedViewLayoutTransition.animated(duration: 0.4, curve: .spring))
                 
                 strongSelf.updateTitle()
-
+                
                 if displayCountAlert {
                     strongSelf.present(textAlertController(context: strongSelf.context, title: nil, text: strongSelf.presentationData.strings.CreateGroup_SoftUserLimitAlert, actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                 }
@@ -463,25 +463,25 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                 }
             }*/
         }
-
+        
         self.contactsNode.openPeerMore  = { [weak self] peer, node, gesture in
             guard let self, case let .peer(peer, _, _) = peer, let node = node as? ContextReferenceContentNode else {
                 return
             }
-
+            
             let presentationData = self.presentationData
-
+            
             var items: [ContextMenuItem] = []
             items.append(.action(ContextMenuActionItem(text: presentationData.strings.Premium_Gift_ContactSelection_SendMessage, icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/MessageBubble"), color: theme.contextMenu.primaryColor)
             }, iconPosition: .left, action: { [weak self] _, a in
                 a(.default)
-
+              
                 if let self {
                     self.params.sendMessage?(EnginePeer(peer))
                 }
             })))
-
+            
             items.append(.action(ContextMenuActionItem(text: presentationData.strings.Premium_Gift_ContactSelection_OpenProfile, icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/User"), color: theme.contextMenu.primaryColor)
             }, iconPosition: .left, action: { [weak self] _, a in
@@ -491,11 +491,11 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                     self.params.openProfile?(EnginePeer(peer))
                 }
             })))
-
+            
             let contextController = ContextController(presentationData: presentationData, source: .reference(ContactContextReferenceContentSource(controller: self, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
             self.present(contextController, in: .window(.root))
         }
-
+        
         self.contactsNode.openDisabledPeer = { [weak self] peer, reason in
             guard let self else {
                 return
@@ -510,13 +510,13 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                     }
                     return true
                 }
-
+                
                 var hasAction = false
                 let premiumConfiguration = PremiumConfiguration.with(appConfiguration: self.context.currentAppConfiguration.with { $0 })
                 if !premiumConfiguration.isPremiumDisabled {
                     hasAction = true
                 }
-
+                
                 self.present(UndoOverlayController(presentationData: presentationData, content: .premiumPaywall(title: nil, text: presentationData.strings.Chat_ToastMessagingRestrictedToPremium_Text(peer.compactDisplayTitle).string, customUndoText: hasAction ? self.presentationData.strings.Chat_ToastMessagingRestrictedToPremium_Action : nil, timeout: nil, linkAction: { _ in
                 }), elevatedLayout: false, animateInAsReplacement: true, action: { [weak self] action in
                     guard let self else {
@@ -530,7 +530,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                 }), in: .current)
             }
         }
-
+        
         self.contactsNode.removeSelectedPeer = { [weak self] peerId in
             if let strongSelf = self {
                 var updatedCount: Int?
@@ -611,7 +611,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                     }
                 }
                 strongSelf.requestLayout(transition: ContainedViewLayoutTransition.animated(duration: 0.4, curve: .spring))
-
+                
                 strongSelf.updateTitle()
             }
         }
@@ -640,7 +640,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                 }
                 strongSelf.requestLayout(transition: ContainedViewLayoutTransition.animated(duration: 0.4, curve: .spring))
             }
-
+            
             strongSelf.updateTitle()
         }
         
@@ -705,7 +705,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
                     }
                 }
                 strongSelf.requestLayout(transition: ContainedViewLayoutTransition.animated(duration: 0.4, curve: .spring))
-
+                
                 strongSelf.updateTitle()
             }
         }
@@ -864,12 +864,12 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
 private final class ContactContextReferenceContentSource: ContextReferenceContentSource {
     private let controller: ViewController
     private let sourceNode: ContextReferenceContentNode
-
+    
     init(controller: ViewController, sourceNode: ContextReferenceContentNode) {
         self.controller = controller
         self.sourceNode = sourceNode
     }
-
+    
     func transitionInfo() -> ContextControllerReferenceViewInfo? {
         return ContextControllerReferenceViewInfo(referenceView: self.sourceNode.view, contentAreaInScreenSpace: UIScreen.main.bounds)
     }

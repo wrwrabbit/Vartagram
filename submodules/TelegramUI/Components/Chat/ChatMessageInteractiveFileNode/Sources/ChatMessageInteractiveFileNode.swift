@@ -1735,12 +1735,12 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
         guard let arguments = self.arguments else {
             return
         }
-
+        
         var animated = animated
         if DeviceProximityManager.shared().currentValue() {
             animated = false
         }
-
+        
         let incoming = message.effectivelyIncoming(context.account.peerId)
         let messageTheme = incoming ? presentationData.theme.theme.chat.message.incoming : presentationData.theme.theme.chat.message.outgoing
         
@@ -1822,7 +1822,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                     fetchStatus = resourceStatus.fetchStatus
                 }
                 (self.waveformView?.componentView as? AudioWaveformComponent.View)?.enableScrubbing = false
-
+                
                 switch fetchStatus {
                 case let .Fetching(_, progress):
                     let adjustedProgress = max(progress, 0.027)
@@ -1830,7 +1830,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                     if let statusNode = self.statusNode, case .check = statusNode.state {
                         wasCheck = true
                     }
-
+                    
                     if isAudio && !isVoice && !isSending {
                         state = .play
                     } else {
@@ -1857,7 +1857,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 }
             case let .playbackStatus(playbackStatus):
                 (self.waveformView?.componentView as? AudioWaveformComponent.View)?.enableScrubbing = !isViewOnceMessage
-
+                
                 if isViewOnceMessage && playbackStatus == .playing {
                     state = .secretTimeout(position: playbackState.position, duration: playbackState.duration, generationTimestamp: playbackState.generationTimestamp, appearance: .init(inset: 1.0 + UIScreenPixel, lineWidth: 2.0 - UIScreenPixel))
                     if incoming {
@@ -1873,7 +1873,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 }
             }
         }
-
+        
         if isViewOnceMessage, let viewOnceIconImage = self.viewOnceIconImage, state == .play {
             streamingState = .customIcon(viewOnceIconImage)
         } else {

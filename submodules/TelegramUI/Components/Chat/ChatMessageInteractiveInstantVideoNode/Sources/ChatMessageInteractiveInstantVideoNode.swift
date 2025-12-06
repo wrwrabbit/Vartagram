@@ -94,7 +94,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
     private var statusNode: SemanticStatusNode?
     private var disappearingStatusNode: SemanticStatusNode?
     private var streamingStatusNode: SemanticStatusNode?
-
+    
     private var playbackStatusNode: InstantVideoRadialStatusNode?
     public private(set) var videoFrame: CGRect?
     private var imageScale: CGFloat = 1.0
@@ -132,7 +132,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
     private let fetchedThumbnailDisposable = MetaDisposable()
     
     private var viewOnceIconImage: UIImage?
-
+    
     private var shouldAcquireVideoContext: Bool {
         if let item = self.item, item.associatedData.isStandalone {
             return true
@@ -179,7 +179,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
         self.secretVideoPlaceholderBackground.displayWithoutProcessing = true
         self.secretVideoPlaceholder = TransformImageNode()
         self.secretVideoPlaceholder.clipsToBounds = true
-
+        
         self.infoBackgroundNode = ASImageNode()
         self.infoBackgroundNode.isLayerBacked = true
         self.infoBackgroundNode.displayWithoutProcessing = true
@@ -573,7 +573,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
             }
             
             let messageEffect = item.topMessage.messageEffect(availableMessageEffects: item.associatedData.availableMessageEffects)
-
+            
             let statusSuggestedWidthAndContinue = makeDateAndStatusLayout(ChatMessageDateAndStatusNode.Arguments(
                 context: item.context,
                 presentationData: item.presentationData,
@@ -641,17 +641,17 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
             }
             
             let effectiveAudioTranscriptionState = updatedAudioTranscriptionState ?? audioTranscriptionState
-
+            
             let principalGraphics = PresentationResourcesChat.principalGraphics(theme: item.presentationData.theme.theme, wallpaper: item.presentationData.theme.wallpaper, bubbleCorners: item.presentationData.chatBubbleCorners)
             let viewOnceIconImage = principalGraphics.radialIndicatorViewOnceIcon
-
+                        
             return (result, { [weak self] layoutData, animation in
                 if let strongSelf = self {
                     strongSelf.item = item
                     strongSelf.videoFrame = displayVideoFrame
                     strongSelf.appliedForwardInfo = (forwardSource, forwardAuthorSignature)
                     strongSelf.viewOnceIconImage = viewOnceIconImage
-
+                    
                     strongSelf.automaticDownload = automaticDownload
                     
                     var needsReplyBackground = false
@@ -965,7 +965,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                     if case .customChatContents = item.associatedData.subject {
                         strongSelf.dateAndStatusNode.isHidden = true
                     }
-
+                    
                     if let videoNode = strongSelf.videoNode {
                         videoNode.bounds = CGRect(origin: CGPoint(), size: videoFrame.size)
                         if strongSelf.imageScale != imageScale {
@@ -1190,7 +1190,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
         guard let item = self.item, let status = self.status, let videoFrame = self.videoFrame else {
             return
         }
-
+    
         let isViewOnceMessage = item.message.minAutoremoveOrClearTimeout == viewOnceTimeout
         
         let isSecretMedia = item.message.containsSecretMedia
@@ -1318,7 +1318,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
         
         var state: SemanticStatusNodeState
         var streamingState: SemanticStatusNodeState = .none
-
+        
         switch status.mediaStatus {
             case var .fetchStatus(fetchStatus):
                 if item.message.forwardInfo != nil {
@@ -1366,15 +1366,15 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                     state = .none
                 }
         }
-
+        
         if isViewOnceMessage && progressRequired, let viewOnceIconImage = self.viewOnceIconImage, state == .play {
             streamingState = .customIcon(viewOnceIconImage)
         }
-
+        
         if item.presentationData.isPreview {
             state = .play
         }
-
+        
         let streamingProgressDiameter: CGFloat = 20.0
         let streamingCacheStatusFrame = CGRect(origin: statusFrame.origin.offsetBy(dx: 37.0, dy: 37.0), size: CGSize(width: streamingProgressDiameter, height: streamingProgressDiameter))
         if streamingState != .none && self.streamingStatusNode == nil {
@@ -1386,13 +1386,13 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
             self.streamingStatusNode = streamingStatusNode
             streamingStatusNode.frame = streamingCacheStatusFrame
             self.addSubnode(streamingStatusNode)
-
+            
             if isViewOnceMessage {
                 streamingStatusNode.layer.animateScale(from: 0.1, to: 1.0, duration: 0.2, timingFunction: CAMediaTimingFunctionName.linear.rawValue)
                 streamingStatusNode.layer.animateAlpha(from: 0.1, to: 1.0, duration: 0.2, timingFunction: CAMediaTimingFunctionName.linear.rawValue)
             }
         }
-
+        
         if let streamingStatusNode = self.streamingStatusNode {
             if let animator = animator {
                 animator.updateFrame(layer: streamingStatusNode.layer, frame: streamingCacheStatusFrame, completion: nil)
@@ -1413,17 +1413,17 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                 streamingStatusNode.transitionToState(streamingState)
             }
         }
-
+        
         if let statusNode = self.statusNode {
             if state == .none {
                 self.statusNode = nil
             }
-
+            
             var cutoutFrame: CGRect?
             if streamingState != .none {
                 cutoutFrame = streamingCacheStatusFrame.offsetBy(dx: -statusFrame.minX, dy: -statusFrame.minY).insetBy(dx: -2.0 + UIScreenPixel, dy: -2.0 + UIScreenPixel)
             }
-
+            
             statusNode.transitionToState(state, animated: true, cutout: cutoutFrame, updateCutout: true, completion: { [weak statusNode] in
                 if state == .none {
                     statusNode?.removeFromSupernode()
@@ -1849,7 +1849,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                         self.hapticFeedback = HapticFeedback()
                     }
                     self.hapticFeedback?.impact(.medium)
-
+                    
                     let tipController = UndoOverlayController(presentationData: presentationData, content: .universal(animation: "anim_voiceToText", scale: 0.065, colors: [:], title: nil, text: presentationData.strings.Message_AudioTranscription_SubscribeToPremium, customUndoText: presentationData.strings.Message_AudioTranscription_SubscribeToPremiumAction, timeout: nil), elevatedLayout: false, position: .top, animateInAsReplacement: false, action: { action in
                         if case .undo = action {
                             let context = item.context

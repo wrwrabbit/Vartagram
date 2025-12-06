@@ -462,7 +462,7 @@ private final class ChatListViewSpaceState {
                                 if !isThreadBased {
                                     displayAsRegularChat = true
                                 }
-
+                                
                                 let isRemovedFromTotalUnreadCount = resolvedIsRemovedFromTotalUnreadCount(globalSettings: globalNotificationSettingsValue, peer: peer, peerSettings: postbox.peerNotificationSettingsTable.getEffective(notificationsPeerId))
                                 
                                 let messageTagSummaryResult = resolveChatListMessageTagSummaryResultCalculation(postbox: postbox, peerId: peer.id, threadId: nil, calculation: filterPredicate.messageTagSummary)
@@ -602,7 +602,7 @@ private final class ChatListViewSpaceState {
                     if !isThreadBased {
                         displayAsRegularChat = true
                     }
-
+                    
                     var isUnread: Bool
                     if isThreadBased && !displayAsRegularChat {
                         isUnread = (postbox.peerThreadsSummaryTable.get(peerId: entryPeer.id)?.effectiveUnreadCount ?? 0) > 0
@@ -659,7 +659,7 @@ private final class ChatListViewSpaceState {
                     if !isThreadBased {
                         displayAsRegularChat = true
                     }
-
+                    
                     var isUnread: Bool
                     if isThreadBased && !displayAsRegularChat {
                         isUnread = (postbox.peerThreadsSummaryTable.get(peerId: peerId)?.effectiveUnreadCount ?? 0) > 0
@@ -847,7 +847,7 @@ private final class ChatListViewSpaceState {
                     if !isThreadBased {
                         displayAsRegularChat = true
                     }
-
+                    
                     var isUnread: Bool
                     if isThreadBased && !displayAsRegularChat {
                         isUnread = (postbox.peerThreadsSummaryTable.get(peerId: entryPeer.id)?.effectiveUnreadCount ?? 0) > 0
@@ -913,7 +913,7 @@ private final class ChatListViewSpaceState {
                     if !isThreadBased {
                         displayAsRegularChat = true
                     }
-
+                    
                     var isUnread: Bool
                     if isThreadBased && !displayAsRegularChat {
                         isUnread = (postbox.peerThreadsSummaryTable.get(peerId: peerId)?.effectiveUnreadCount ?? 0) > 0
@@ -1016,7 +1016,7 @@ private final class ChatListViewSpaceState {
                     if !isThreadBased {
                         displayAsRegularChat = true
                     }
-
+                    
                     var updatedReadState = entryData.readState
                     if isThreadBased, !displayAsRegularChat {
                         let summary = postbox.peerThreadsSummaryTable.get(peerId: entryData.index.messageIndex.id.peerId)
@@ -1061,7 +1061,7 @@ private final class ChatListViewSpaceState {
                     if entryData.extractedCachedData != extractedCachedData {
                         didUpdateSummaryInfo = true
                     }
-
+                    
                     if didUpdateSummaryInfo {
                         var entryData = entryData
                         entryData.readState = updatedReadState
@@ -1655,7 +1655,7 @@ struct ChatListViewState {
                         isThreadBased = value.value
                         threadsArePeers = value.threadsArePeers
                     }
-
+                    
                     var forumTopicData: ChatListForumTopicData?
                     if let message = renderedMessages.first, let threadId = message.threadId {
                         if let info = postbox.messageHistoryThreadIndexTable.get(peerId: message.id.peerId, threadId: threadId) {
@@ -1672,7 +1672,7 @@ struct ChatListViewState {
                     if !isThreadBased {
                         displayAsRegularChat = true
                     }
-
+                    
                     var topForumTopics: [ChatListForumTopicData] = []
                     let readState: ChatListViewReadState?
                     
@@ -1738,7 +1738,7 @@ struct ChatListViewState {
                     if let extractCachedData = self.extractCachedData {
                         extractedCachedData = postbox.cachedPeerDataTable.get(index.messageIndex.id.peerId).flatMap(extractCachedData)
                     }
-
+                    
                     let updatedEntry: MutableChatListEntry = .MessageEntry(MutableChatListEntry.MessageEntryData(
                         index: index,
                         messages: renderedMessages,

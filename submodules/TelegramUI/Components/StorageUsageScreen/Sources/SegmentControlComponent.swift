@@ -4,16 +4,8 @@ import UIKit
 import Display
 import AsyncDisplayKit
 import ComponentFlow
-import SwiftSignalKit
-import ViewControllerComponent
 import ComponentDisplayAdapters
 import TelegramPresentationData
-import AccountContext
-import TelegramCore
-import MultilineTextComponent
-import EmojiStatusComponent
-import TelegramStringFormatting
-import CheckNode
 import SegmentedControlNode
 
 final class SegmentControlComponent: Component {
@@ -52,12 +44,50 @@ final class SegmentControlComponent: Component {
         return true
     }
     
+    class SegmentedControlView: UISegmentedControl {
+        var foregroundColor: UIColor? {
+            didSet {
+                self.resetChrome()
+            }
+        }
+        
+        override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+            super.touchesBegan(touches, with: event)
+            self.resetChrome()
+        }
+        
+        override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+            super.touchesEnded(touches, with: event)
+            self.resetChrome()
+        }
+        
+        func resetChrome() {
+            for case let view as UIImageView in self.subviews {
+                view.isHidden = true
+            }
+            if let selectorView = self.subviews.last, let loupe = selectorView.subviews.first, let innerLoupe = loupe.subviews.first {
+                for view in innerLoupe.subviews {
+                    if type(of: view) == UIView.self {
+                        view.backgroundColor = self.foregroundColor
+                    }
+                }
+            }
+        }
+                
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            
+            self.resetChrome()
+        }
+    }
+    
     class View: UIView {
         private let title = ComponentView<Empty>()
         
         private var component: SegmentControlComponent?
         
-        private var segmentedNode: SegmentedControlNode?
+        private var nativeSegmentedView: SegmentedControlView?
+        private var legacySegmentedNode: SegmentedControlNode?
         
         override init(frame: CGRect) {
             super.init(frame: frame)
@@ -71,33 +101,72 @@ final class SegmentControlComponent: Component {
             let themeUpdated = self.component?.theme !== component.theme
             
             self.component = component
-
-            let segmentedNode: SegmentedControlNode
-            if let current = self.segmentedNode {
-                segmentedNode = current
+            
+            var controlSize = CGSize()
+            if #available(iOS 26.0, *) {
+                let segmentedView: SegmentedControlView
+                if let current = self.nativeSegmentedView {
+                    segmentedView = current
+                } else {
+                    let mappedActions: [UIAction] = component.items.map { item -> UIAction in
+                        return UIAction(title: item.title, handler: { [weak self] _ in
+                            guard let self, let component = self.component else {
+                                return
+                            }
+                            component.action(item.id)
+                        })
+                    }
+                    segmentedView = SegmentedControlView(frame: .zero, actions: mappedActions)
+                    segmentedView.selectedSegmentIndex = component.items.firstIndex(where: { $0.id == component.selectedId }) ?? 0
+                    self.nativeSegmentedView = segmentedView
+                    self.addSubview(segmentedView)
+                }
                 
                 if themeUpdated {
-                    segmentedNode.updateTheme(SegmentedControlTheme(theme: component.theme))
+                    let backgroundColor = component.theme.overallDarkAppearance ? component.theme.list.itemBlocksBackgroundColor : component.theme.rootController.navigationBar.segmentedBackgroundColor
+                    segmentedView.setTitleTextAttributes([
+                        .font: Font.semibold(14.0),
+                        .foregroundColor: component.theme.rootController.navigationBar.segmentedTextColor
+                    ], for: .normal)
+                    segmentedView.foregroundColor = component.theme.rootController.navigationBar.segmentedForegroundColor
+                    segmentedView.backgroundColor = backgroundColor
                 }
-            } else {
-                let mappedItems: [SegmentedControlItem] = component.items.map { item -> SegmentedControlItem in
-                    return SegmentedControlItem(title: item.title)
-                }
-                segmentedNode = SegmentedControlNode(theme: SegmentedControlTheme(theme: component.theme), items: mappedItems, selectedIndex: component.items.firstIndex(where: { $0.id == component.selectedId }) ?? 0)
-                self.segmentedNode = segmentedNode
-                self.addSubnode(segmentedNode)
                 
-                segmentedNode.selectedIndexChanged = { [weak self] index in
-                    guard let self, let component = self.component else {
-                        return
+                controlSize = segmentedView.sizeThatFits(availableSize)
+                controlSize.width = min(availableSize.width - 32.0, max(300.0, controlSize.width))
+                controlSize.height = 36.0
+                segmentedView.frame = CGRect(origin: .zero, size: controlSize)
+            } else {
+                let segmentedNode: SegmentedControlNode
+                if let current = self.legacySegmentedNode {
+                    segmentedNode = current
+                    
+                    if themeUpdated {
+                        let backgroundColor = component.theme.overallDarkAppearance ? component.theme.list.itemBlocksBackgroundColor : component.theme.rootController.navigationBar.segmentedBackgroundColor
+                        let controlTheme = SegmentedControlTheme(backgroundColor: backgroundColor, foregroundColor: component.theme.rootController.navigationBar.segmentedForegroundColor, shadowColor: .clear, textColor: component.theme.rootController.navigationBar.segmentedTextColor, dividerColor: component.theme.rootController.navigationBar.segmentedDividerColor)
+                        segmentedNode.updateTheme(controlTheme)
                     }
-                    self.component?.action(component.items[index].id)
+                } else {
+                    let mappedItems: [SegmentedControlItem] = component.items.map { item -> SegmentedControlItem in
+                        return SegmentedControlItem(title: item.title)
+                    }
+                    let backgroundColor = component.theme.overallDarkAppearance ? component.theme.list.itemBlocksBackgroundColor : component.theme.rootController.navigationBar.segmentedBackgroundColor
+                    let controlTheme = SegmentedControlTheme(backgroundColor: backgroundColor, foregroundColor: component.theme.rootController.navigationBar.segmentedForegroundColor, shadowColor: .clear, textColor: component.theme.rootController.navigationBar.segmentedTextColor, dividerColor: component.theme.rootController.navigationBar.segmentedDividerColor)
+                    segmentedNode = SegmentedControlNode(theme: controlTheme, items: mappedItems, selectedIndex: component.items.firstIndex(where: { $0.id == component.selectedId }) ?? 0, cornerRadius: 18.0)
+                    self.legacySegmentedNode = segmentedNode
+                    self.addSubnode(segmentedNode)
+                    
+                    segmentedNode.selectedIndexChanged = { [weak self] index in
+                        guard let self, let component = self.component else {
+                            return
+                        }
+                        component.action(component.items[index].id)
+                    }
                 }
+                
+                controlSize = segmentedNode.updateLayout(SegmentedControlLayout.sizeToFit(maximumWidth: availableSize.width, minimumWidth: min(availableSize.width, 300.0), height: 36.0), transition: transition.containedViewLayoutTransition)
+                transition.containedViewLayoutTransition.updateFrame(node: segmentedNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: controlSize))
             }
-            
-            let controlSize = segmentedNode.updateLayout(SegmentedControlLayout.sizeToFit(maximumWidth: availableSize.width, minimumWidth: min(availableSize.width, 296.0), height: 31.0), transition: transition.containedViewLayoutTransition)
-            
-            transition.containedViewLayoutTransition.updateFrame(node: segmentedNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: controlSize))
             
             return controlSize
         }

@@ -63,7 +63,7 @@ final class ChatListSearchInteraction {
     let switchToFilter: (ChatListSearchPaneKey) -> Void
     let dismissSearch: () -> Void
     let openAdInfo: (ASDisplayNode, AdPeer) -> Void
-
+    
     init(openPeer: @escaping (EnginePeer, EnginePeer?, Int64?, Bool) -> Void, openDisabledPeer: @escaping (EnginePeer, Int64?, ChatListDisabledPeerReason) -> Void, openMessage: @escaping (EnginePeer, Int64?, EngineMessage.Id, Bool) -> Void, openUrl: @escaping (String) -> Void, clearRecentSearch: @escaping () -> Void, addContact: @escaping (String) -> Void, toggleMessageSelection: @escaping (EngineMessage.Id, Bool) -> Void, messageContextAction: @escaping ((EngineMessage, ASDisplayNode?, CGRect?, UIGestureRecognizer?, ChatListSearchPaneKey, (id: String, size: Int64, isFirstInList: Bool)?) -> Void), mediaMessageContextAction: @escaping ((EngineMessage, ASDisplayNode?, CGRect?, UIGestureRecognizer?) -> Void), peerContextAction: ((EnginePeer, ChatListSearchContextActionSource, ASDisplayNode, ContextGesture?, CGPoint?) -> Void)?, present: @escaping (ViewController, Any?) -> Void, dismissInput: @escaping () -> Void, getSelectedMessageIds: @escaping () -> Set<EngineMessage.Id>?, openStories: ((PeerId, ASDisplayNode) -> Void)?, switchToFilter: @escaping (ChatListSearchPaneKey) -> Void, dismissSearch: @escaping () -> Void, openAdInfo: @escaping (ASDisplayNode, AdPeer) -> Void) {
         self.openPeer = openPeer
         self.openDisabledPeer = openDisabledPeer
@@ -106,7 +106,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
     
     var dismissSearch: (() -> Void)?
     var openAdInfo: ((ASDisplayNode, AdPeer) -> Void)?
-
+    
     private let dimNode: ASDisplayNode
     let filterContainerNode: ChatListSearchFiltersContainerNode
     private let paneContainerNode: ChatListSearchPaneContainerNode
@@ -132,7 +132,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
     private var hasPublicPostsTab = false
     private var showPublicPostsTab = false
     public var displayGlobalPostsNewBadge = false
-
+    
     private var shareStatusDisposable: MetaDisposable?
     
     private var stateValue = ChatListSearchContainerNodeSearchState()
@@ -159,7 +159,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
     private let sharedOpenStoryDisposable = MetaDisposable()
     private var recentAppsDisposable: Disposable?
     private var refreshedGlobalPostSearchStateDisposable: Disposable?
-
+    
     public init(context: AccountContext, animationCache: AnimationCache, animationRenderer: MultiAnimationRenderer, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil, filter: ChatListNodePeersFilter, requestPeerType: [ReplyMarkupButtonRequestPeerType]?, location: ChatListControllerLocation, displaySearchFilters: Bool, hasDownloads: Bool, initialFilter: ChatListSearchFilter = .chats, openPeer originalOpenPeer: @escaping (EnginePeer, EnginePeer?, Int64?, Bool) -> Void, openDisabledPeer: @escaping (EnginePeer, Int64?, ChatListDisabledPeerReason) -> Void, openRecentPeerOptions: @escaping (EnginePeer) -> Void, openMessage originalOpenMessage: @escaping (EnginePeer, Int64?, EngineMessage.Id, Bool) -> Void, addContact: ((String) -> Void)?, peerContextAction: ((EnginePeer, ChatListSearchContextActionSource, ASDisplayNode, ContextGesture?, CGPoint?) -> Void)?, present: @escaping (ViewController, Any?) -> Void, presentInGlobalOverlay: @escaping (ViewController, Any?) -> Void, navigationController: NavigationController?, parentController: @escaping () -> ViewController?) {
         var initialFilter = initialFilter
         if case .chats = initialFilter, case .forum = location {
@@ -323,7 +323,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
             }
             self.currentPaneUpdated(key, transitionFraction: transitionFraction, transition: transition)
         }
-
+        
         self.paneContainerNode.requesDismissInput = {
             parentController()?.view.endEditing(true)
         }
@@ -507,7 +507,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
             if !hasPublicPosts {
                 strongSelf.showPublicPostsTab = false
             }
-
+            
             if filteredFilters != previousFilters || hasPublicPosts != previousHasPublicPosts  {
                 if let (layout, navigationBarHeight) = strongSelf.validLayout {
                     strongSelf.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
@@ -537,7 +537,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
         
         self.recentAppsDisposable = context.engine.peers.managedUpdatedRecentApps().startStrict()
         self.refreshedGlobalPostSearchStateDisposable = context.engine.messages.refreshGlobalPostSearchState().startStrict()
-
+        
         self._ready.set(self.paneContainerNode.isReady.get()
         |> map { _ in Void() })
     }
@@ -550,7 +550,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
         self.sharedOpenStoryDisposable.dispose()
         self.recentAppsDisposable?.dispose()
         self.refreshedGlobalPostSearchStateDisposable?.dispose()
-
+        
         self.copyProtectionTooltipController?.dismiss()
     }
     
@@ -586,7 +586,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
             pane.node.removeAds()
         }
     }
-
+    
     private var currentSearchOptions: ChatListSearchOptions {
         return self.searchOptionsValue ?? ChatListSearchOptions(peer: nil, date: nil)
     }
@@ -597,12 +597,12 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
         for token in tokens {
             tokensIdSet.insert(token.id)
         }
-
+        
         if case .chatList(.archive) = self.location, !tokens.contains(where: { $0.id == AnyHashable(ChatListTokenId.archive.rawValue) }) {
             self.location = .chatList(groupId: .root)
             self.paneContainerNode.location = self.location
         }
-
+        
         if !tokensIdSet.contains(ChatListTokenId.date.rawValue) && updatedOptions?.date != nil {
              updatedOptions = updatedOptions?.withUpdatedDate(nil)
         }
@@ -666,7 +666,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
         if !text.hasPrefix("#") && self.paneContainerNode.currentPaneKey == .publicPosts {
             self.paneContainerNode.requestSelectPane(.chats)
         }
-
+        
         self.searchQuery.set(.single(searchQuery))
         self.searchQueryValue = searchQuery
         
@@ -706,7 +706,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
         self.selectedFilter = .filter(filterKey)
         self.selectedFilterPromise.set(.single(self.selectedFilter))
         self.transitionFraction = transitionFraction
-
+        
         if let (layout, _) = self.validLayout {
             let filters: [ChatListSearchFilter]
             if let suggestedFilters = self.suggestedFilters, !suggestedFilters.isEmpty {
@@ -716,13 +716,13 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
                 if case .forum = self.location {
                     isForum = true
                 }
-
+                
                 filters = defaultAvailableSearchPanes(isForum: isForum, hasDownloads: !isForum && self.hasDownloads, hasPublicPosts: self.showPublicPostsTab).map(\.filter)
             }
             self.filterContainerNode.update(size: CGSize(width: layout.size.width - 40.0, height: 38.0), sideInset: layout.safeInsets.left - 20.0, filters: filters.map { .filter($0) }, displayGlobalPostsNewBadge: self.displayGlobalPostsNewBadge, selectedFilter: self.selectedFilter?.id, transitionFraction: self.transitionFraction, presentationData: self.presentationData, transition: transition)
         }
     }
-
+    
     public func search(filter: ChatListSearchFilter, query: String?) {
         let key: ChatListSearchPaneKey
         switch filter {
@@ -850,7 +850,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
                         return
                     }
                     strongSelf.forwardMessages(messageIds: nil)
-                }, displayCopyProtectionTip: { [weak self] node, save in
+                }, displayCopyProtectionTip: { [weak self] view, save in
                     guard let strongSelf = self, let messageIds = strongSelf.stateValue.selectedMessageIds, !messageIds.isEmpty else {
                         return
                     }
@@ -913,7 +913,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
                             }
                             strongSelf.present?(tooltipController, TooltipControllerPresentationArguments(sourceNodeAndRect: {
                                 if let strongSelf = self {
-                                    let rect = node.view.convert(node.view.bounds, to: strongSelf.view).offsetBy(dx: 0.0, dy: 3.0)
+                                    let rect = view.convert(view.bounds, to: strongSelf.view).offsetBy(dx: 0.0, dy: 3.0)
                                     return (strongSelf, rect)
                                 }
                                 return nil

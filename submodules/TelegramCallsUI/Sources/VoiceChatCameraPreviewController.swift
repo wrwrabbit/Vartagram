@@ -12,7 +12,7 @@ import PresentationDataUtils
 import UIKitRuntimeUtils
 import ReplayKit
 
-private let accentColor: UIColor = UIColor(rgb: 0x007aff)
+private let accentColor: UIColor = UIColor(rgb: 0x0088ff)
 
 protocol PreviewVideoNode: ASDisplayNode {
     var ready: Signal<Bool, NoError> { get }
@@ -180,7 +180,7 @@ private class VoiceChatCameraPreviewControllerNode: ViewControllerTracingNode, A
         self.titleNode = ASTextNode()
         self.titleNode.attributedText = NSAttributedString(string: title, font: Font.bold(17.0), textColor: UIColor(rgb: 0xffffff))
                 
-        self.doneButton = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(backgroundColor: UIColor(rgb: 0xffffff), foregroundColor: UIColor(rgb: 0x4f5352)), font: .bold, height: 48.0, cornerRadius: 24.0, gloss: false)
+        self.doneButton = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(backgroundColor: UIColor(rgb: 0xffffff), foregroundColor: UIColor(rgb: 0x4f5352)), font: .bold, height: 48.0, cornerRadius: 24.0)
         self.doneButton.title = self.presentationData.strings.VoiceChat_VideoPreviewContinue
         
         if #available(iOS 12.0, *) {

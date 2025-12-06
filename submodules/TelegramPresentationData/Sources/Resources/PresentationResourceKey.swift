@@ -68,6 +68,9 @@ public enum PresentationResourceKey: Int32 {
     case itemListCornersTop
     case itemListCornersBottom
     case itemListCornersBoth
+    case itemListCornersTopGlass
+    case itemListCornersBottomGlass
+    case itemListCornersBothGlass
     case itemListKnob
     case itemListBlockAccentIcon
     case itemListBlockDestructiveIcon
@@ -81,7 +84,7 @@ public enum PresentationResourceKey: Int32 {
     case itemListRoundTopupIcon
     case itemListRoundWithdrawIcon
     case itemListStatsIcon
-
+    
     case statsReactionsIcon
     case statsForwardsIcon
     
@@ -125,19 +128,19 @@ public enum PresentationResourceKey: Int32 {
     case chatListStoryReplyIcon
     case chatListGiftIcon
     case chatListLocationIcon
-
+    
     case chatListGeneralTopicIcon
     case chatListGeneralTopicTemplateIcon
     case chatListNewTopicTemplateIcon
     case chatListGeneralTopicSmallIcon
-
+    
     case searchAdIcon
 
     case chatTitleLockIcon
     case chatTitleMuteIcon
     case chatPanelLockIcon
     case chatPanelBoostIcon
-
+    
     case chatBubbleVerticalLineIncomingImage
     case chatBubbleVerticalLineOutgoingImage
     
@@ -174,11 +177,11 @@ public enum PresentationResourceKey: Int32 {
     case chatBubbleTodoDotOutgoingIcon
     case chatBubbleTodoCheckIncomingIcon
     case chatBubbleTodoCheckOutgoingIcon
-
+    
     case chatServiceMessageTodoCompletedIcon
     case chatServiceMessageTodoIncompletedIcon
     case chatServiceMessageTodoAppendedIcon
-
+    
     case chatBubbleReplyThumbnailPlayImage
     
     case chatBubbleDeliveryFailedIcon
@@ -231,7 +234,7 @@ public enum PresentationResourceKey: Int32 {
     case chatInputTextFieldScheduleImage
     case chatInputTextFieldGiftImage
     case chatInputTextFieldSuggestPostImage
-
+    
     case chatInputSearchPanelUpImage
     case chatInputSearchPanelUpDisabledImage
     case chatInputSearchPanelDownImage
@@ -264,6 +267,9 @@ public enum PresentationResourceKey: Int32 {
     case chatMessageAttachedContentButtonIconLinkOutgoing
     case chatMessageAttachedContentHighlightedButtonIconLinkOutgoingWithWallpaper
     case chatMessageAttachedContentHighlightedButtonIconLinkOutgoingWithoutWallpaper
+    
+    case chatMessageAttachedContentButtonIconBidIncoming
+    case chatMessageAttachedContentButtonIconBidOutgoing
     
     case chatCommandPanelArrowImage
     
@@ -302,7 +308,7 @@ public enum PresentationResourceKey: Int32 {
     case chatFreeShareButtonIcon
     case chatFreeCloseButtonIcon
     case chatFreeMoreButtonIcon
-
+    
     case chatKeyboardActionButtonMessageIcon
     case chatKeyboardActionButtonLinkIcon
     case chatKeyboardActionButtonShareIcon
@@ -323,39 +329,39 @@ public enum PresentationResourceKey: Int32 {
     case storyViewListLikeIcon
     case navigationPostStoryIcon
     case navigationSortIcon
-
+    
     case chatReplyBackgroundTemplateIncomingImage
     case chatReplyBackgroundTemplateOutgoingDashedImage
     case chatReplyServiceBackgroundTemplateImage
     
     case chatBubbleCloseIcon
-
+    
     case enterSecretPasscodeIcon
     case manageSecretPasscodesIcon
 
     case chatEmptyStateStarIcon
     case chatPlaceholderStarIcon
     case chatUserInfoWarningIcon
-
+    
     case avatarPremiumLockBadgeBackground
     case avatarPremiumLockBadge
     case shareAvatarPremiumLockBadgeBackground
     case shareAvatarPremiumLockBadge
-
+    
     case shareAvatarStarsLockBadgeBackground
     case shareAvatarStarsLockBadgeInnerBackground
-
+    
     case sharedLinkIcon
-
+    
     case hideIconImage
     case peerStatusLockedImage
     case expandDownArrowImage
     case expandSmallDownArrowImage
-
+    
     case callListCallIcon
-
+    
     case chatFreeNavigateToThreadButtonIcon
-
+    
     case messageButtonsPostReject
     case messageButtonsPostApprove
     case messageButtonsPostEdit

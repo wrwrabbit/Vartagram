@@ -72,7 +72,7 @@ final class WebpagePreviewAccessoryPanelNode: AccessoryPanelNode {
         
         self.updateWebpage()
     }
-
+        
     override func animateIn() {
         self.iconView.layer.animateScale(from: 0.001, to: 1.0, duration: 0.2)
     }
@@ -228,7 +228,7 @@ final class WebpagePreviewAccessoryPanelNode: AccessoryPanelNode {
                 return
             }
             self.previousTapTimestamp = CFAbsoluteTimeGetCurrent()
-            self.interfaceInteraction?.presentLinkOptions(self)
+            self.interfaceInteraction?.presentLinkOptions(self.view)
             Queue.mainQueue().after(1.5) {
                 self.updateThemeAndStrings(theme: self.theme, strings: self.strings, force: true)
             }

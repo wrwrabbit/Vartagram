@@ -364,7 +364,7 @@ public class ContactsController: ViewController {
                 openPeer(peer, false)
             }
         }
-
+        
         self.contactsNode.requestAddContact = { [weak self] phoneNumber in
             if let strongSelf = self {
                 strongSelf.view.endEditing(true)
@@ -495,16 +495,16 @@ public class ContactsController: ViewController {
             guard let self, let layout = self.validLayout else {
                 return
             }
-
+            
             let toolbar: Toolbar?
             if let state, state.selectedPeerIndices.count > 0 {
                 toolbar = Toolbar(leftAction: nil, rightAction: nil, middleAction: ToolbarAction(title: self.presentationData.strings.ContactList_DeleteConfirmation(Int32(state.selectedPeerIndices.count)), isEnabled: true, color: .custom(self.presentationData.theme.actionSheet.destructiveActionTextColor)))
             } else {
                 toolbar = nil
             }
-
+            
             let _ = self.contactsNode.updateNavigationBar(layout: layout, transition: .animated(duration: 0.2, curve: .easeInOut))
-
+            
             var transition: ContainedViewLayoutTransition = .immediate
             let previousToolbar = previousToolbarValue.swap(toolbar)
             if (previousToolbar == nil) != (toolbar == nil) {
@@ -512,7 +512,7 @@ public class ContactsController: ViewController {
             }
             self.setToolbar(toolbar, transition: transition)
         })
-
+        
         self.displayNodeDidLoad()
     }
     
@@ -528,7 +528,7 @@ public class ContactsController: ViewController {
         }
         self.requestDeleteContacts(peerIds: peerIds)
     }
-
+    
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
@@ -640,32 +640,32 @@ public class ContactsController: ViewController {
             return ContactListNodeGroupSelectionState().withToggledPeerId(.peer(peerId))
         }
     }
-
+    
     public func requestDeleteContacts(peerIds: [EnginePeer.Id]) {
         guard !peerIds.isEmpty else {
             return
         }
         let actionSheet = ActionSheetController(presentationData: self.presentationData)
         var items: [ActionSheetItem] = []
-
+        
         let actionTitle: String
         if peerIds.count > 1 {
             actionTitle = self.presentationData.strings.ContactList_DeleteConfirmation(Int32(peerIds.count))
         } else {
             actionTitle = self.presentationData.strings.ContactList_DeleteConfirmationSingle
         }
-
+        
         items.append(ActionSheetButtonItem(title: actionTitle, color: .destructive, action: { [weak self, weak actionSheet] in
             actionSheet?.dismissAnimated()
-
+            
             guard let self else {
                 return
             }
-
+            
             self.contactsNode.contactListNode.updateSelectionState { _ in
                 return nil
             }
-
+            
             self.contactsNode.contactListNode.updatePendingRemovalPeerIds { state in
                 var state = state
                 for peerId in peerIds {
@@ -673,9 +673,9 @@ public class ContactsController: ViewController {
                 }
                 return state
             }
-
+            
             let text = self.presentationData.strings.ContactList_DeletedContacts(Int32(peerIds.count))
-
+            
             self.present(UndoOverlayController(presentationData: self.context.sharedContext.currentPresentationData.with { $0 }, content: .removedChat(context: self.context, title: NSAttributedString(string: text), text: nil), elevatedLayout: false, animateInAsReplacement: true, action: { [weak self] value in
                 guard let self else {
                     return false
@@ -689,14 +689,14 @@ public class ContactsController: ViewController {
                     } else {
                         deleteContactsFromDevice = .complete()
                     }
-
+                    
                     let deleteSignal = self.context.engine.contacts.deleteContacts(peerIds: peerIds)
                     |> then(deleteContactsFromDevice)
-
+                    
                     for peerId in peerIds {
                         deleteSendMessageIntents(peerId: peerId)
                     }
-
+                    
                     self.contactsNode.contactListNode.updatePendingRemovalPeerIds { state in
                         var state = state
                         for peerId in peerIds {
@@ -704,9 +704,9 @@ public class ContactsController: ViewController {
                         }
                         return state
                     }
-
+                    
                     let _ = deleteSignal.start()
-
+                    
                     return true
                 } else if value == .undo {
                     self.contactsNode.contactListNode.updatePendingRemovalPeerIds { state in
@@ -731,7 +731,7 @@ public class ContactsController: ViewController {
         ])
         self.present(actionSheet, in: .window(.root))
     }
-
+    
     @objc func addPressed() {
         if self.context.immediateIsHidable {
             // the add button is shown anyway, so it can not be peeped that account is hidable
@@ -749,26 +749,32 @@ public class ContactsController: ViewController {
             
             switch status {
                 case .allowed:
-                    let contactData = DeviceContactExtendedData(basicData: DeviceContactBasicData(firstName: "", lastName: "", phoneNumbers: [DeviceContactPhoneNumberData(label: "_$!<Mobile>!$_", value: "+")]), middleName: "", prefix: "", suffix: "", organization: "", jobTitle: "", department: "", emailAddresses: [], urls: [], addresses: [], birthdayDate: nil, socialProfiles: [], instantMessagingProfiles: [], note: "")
                     if let navigationController = strongSelf.context.sharedContext.mainWindow?.viewController as? NavigationController {
-                        navigationController.pushViewController(strongSelf.context.sharedContext.makeDeviceContactInfoController(context: ShareControllerAppAccountContext(context: strongSelf.context), environment: ShareControllerAppEnvironment(sharedContext: strongSelf.context.sharedContext), subject: .create(peer: nil, contactData: contactData, isSharing: false, shareViaException: false, completion: { peer, stableId, contactData in
-                            guard let strongSelf = self else {
-                                return
-                            }
-                            if let peer = peer {
-                                DispatchQueue.main.async {
-                                    if let infoController = strongSelf.context.sharedContext.makePeerInfoController(context: strongSelf.context, updatedPresentationData: nil, peer: peer, mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
-                                        if let navigationController = strongSelf.context.sharedContext.mainWindow?.viewController as? NavigationController {
-                                            navigationController.pushViewController(infoController)
+                        let controller = strongSelf.context.sharedContext.makeNewContactScreen(
+                            context: strongSelf.context,
+                            peer: nil,
+                            phoneNumber: nil,
+                            shareViaException: false,
+                            completion: { [weak self] peer, stableId, contactData in
+                                guard let strongSelf = self else {
+                                    return
+                                }
+                                if let peer {
+                                    Queue.mainQueue().async {
+                                        if let infoController = strongSelf.context.sharedContext.makePeerInfoController(context: strongSelf.context, updatedPresentationData: nil, peer: peer._asPeer(), mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
+                                            if let navigationController = strongSelf.context.sharedContext.mainWindow?.viewController as? NavigationController {
+                                                navigationController.pushViewController(infoController)
+                                            }
                                         }
                                     }
-                                }
-                            } else {
-                                if let navigationController = strongSelf.context.sharedContext.mainWindow?.viewController as? NavigationController {
-                                    navigationController.pushViewController(strongSelf.context.sharedContext.makeDeviceContactInfoController(context: ShareControllerAppAccountContext(context: strongSelf.context), environment: ShareControllerAppEnvironment(sharedContext: strongSelf.context.sharedContext), subject: .vcard(nil, stableId, contactData), completed: nil, cancelled: nil))
+                                } else if let stableId, let contactData {
+                                    if let navigationController = strongSelf.context.sharedContext.mainWindow?.viewController as? NavigationController {
+                                        navigationController.pushViewController(strongSelf.context.sharedContext.makeDeviceContactInfoController(context: ShareControllerAppAccountContext(context: strongSelf.context), environment: ShareControllerAppEnvironment(sharedContext: strongSelf.context.sharedContext), subject: .vcard(nil, stableId, contactData), completed: nil, cancelled: nil))
+                                    }
                                 }
                             }
-                        }), completed: nil, cancelled: nil))
+                        )
+                        navigationController.pushViewController(controller)
                     }
                 case .notDetermined:
                     DeviceAccess.authorizeAccess(to: .contacts)
@@ -783,7 +789,7 @@ public class ContactsController: ViewController {
         })
     }
     
-    override public func tabBarItemContextAction(sourceNode: ContextExtractedContentContainingNode, gesture: ContextGesture) {
+    override public func tabBarItemContextAction(sourceView: ContextExtractedContentContainingView, gesture: ContextGesture) {
         var items: [ContextMenuItem] = []
         if !self.context.immediateIsHidable {
             items.append(.action(ContextMenuActionItem(text: self.presentationData.strings.Contacts_AddContact, icon: { theme in
@@ -797,31 +803,28 @@ public class ContactsController: ViewController {
                 })
             })))
         }
-        let controller = ContextController(presentationData: self.presentationData, source: .extracted(ContactsTabBarContextExtractedContentSource(controller: self, sourceNode: sourceNode)), items: .single(ContextController.Items(content: .list(items))), recognizer: nil, gesture: gesture)
+        let controller = ContextController(presentationData: self.presentationData, source: .reference(ContactsTabBarContextReferenceContentSource(controller: self, sourceView: sourceView)), items: .single(ContextController.Items(content: .list(items))), recognizer: nil, gesture: gesture)
         self.context.sharedContext.mainWindow?.presentInGlobalOverlay(controller)
     }
 }
 
-private final class ContactsTabBarContextExtractedContentSource: ContextExtractedContentSource {
+private final class ContactsTabBarContextReferenceContentSource: ContextReferenceContentSource {
     let keepInPlace: Bool = true
-    let ignoreContentTouches: Bool = true
-    let blurBackground: Bool = true
-    let actionsHorizontalAlignment: ContextActionsHorizontalAlignment = .center
     
     private let controller: ViewController
-    private let sourceNode: ContextExtractedContentContainingNode
+    private let sourceView: ContextExtractedContentContainingView
     
-    init(controller: ViewController, sourceNode: ContextExtractedContentContainingNode) {
+    init(controller: ViewController, sourceView: ContextExtractedContentContainingView) {
         self.controller = controller
-        self.sourceNode = sourceNode
+        self.sourceView = sourceView
     }
     
-    func takeView() -> ContextControllerTakeViewInfo? {
-        return ContextControllerTakeViewInfo(containingItem: .node(self.sourceNode), contentAreaInScreenSpace: UIScreen.main.bounds)
-    }
-    
-    func putBack() -> ContextControllerPutBackViewInfo? {
-        return ContextControllerPutBackViewInfo(contentAreaInScreenSpace: UIScreen.main.bounds)
+    func transitionInfo() -> ContextControllerReferenceViewInfo? {
+        return ContextControllerReferenceViewInfo(
+            referenceView: self.sourceView.contentView,
+            contentAreaInScreenSpace: UIScreen.main.bounds,
+            actionsPosition: .top
+        )
     }
 }
 

@@ -27,7 +27,7 @@ public struct ChatListNodeViewUpdate {
     public let list: EngineChatList
     public let type: ViewUpdateType
     public let scrollPosition: ChatListNodeViewScrollPosition?
-
+    
     public init(list: EngineChatList, type: ViewUpdateType, scrollPosition: ChatListNodeViewScrollPosition?) {
         self.list = list
         self.type = type
@@ -125,7 +125,7 @@ public func chatListFilterPredicate(filter: ChatListFilterData, accountPeerId: E
 
 public func chatListViewForLocation(chatListLocation: ChatListControllerLocation, location: ChatListNodeLocation, account: Account, shouldLoadCanMessagePeer: Bool, inactiveSecretChatPeerIds: Signal<Set<PeerId>, NoError>) -> Signal<ChatListNodeViewUpdate, NoError> {
     let accountPeerId = account.peerId
-
+    
     switch chatListLocation {
     case let .chatList(groupId):
         let filterPredicate: ChatListFilterPredicate?
@@ -350,7 +350,7 @@ public func chatListViewForLocation(chatListLocation: ChatListControllerLocation
                     }
                 }
             }
-
+             
             var items: [EngineChatList.Item] = []
             for item in view.items {
                 guard let sourcePeer = item.peer else {
@@ -367,7 +367,7 @@ public func chatListViewForLocation(chatListLocation: ChatListControllerLocation
                 let mappedMessageIndex = MessageIndex(id: MessageId(peerId: sourceId, namespace: item.index.id.namespace, id: item.index.id.id), timestamp: item.index.timestamp)
                 
                 let readCounters = EnginePeerReadCounters(state: CombinedPeerReadState(states: [(Namespaces.Message.Cloud, .idBased(maxIncomingReadId: 0, maxOutgoingReadId: 0, maxKnownId: 0, count: Int32(item.unreadCount), markedUnread: item.markedUnread))]), isMuted: false)
-
+                
                 var itemDraft: EngineChatList.Draft?
                 if let embeddedState = item.embeddedInterfaceState, let _ = embeddedState.overrideChatTimestamp {
                     if let opaqueState = _internal_decodeStoredChatInterfaceState(state: embeddedState) {
@@ -376,7 +376,7 @@ public func chatListViewForLocation(chatListLocation: ChatListControllerLocation
                         }
                     }
                 }
-
+                
                 items.append(EngineChatList.Item(
                     id: .chatList(sourceId),
                     index: .chatList(ChatListIndex(pinningIndex: item.pinnedIndex.flatMap(UInt16.init), messageIndex: mappedMessageIndex)),

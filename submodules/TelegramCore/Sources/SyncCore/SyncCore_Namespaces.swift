@@ -10,7 +10,7 @@ public struct Namespaces {
         public static let ScheduledLocal: Int32 = 4
         public static let QuickReplyCloud: Int32 = 5
         public static let QuickReplyLocal: Int32 = 6
-
+        
         public static let allScheduled: Set<Int32> = Set([Namespaces.Message.ScheduledCloud, Namespaces.Message.ScheduledLocal])
         public static let allQuickReply: Set<Int32> = Set([Namespaces.Message.QuickReplyCloud, Namespaces.Message.QuickReplyLocal])
         public static let allNonRegular: Set<Int32> = Set([Namespaces.Message.ScheduledCloud, Namespaces.Message.ScheduledLocal, Namespaces.Message.QuickReplyCloud, Namespaces.Message.QuickReplyLocal])
@@ -147,6 +147,7 @@ public struct Namespaces {
         public static let cachedProfileGiftsCollections: Int8 = 48
         public static let cachedProfileSavedMusic: Int8 = 49
         public static let cachedChatThemes: Int8 = 50
+        public static let cachedLiveStorySendAsPeers: Int8 = 51
 
         // 64 - ...: ApplicationSpecificItemCacheCollectionIdValues
         // 100: CachedChannelAdminRanks
@@ -182,7 +183,7 @@ public extension MessageTags {
     static let unseenReaction = MessageTags(rawValue: 1 << 11)
     static let voice = MessageTags(rawValue: 1 << 12)
     static let roundVideo = MessageTags(rawValue: 1 << 13)
-
+    
     static let all: MessageTags = [.photoOrVideo, .file, .music, .webPage, .voiceOrInstantVideo, .unseenPersonalMessage, .liveLocation, .gif, .photo, .video, .pinned, .unseenReaction, .voice, .roundVideo]
 }
 
@@ -496,38 +497,38 @@ public struct PreferencesKeys {
         key.setInt32(0, value: PreferencesKeyValues.audioTranscriptionTrialState.rawValue)
         return key
     }()
-
+    
     public static func didCacheSavedMessageTags(threadId: Int64?) -> ValueBoxKey {
         let key = ValueBoxKey(length: 4 + 8)
         key.setInt32(0, value: PreferencesKeyValues.didCacheSavedMessageTagsPrefix.rawValue)
         key.setInt64(4, value: threadId ?? 0)
         return key
     }
-
+    
     public static func displaySavedChatsAsTopics() -> ValueBoxKey {
         let key = ValueBoxKey(length: 4)
         key.setInt32(0, value: PreferencesKeyValues.displaySavedChatsAsTopics.rawValue)
         return key
     }
-
+    
     public static func shortcutMessages() -> ValueBoxKey {
         let key = ValueBoxKey(length: 4)
         key.setInt32(0, value: PreferencesKeyValues.shortcutMessages.rawValue)
         return key
     }
-
+    
     public static func timezoneList() -> ValueBoxKey {
         let key = ValueBoxKey(length: 4)
         key.setInt32(0, value: PreferencesKeyValues.timezoneList.rawValue)
         return key
     }
-
+    
     static func botBiometricsStatePrefix() -> ValueBoxKey {
         let key = ValueBoxKey(length: 4)
         key.setInt32(0, value: PreferencesKeyValues.botBiometricsState.rawValue)
         return key
     }
-
+    
     static func extractBotBiometricsStatePeerId(key: ValueBoxKey) -> PeerId? {
         if key.length != 4 + 8 {
             return nil
@@ -537,58 +538,58 @@ public struct PreferencesKeys {
         }
         return PeerId(key.getInt64(4))
     }
-
+    
     public static func botBiometricsState(peerId: PeerId) -> ValueBoxKey {
         let key = ValueBoxKey(length: 4 + 8)
         key.setInt32(0, value: PreferencesKeyValues.botBiometricsState.rawValue)
         key.setInt64(4, value: peerId.toInt64())
         return key
     }
-
+    
     public static func businessLinks() -> ValueBoxKey {
         let key = ValueBoxKey(length: 4)
         key.setInt32(0, value: PreferencesKeyValues.businessLinks.rawValue)
         return key
     }
-
+    
     public static func starGifts() -> ValueBoxKey {
         let key = ValueBoxKey(length: 4)
         key.setInt32(0, value: PreferencesKeyValues.starGifts.rawValue)
         return key
     }
-
+    
     public static func botStorageState(peerId: PeerId) -> ValueBoxKey {
         let key = ValueBoxKey(length: 4 + 8)
         key.setInt32(0, value: PreferencesKeyValues.botStorageState.rawValue)
         key.setInt64(4, value: peerId.toInt64())
         return key
     }
-
+    
     public static func secureBotStorageState() -> ValueBoxKey {
         let key = ValueBoxKey(length: 4 + 8)
         key.setInt32(0, value: PreferencesKeyValues.secureBotStorageState.rawValue)
         return key
     }
-
+    
     public static func serverSuggestionInfo() -> ValueBoxKey {
         let key = ValueBoxKey(length: 4 + 8)
         key.setInt32(0, value: PreferencesKeyValues.serverSuggestionInfo.rawValue)
         return key
     }
-
+    
     public static func persistentChatInterfaceData(peerId: PeerId) -> ValueBoxKey {
         let key = ValueBoxKey(length: 4 + 8)
         key.setInt32(0, value: PreferencesKeyValues.persistentChatInterfaceData.rawValue)
         key.setInt64(4, value: peerId.toInt64())
         return key
     }
-
+    
     public static func globalPostSearchState() -> ValueBoxKey {
         let key = ValueBoxKey(length: 4)
         key.setInt32(0, value: PreferencesKeyValues.globalPostSearchState.rawValue)
         return key
     }
-
+    
     public static func savedMusicIds() -> ValueBoxKey {
         let key = ValueBoxKey(length: 4)
         key.setInt32(0, value: PreferencesKeyValues.savedMusicIds.rawValue)
@@ -663,7 +664,7 @@ public struct SharedDataKeys {
         key.setInt32(0, value: SharedDataKeyValues.chatThemes.rawValue)
         return key
     }()
-
+    
     public static let deviceContacts: ValueBoxKey = {
         let key = ValueBoxKey(length: 4)
         key.setInt32(0, value: SharedDataKeyValues.deviceContacts.rawValue)

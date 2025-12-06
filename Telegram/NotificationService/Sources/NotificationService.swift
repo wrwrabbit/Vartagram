@@ -711,7 +711,7 @@ private final class NotificationServiceHandler {
         let _ = try? FileManager.default.createDirectory(atPath: logsPath, withIntermediateDirectories: true, attributes: nil)
 
         setupSharedLogger(rootPath: logsPath, path: logsPath)
-
+        
         Logger.shared.log("NotificationService \(episode)", "Started handling notification")
 
         initializeAccountManagement()
@@ -909,7 +909,7 @@ private final class NotificationServiceHandler {
                 strongSelf.stateManager = stateManager
                 
                 let accountPeerId = stateManager.accountPeerId
-
+                
                 let settings = stateManager.postbox.transaction { transaction -> NotificationSoundList? in
                     return _internal_cachedNotificationSoundList(transaction: transaction)
                 }
@@ -975,7 +975,7 @@ private final class NotificationServiceHandler {
                         var peer: EnginePeer?
                         var localContactId: String?
                     }
-
+                    
                     struct GroupCallData {
                         var id: Int64
                         var fromId: PeerId
@@ -1013,7 +1013,7 @@ private final class NotificationServiceHandler {
                             peerId = PeerId(namespace: Namespaces.Peer.SecretChat, id: PeerId.Id._internalFromInt64Value(encryptionIdValue))
                         }
                     }
-
+                    
                     #if DEBUG
                     if let locKey = payloadJson["loc-key"] as? String, locKey == "CONF_CALL_REQUEST" {
                     }
@@ -1027,7 +1027,7 @@ private final class NotificationServiceHandler {
                                 if let callParticipantsCountString = payloadJson["call_participants_cnt"] as? String, let callParticipantsCount = Int(callParticipantsCountString) {
                                     memberCount = callParticipantsCount
                                 }
-
+                                
                                 groupCallData = GroupCallData(
                                     id: callId,
                                     fromId: peerId,
@@ -1177,7 +1177,7 @@ private final class NotificationServiceHandler {
                                 
                                 messageIdValue = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: messageId)
                             }
-
+                            
                             var isReaction = false
                             if let category = aps["category"] as? String {
                                 if peerId.isGroupOrChannel && ["r", "m"].contains(category) {
@@ -1185,7 +1185,7 @@ private final class NotificationServiceHandler {
                                 } else {
                                     content.category = category
                                 }
-
+                                
                                 if aps["r"] != nil || aps["react_emoji"] != nil {
                                     isReaction = true
                                     content.category = "t"
@@ -1193,14 +1193,14 @@ private final class NotificationServiceHandler {
                                     isReaction = true
                                     content.category = "t"
                                 }
-
+                                
                                 if category == "str" {
                                     isReaction = true
                                 }
 
                                 let _ = messageId
                             }
-
+                            
                             if let storyId = storyId {
                                 interactionAuthorId = peerId
                                 if isReaction {
@@ -1279,7 +1279,7 @@ private final class NotificationServiceHandler {
                                 } else {
                                     content.category = "st"
                                 }
-
+                                
                                 action = .pollStories(peerId: peerId, content: content, storyId: storyId, isReaction: isReaction)
                                 updateCurrentContent(content)
                             } else if let ptgSettings, ptgSettings.suppressReactionNotifications, content.category == "t" {
@@ -1355,7 +1355,7 @@ private final class NotificationServiceHandler {
                             if let stateManager = strongSelf.stateManager {
                                 let content = NotificationContent(isLockedMessage: nil)
                                 updateCurrentContent(content)
-
+                                
                                 let _ = (stateManager.postbox.transaction { transaction -> TelegramUser? in
                                     return transaction.getPeer(groupCallData.fromId) as? TelegramUser
                                 }).start(next: { fromPeer in
@@ -1376,7 +1376,7 @@ private final class NotificationServiceHandler {
                                         Logger.shared.log("NotificationService \(episode)", "Will report voip notification")
                                         let content = NotificationContent(isLockedMessage: nil)
                                         updateCurrentContent(content)
-
+                                        
                                         CXProvider.reportNewIncomingVoIPPushPayload(voipPayload, completion: { error in
                                             Logger.shared.log("NotificationService \(episode)", "Did report voip notification, error: \(String(describing: error))")
 
@@ -1390,7 +1390,7 @@ private final class NotificationServiceHandler {
                                         } else {
                                             content.body = "Incoming Call"
                                         }
-
+                                        
                                         updateCurrentContent(content)
                                         completed()
                                     }
@@ -1408,7 +1408,7 @@ private final class NotificationServiceHandler {
                             Logger.shared.log("NotificationService \(episode)", "Will poll")
                             if let stateManager = strongSelf.stateManager {
                                 let shouldKeepConnection = stateManager.network.shouldKeepConnection
-
+                                
                                 let pollCompletion: (NotificationContent, Media?) -> Void = { content, customMedia in
                                     var content = content
 
@@ -1419,7 +1419,7 @@ private final class NotificationServiceHandler {
                                             completed()
                                             return
                                         }
-
+                                        
                                         let mediaAttachment = mediaAttachment ?? customMedia
 
                                         var fetchMediaSignal: Signal<Data?, NoError> = .single(nil)
@@ -1797,7 +1797,7 @@ private final class NotificationServiceHandler {
                                                 completed()
                                                 return
                                             }
-
+                                            
                                             shouldKeepConnection.set(.single(false))
 
                                             if let updatedContentBody {
@@ -1928,7 +1928,7 @@ private final class NotificationServiceHandler {
                                 }
 
                                 let pollSignal: Signal<Never, NoError>
-
+                                
                                 if !shouldSynchronizeState {
                                     pollSignal = .complete()
                                 } else {
@@ -1973,7 +1973,7 @@ private final class NotificationServiceHandler {
                                                 if let channel = peer as? TelegramChannel, channel.isMonoForum, let linkedMonoforumId = channel.linkedMonoforumId, let mainChannel = transaction.getPeer(linkedMonoforumId) {
                                                     peer = mainChannel
                                                 }
-
+                                                
                                                 var foundLocalId: String?
                                                 transaction.enumerateDeviceContactImportInfoItems({ _, value in
                                                     if let value = value as? TelegramDeviceContactImportedData {
@@ -2029,7 +2029,7 @@ private final class NotificationServiceHandler {
                                                     parsedMedia = media
                                                 }
                                             }
-
+                                            
                                             return (content, parsedMedia)
                                         }
                                     }
@@ -2037,7 +2037,7 @@ private final class NotificationServiceHandler {
                                     pollWithUpdatedContent = pollSignal
                                     |> map { _ -> (NotificationContent, Media?) in }
                                 }
-
+                                
                                 let reportDeliverySignal: Signal<Bool, NoError>
                                 if reportDelivery, let messageId {
                                     reportDeliverySignal = _internal_reportMessageDelivery(postbox: stateManager.postbox, network: stateManager.network, messageIds: [messageId], fromPushNotification: true)
@@ -2291,7 +2291,7 @@ private final class NotificationServiceHandler {
                                                 if let channel = peer as? TelegramChannel, channel.isMonoForum, let linkedMonoforumId = channel.linkedMonoforumId, let mainChannel = transaction.getPeer(linkedMonoforumId) {
                                                     peer = mainChannel
                                                 }
-
+                                                
                                                 var foundLocalId: String?
                                                 transaction.enumerateDeviceContactImportInfoItems({ _, value in
                                                     if let value = value as? TelegramDeviceContactImportedData {

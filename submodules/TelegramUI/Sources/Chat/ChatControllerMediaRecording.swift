@@ -608,7 +608,7 @@ extension ChatControllerImpl {
             }
         }
         
-        let location = CGRect(origin: CGPoint(x: screenWidth - layout.safeInsets.right - 42.0 - UIScreenPixel, y: layout.size.height - insets.bottom - 122.0), size: CGSize())
+        let location = CGRect(origin: CGPoint(x: screenWidth - layout.safeInsets.right - 50.0, y: layout.size.height - insets.bottom - 128.0), size: CGSize())
         
         let tooltipController = TooltipScreen(
             account: self.context.account,
@@ -684,6 +684,7 @@ extension ChatControllerImpl {
     func sendMediaRecording(
         silentPosting: Bool? = nil,
         scheduleTime: Int32? = nil,
+        repeatPeriod: Int32? = nil,
         viewOnce: Bool = false,
         messageEffect: ChatSendMessageEffect? = nil,
         postpone: Bool = false
@@ -709,8 +710,6 @@ extension ChatControllerImpl {
                 }
                 return
             }
-            
-            
             
             self.chatDisplayNode.setupSendActionOnViewUpdate({ [weak self] in
                 if let strongSelf = self {
@@ -754,7 +753,7 @@ extension ChatControllerImpl {
             if let silentPosting = silentPosting {
                 transformedMessages = self.transformEnqueueMessages(messages, silentPosting: silentPosting, postpone: postpone)
             } else if let scheduleTime = scheduleTime {
-                transformedMessages = self.transformEnqueueMessages(messages, silentPosting: false, scheduleTime: scheduleTime, postpone: postpone)
+                transformedMessages = self.transformEnqueueMessages(messages, silentPosting: false, scheduleTime: scheduleTime, repeatPeriod: repeatPeriod, postpone: postpone)
             } else {
                 transformedMessages = self.transformEnqueueMessages(messages)
             }

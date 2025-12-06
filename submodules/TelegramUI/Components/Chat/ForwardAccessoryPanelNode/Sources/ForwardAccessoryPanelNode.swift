@@ -298,7 +298,7 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
         var uniquePeerIds = Set<PeerId>()
         var title = ""
         var text = NSMutableAttributedString(string: "")
-
+        
         for message in self.messages {
             if let author = message.forwardInfo?.author ?? message.effectiveAuthor, !uniquePeerIds.contains(author.id) {
                 uniquePeerIds.insert(author.id)
@@ -312,13 +312,13 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
                 }
             }
         }
-
+        
         if self.messages.count == 1 {
             title = self.strings.Conversation_ForwardOptions_ForwardTitleSingle
             let (string, entities, _) = textStringForForwardedMessage(messages[0], strings: strings)
-
+            
             text = NSMutableAttributedString(attributedString: NSAttributedString(string: "\(authors): ", font: Font.regular(15.0), textColor: self.theme.chat.inputPanel.secondaryTextColor))
-
+            
             let additionalText = NSMutableAttributedString(attributedString: NSAttributedString(string: string, font: Font.regular(15.0), textColor: self.theme.chat.inputPanel.secondaryTextColor))
             for entity in entities {
                 switch entity.type {
@@ -331,22 +331,22 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
                     break
                 }
             }
-
+            
             text.append(additionalText)
         } else {
             title = self.strings.Conversation_ForwardOptions_ForwardTitle(Int32(messages.count))
             text = NSMutableAttributedString(attributedString: NSAttributedString(string: self.strings.Conversation_ForwardFrom(authors).string, font: Font.regular(15.0), textColor: self.theme.chat.inputPanel.secondaryTextColor))
         }
-
+        
         if interfaceState.interfaceState.forwardOptionsState?.hideNames == true {
             text = NSMutableAttributedString(attributedString: NSAttributedString(string: self.strings.Conversation_ForwardOptions_SenderNamesRemoved, font: Font.regular(15.0), textColor: self.theme.chat.inputPanel.secondaryTextColor))
         }
-
+        
         self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(15.0), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
         self.textNode.attributedText = text
         self.originalText = text
         self.textNode.visibility = true
-
+        
         let headerString: String
         if messages.count == 1 {
             headerString = "Forward message"
@@ -354,7 +354,7 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
             headerString = "Forward messages"
         }
         self.actionArea.accessibilityLabel = "\(headerString). From: \(authors).\n\(text)"
-
+        
         let titleSize = self.titleNode.updateLayout(CGSize(width: bounds.size.width - leftInset - textLineInset - rightInset - textRightInset, height: bounds.size.height))
         self.titleNode.frame = CGRect(origin: CGPoint(x: leftInset + textLineInset, y: 7.0), size: titleSize)
 
@@ -390,7 +390,7 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
         
         let alertController = richTextAlertController(context: self.context, title: title, text: text, actions: [TextAlertAction(type: .genericAction, title: self.strings.Conversation_ForwardOptions_ShowOptions, action: { [weak self] in
             if let strongSelf = self {
-                strongSelf.interfaceInteraction?.presentForwardOptions(strongSelf)
+                strongSelf.interfaceInteraction?.presentForwardOptions(strongSelf.view)
                 Queue.mainQueue().after(0.5) {
                     strongSelf.updateThemeAndStrings(theme: strongSelf.theme, strings: strongSelf.strings, forwardOptionsState: strongSelf.forwardOptionsState, force: true)
                 }
@@ -411,7 +411,7 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
                 return
             }
             self.previousTapTimestamp = CFAbsoluteTimeGetCurrent()
-            self.interfaceInteraction?.presentForwardOptions(self)
+            self.interfaceInteraction?.presentForwardOptions(self.view)
             Queue.mainQueue().after(1.5) {
                 self.updateThemeAndStrings(theme: self.theme, strings: self.strings, forwardOptionsState: self.forwardOptionsState, force: true)
             }

@@ -183,7 +183,7 @@ public struct ChatListFilterData: Equatable, Hashable {
     public var includePeers: ChatListFilterIncludePeers
     public var excludePeers: [PeerId]
     public var color: PeerNameColor?
-
+    
     public init(
         isShared: Bool,
         hasSharedLinks: Bool,
@@ -234,24 +234,24 @@ public struct ChatFolderTitle: Codable, Equatable {
     public let text: String
     public let entities: [MessageTextEntity]
     public var enableAnimations: Bool
-
+    
     public init(text: String, entities: [MessageTextEntity], enableAnimations: Bool) {
         self.text = text
         self.entities = entities
         self.enableAnimations = enableAnimations
     }
-
+    
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
-
+        
         self.text = try container.decode(String.self, forKey: "text")
         self.entities = try container.decode([MessageTextEntity].self, forKey: "entities")
         self.enableAnimations = try container.decodeIfPresent(Bool.self, forKey: "enableAnimations") ?? true
     }
-
+    
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
-
+        
         try container.encode(self.text, forKey: "text")
         try container.encode(self.entities, forKey: "entities")
         try container.encode(self.enableAnimations, forKey: "enableAnimations")
@@ -279,14 +279,14 @@ public enum ChatListFilter: Codable, Equatable {
             self = .allChats
         } else {
             let id = try container.decode(Int32.self, forKey: "id")
-
+            
             let title: ChatFolderTitle
             if let titleWithEntities = try container.decodeIfPresent(ChatFolderTitle.self, forKey: "titleWithEntities") {
                 title = titleWithEntities
             } else {
                 title = ChatFolderTitle(text: try container.decode(String.self, forKey: "title"), entities: [], enableAnimations: true)
             }
-
+            
             let emoticon = try container.decodeIfPresent(String.self, forKey: "emoticon")
             
             let data = ChatListFilterData(
@@ -408,7 +408,7 @@ extension ChatListFilter {
                 titleEntities = messageTextEntitiesFromApiEntities(entities)
             }
             let disableTitleAnimations = (flags & (1 << 28)) != 0
-
+            
             self = .filter(
                 id: id,
                 title: ChatFolderTitle(text: titleText, entities: titleEntities, enableAnimations: !disableTitleAnimations),
@@ -562,7 +562,7 @@ private func requestChatListFilters(accountPeerId: PeerId, postbox: Postbox, net
             switch result {
             case let .dialogFilters(flags, apiFilters):
                 let tagsEnabled = (flags & (1 << 0)) != 0
-
+                
                 var filters: [ChatListFilter] = []
                 var missingPeers: [Api.InputPeer] = []
                 var missingChats: [Api.InputPeer] = []
@@ -594,7 +594,7 @@ private func requestChatListFilters(accountPeerId: PeerId, postbox: Postbox, net
                                 }
                             }
                         }
-
+                        
                         for peer in pinnedPeers {
                             var peerId: PeerId?
                             switch peer {
@@ -634,7 +634,7 @@ private func requestChatListFilters(accountPeerId: PeerId, postbox: Postbox, net
                                 }
                             }
                         }
-
+                        
                         for peer in pinnedPeers {
                             var peerId: PeerId?
                             switch peer {
@@ -1036,7 +1036,7 @@ func _internal_updateChatListFiltersDisplayTagsInteractively(postbox: Postbox, d
             var state = entry?.get(ChatListFiltersState.self) ?? ChatListFiltersState.default
             if displayTags != state.displayTags {
                 state.displayTags = displayTags
-
+                
                 if state.displayTags {
                     for i in 0 ..< state.filters.count {
                         switch state.filters[i] {
@@ -1051,12 +1051,12 @@ func _internal_updateChatListFiltersDisplayTagsInteractively(postbox: Postbox, d
                         }
                     }
                 }
-
+                
                 hasUpdates = true
             }
-
+            
             state.normalize()
-
+            
             return PreferencesEntry(state)
         })
         if hasUpdates {
@@ -1479,7 +1479,7 @@ private func synchronizeChatListFilters(transaction: Transaction, accountPeerId:
         let locallyKnownRemoteFilters = settings.remoteFilters ?? []
         let localDisplayTags = settings.displayTags
         let locallyKnownRemoteDisplayTags = settings.remoteDisplayTags ?? false
-
+        
         return requestChatListFilters(accountPeerId: accountPeerId, postbox: postbox, network: network)
         |> `catch` { _ -> Signal<([ChatListFilter], Bool), NoError> in
             return .complete()
@@ -1578,7 +1578,7 @@ private func synchronizeChatListFilters(transaction: Transaction, accountPeerId:
             } else {
                 updateTagsEnabled = .complete()
             }
-
+            
             return deleteSignals
             |> then(
                 addSignals

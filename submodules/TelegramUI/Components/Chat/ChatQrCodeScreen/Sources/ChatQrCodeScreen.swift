@@ -620,7 +620,7 @@ public final class ChatQrCodeScreenImpl: ViewController, ChatQrCodeScreen {
         super.init(navigationBarPresentationData: nil)
         
         self.navigationPresentation = .flatModal
-
+        
         self.statusBar.statusBarStyle = .Ignore
         self.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .all, compactSize: .portrait)
         
@@ -697,7 +697,7 @@ public final class ChatQrCodeScreenImpl: ViewController, ChatQrCodeScreen {
             }
             return true
         })
-
+        
         if flag {
             self.controllerNode.animateOut(completion: {
                 super.dismiss(animated: false, completion: completion)
@@ -780,7 +780,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
     private var animationNode: AnimationNode
     private let doneButton: SolidRoundedButtonNode
     private let scanButton: SolidRoundedButtonNode
-
+    
     private let listNode: ListView
     private var entries: [ThemeSettingsThemeEntry]?
     private var enqueuedTransitions: [ThemeSettingsThemeItemNodeTransition] = []
@@ -824,10 +824,10 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
         self.wrappingScrollNode.view.alwaysBounceVertical = true
         self.wrappingScrollNode.view.delaysContentTouches = false
         self.wrappingScrollNode.view.canCancelContentTouches = true
-
+        
         self.scrollNodeContentNode = ASDisplayNode()
         self.scrollNodeContentNode.clipsToBounds = true
-
+        
         switch controller.subject {
             case let .peer(peer, threadId, temporary):
                 self.contentNode = QrContentNode(context: context, peer: peer, threadId: threadId, isStatic: false, temporary: temporary)
@@ -890,7 +890,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
         self.animationNode = AnimationNode(animation: self.isDarkAppearance ? "anim_sun_reverse" : "anim_sun", colors: iconColors(theme: self.presentationData.theme), scale: 1.0)
         self.animationNode.isUserInteractionEnabled = false
         
-        self.doneButton = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(theme: self.presentationData.theme), height: 52.0, cornerRadius: 11.0, gloss: false)
+        self.doneButton = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(theme: self.presentationData.theme), glass: true, height: 52.0, cornerRadius: 26.0)
         switch controller.subject {
         case .peer:
             self.doneButton.title = self.presentationData.strings.InviteLink_QRCode_Share
@@ -898,10 +898,10 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
             self.doneButton.title = self.presentationData.strings.Share_ShareMessage
         }
         
-        self.scanButton = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(backgroundColor: .clear, foregroundColor: self.presentationData.theme.actionSheet.controlAccentColor), font: .regular, height: 42.0, cornerRadius: 0.0, gloss: false)
+        self.scanButton = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(backgroundColor: .clear, foregroundColor: self.presentationData.theme.actionSheet.controlAccentColor), font: .regular, height: 42.0, cornerRadius: 0.0)
         self.scanButton.title = presentationData.strings.PeerInfo_QRCode_Scan
         self.scanButton.icon = UIImage(bundleImageName: "Settings/ScanQr")
-
+        
         self.listNode = ListView()
         self.listNode.transform = CATransform3DMakeRotation(-CGFloat.pi / 2.0, 0.0, 0.0, 1.0)
         
@@ -915,7 +915,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
         self.wrappingScrollNode.addSubnode(self.scrollNodeContentNode)
         
         self.scrollNodeContentNode.addSubnode(self.contentNode)
-
+        
         self.scrollNodeContentNode.addSubnode(self.shadowNode)
         self.scrollNodeContentNode.addSubnode(self.backgroundNode)
         self.scrollNodeContentNode.addSubnode(self.contentContainerNode)
@@ -927,7 +927,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
         self.contentContainerNode.addSubnode(self.segmentedNode)
         self.contentContainerNode.addSubnode(self.doneButton)
         self.contentContainerNode.addSubnode(self.scanButton)
-
+        
         self.topContentContainerNode.addSubnode(self.animationContainerNode)
         self.animationContainerNode.addSubnode(self.animationNode)
         self.topContentContainerNode.addSubnode(self.switchThemeButton)
@@ -1016,7 +1016,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
             let controller = QrCodeScanScreen(context: self.context, subject: .peer)
             self.controller?.push(controller)
         }
-
+        
         let animatedEmojiStickers = context.engine.stickers.loadedStickerPack(reference: .animatedEmoji, forceActualized: false)
         |> map { animatedEmoji -> [String: [StickerPackItem]] in
             var animatedEmojiStickers: [String: [StickerPackItem]] = [:]
@@ -1283,7 +1283,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
         self.cancelButton.setImage(closeButtonImage(theme: self.presentationData.theme), for: .normal)
         self.doneButton.updateTheme(SolidRoundedButtonTheme(theme: self.presentationData.theme))
         self.scanButton.updateTheme(SolidRoundedButtonTheme(backgroundColor: .clear, foregroundColor: self.presentationData.theme.actionSheet.controlAccentColor))
-
+        
         let previousIconColors = iconColors(theme: previousTheme)
         let newIconColors = iconColors(theme: self.presentationData.theme)
         
@@ -1408,7 +1408,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
         if let (layout, _) = self.containerLayout {
             self.scrollNodeContentNode.cornerRadius = layout.deviceMetrics.screenCornerRadius
         }
-
+        
         let transition = ContainedViewLayoutTransition.animated(duration: 0.4, curve: .spring)
         let targetBounds = self.bounds
         self.bounds = self.bounds.offsetBy(dx: 0.0, dy: -offset)
@@ -1423,7 +1423,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
         self.animatedOut = true
         
         self.wrappingScrollNode.view.isScrollEnabled = false
-
+        
         let distance = self.bounds.size.height - self.contentBackgroundNode.frame.minY
         if let velocity {
             let initialVelocity: CGFloat = distance.isZero ? 0.0 : abs(velocity / distance)
@@ -1447,14 +1447,14 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
             })
         }
     }
-
+    
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         guard let (layout, _) = self.containerLayout else {
             return
         }
         self.scrollNodeContentNode.cornerRadius = layout.deviceMetrics.screenCornerRadius
     }
-
+    
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         self.scrollNodeContentNode.cornerRadius = 0.0
     }
@@ -1488,7 +1488,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
         transition.updateFrame(node: self.contentBackgroundNode, frame: CGRect(origin: CGPoint(), size: backgroundFrame.size))
         transition.updateFrame(node: self.wrappingScrollNode, frame: CGRect(origin: CGPoint(), size: layout.size))
         transition.updateFrame(node: self.scrollNodeContentNode, frame: CGRect(origin: CGPoint(), size: CGSize(width: layout.size.width, height: layout.size.height + 2000.0)))
-
+        
         let titleSize = self.titleNode.measure(CGSize(width: width - 90.0, height: titleHeight))
         let titleFrame = CGRect(origin: CGPoint(x: floor((contentFrame.width - titleSize.width) / 2.0), y: 19.0 + UIScreenPixel), size: titleSize)
         transition.updateFrame(node: self.titleNode, frame: titleFrame)
@@ -1509,10 +1509,10 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
         let buttonInset: CGFloat = 16.0
         let scanButtonHeight = self.scanButton.updateLayout(width: contentFrame.width - buttonInset * 2.0, transition: transition)
         transition.updateFrame(node: self.scanButton, frame: CGRect(x: buttonInset, y: contentHeight - scanButtonHeight - insets.bottom - 6.0, width: contentFrame.width, height: scanButtonHeight))
-
+        
         let doneButtonHeight = self.doneButton.updateLayout(width: contentFrame.width - buttonInset * 2.0, transition: transition)
         transition.updateFrame(node: self.doneButton, frame: CGRect(x: buttonInset, y: contentHeight - doneButtonHeight - scanButtonHeight - 10.0 - insets.bottom - 6.0, width: contentFrame.width, height: doneButtonHeight))
-
+                
         transition.updateFrame(node: self.contentContainerNode, frame: contentContainerFrame)
         transition.updateFrame(node: self.topContentContainerNode, frame: contentContainerFrame)
         

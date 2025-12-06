@@ -15,6 +15,7 @@ swift_library(
         "//submodules/LegacyComponents",
         "//submodules/MetalEngine",
         "//submodules/TelegramUI/Components/Calls/CallScreen",
+        "//submodules/TelegramUI/Components/GlassBackgroundComponent",
     ],
     visibility = [
         "//visibility:public",

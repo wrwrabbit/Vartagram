@@ -23,11 +23,16 @@ import MultiAnimationRenderer
 import Pasteboard
 import StickerPackEditTitleController
 import EntityKeyboard
-import CameraScreen
+//import CameraScreen
 import ComponentFlow
 import EmojiStatusComponent
 
 private let maxStickersCount = 120
+
+public enum StickerPackPreviewControllerMode {
+    case `default`
+    case settings
+}
 
 private enum StickerPackPreviewGridEntry: Comparable, Identifiable {
     case sticker(index: Int, stableId: Int, stickerItem: StickerPackItem?, isEmpty: Bool, isPremium: Bool, isLocked: Bool, isEditing: Bool, isAdd: Bool)
@@ -2354,6 +2359,7 @@ private final class StickerPackScreenNode: ViewControllerTracingNode {
         self.controller = controller
         self.presentationData = controller.presentationData
         self.stickerPacks = stickerPacks
+        
         self.previewIconFile = previewIconFile
         self.selectedStickerPackIndex = initialSelectedStickerPackIndex
         self.modalProgressUpdated = modalProgressUpdated

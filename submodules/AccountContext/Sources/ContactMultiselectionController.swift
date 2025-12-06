@@ -53,7 +53,7 @@ public enum ContactMultiselectionControllerMode {
         public var disableChannels: Bool
         public var disableBots: Bool
         public var disableContacts: Bool
-
+        
         public init(
             title: String,
             searchPlaceholder: String,
@@ -122,7 +122,7 @@ public final class ContactMultiselectionControllerParams {
     public let openProfile: ((EnginePeer) -> Void)?
     public let sendMessage: ((EnginePeer) -> Void)?
     public let initialSelectedPeers: [EnginePeer]
-
+    
     public init(
         context: AccountContext,
         updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil,

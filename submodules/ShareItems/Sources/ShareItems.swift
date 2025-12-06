@@ -155,9 +155,9 @@ private func preparedShareItem(postbox: Postbox, network: Network, to peerId: Pe
                     imageGenerator.cancelAllCGImageGeneration()
                 }
             }
-
+            
         }
-
+        
         return .single(.preparing(true))
         |> then(
             loadValues(asset)
@@ -167,20 +167,20 @@ private func preparedShareItem(postbox: Postbox, network: Network, to peerId: Pe
                 |> mapToSignal { thumbnail -> Signal<PreparedShareItem, PreparedShareItemError> in
                     let preset = adjustments?.preset ?? TGMediaVideoConversionPresetCompressedMedium
                     let finalDimensions = TGMediaVideoConverter.dimensions(for: asset.originalSize, adjustments: adjustments, preset: preset)
-
+                    
                     var resourceAdjustments: VideoMediaResourceAdjustments?
                     if let adjustments = adjustments {
                         if adjustments.trimApplied() {
                             finalDuration = adjustments.trimEndValue - adjustments.trimStartValue
                         }
-
+                        
                         if let dict = adjustments.dictionary(), let data = try? NSKeyedArchiver.archivedData(withRootObject: dict, requiringSecureCoding: false) {
                             let adjustmentsData = MemoryBuffer(data: data)
                             let digest = MemoryBuffer(data: adjustmentsData.md5Digest())
                             resourceAdjustments = VideoMediaResourceAdjustments(data: adjustmentsData, digest: digest, isStory: false)
                         }
                     }
-
+                    
                     let estimatedSize = TGMediaVideoConverter.estimatedSize(for: preset, duration: finalDuration, hasAudio: true)
 
                     var thumbnailData = thumbnail?.jpegData(compressionQuality: 0.6)
@@ -241,7 +241,7 @@ private func preparedShareItem(postbox: Postbox, network: Network, to peerId: Pe
                 })
                 let _ = signal.start(next: nil, error: nil, completed: nil)
                 #endif
-
+                
                 let convertedData = Signal<(Data, CGSize, Double, Bool), NoError> { subscriber in
                     let disposable = MetaDisposable()
                     let signalDisposable = TGGifConverter.convertGif(toMp4: data).start(next: { next in

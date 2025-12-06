@@ -159,7 +159,7 @@ final class AdminUserActionsPeerComponent: Component {
             
             let contextInset: CGFloat = 0.0
             
-            let height: CGFloat = 44.0
+            let height: CGFloat = 52.0
             let verticalInset: CGFloat = 1.0
             let leftInset: CGFloat = 30.0 + component.sideInset
             var rightInset: CGFloat = contextInset * 2.0 + 8.0 + component.sideInset

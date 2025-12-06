@@ -144,7 +144,7 @@ private final class PlatformVideoContentNode: ASDisplayNode, UniversalVideoConte
     var isNativePictureInPictureActive: Signal<Bool, NoError> {
         return .single(false)
     }
-
+    
     private let _ready = Promise<Void>()
     var ready: Signal<Void, NoError> {
         return self._ready.get()
@@ -454,15 +454,15 @@ private final class PlatformVideoContentNode: ASDisplayNode, UniversalVideoConte
     
     func setVideoQuality(_ videoQuality: UniversalVideoContentVideoQuality) {
     }
-
+    
     func videoQualityState() -> (current: Int, preferred: UniversalVideoContentVideoQuality, available: [Int])? {
         return nil
     }
-
+    
     func videoQualityStateSignal() -> Signal<(current: Int, preferred: UniversalVideoContentVideoQuality, available: [Int])?, NoError> {
         return .single(nil)
     }
-
+    
     func addPlaybackCompleted(_ f: @escaping () -> Void) -> Int {
         return self.playbackCompletedListeners.add(f)
     }
@@ -479,14 +479,14 @@ private final class PlatformVideoContentNode: ASDisplayNode, UniversalVideoConte
 
     func setCanPlaybackWithoutHierarchy(_ canPlaybackWithoutHierarchy: Bool) {
     }
-
+    
     func enterNativePictureInPicture() -> Bool {
         return false
     }
-
+    
     func exitNativePictureInPicture() {
     }
-
+    
     func setNativePictureInPictureIsActive(_ value: Bool) {
     }
 }

@@ -116,7 +116,7 @@ public final class ContextMenuActionItem {
     public struct IconAnimation: Equatable {
         public var name: String
         public var loop: Bool
-
+        
         public init(name: String, loop: Bool = false) {
             self.name = name
             self.loop = loop
@@ -143,7 +143,7 @@ public final class ContextMenuActionItem {
     public let textLinkAction: () -> Void
     public let action: ((Action) -> Void)?
     public let longPressAction: ((Action) -> Void)?
-
+    
     convenience public init(
         id: AnyHashable? = nil,
         text: String,
@@ -250,7 +250,7 @@ public protocol ContextMenuCustomNode: ASDisplayNode {
     func canBeHighlighted() -> Bool
     func updateIsHighlighted(isHighlighted: Bool)
     func performAction()
-
+    
     var needsSeparator: Bool { get }
 }
 
@@ -601,7 +601,7 @@ final class ContextControllerNode: ViewControllerTracingNode, ASScrollViewDelega
             self?.dimNodeTapped()
             return true
         }
-
+        
         if controller.disableScreenshots {
             setLayerDisableScreenshots(self.layer, true)
         }
@@ -684,11 +684,12 @@ final class ContextControllerNode: ViewControllerTracingNode, ASScrollViewDelega
                     self.contentReady.set(.single(true))
                     
                     let transitionInfo = source.transitionInfo()
-                    if let transitionInfo = transitionInfo {
+                    if let transitionInfo {
                         let referenceView = transitionInfo.referenceView
                         self.contentContainerNode.contentNode = .reference(view: referenceView)
                         self.contentAreaInScreenSpace = transitionInfo.contentAreaInScreenSpace
                         self.customPosition = transitionInfo.customPosition
+                        
                         var projectedFrame = convertFrame(referenceView.bounds, from: referenceView, to: self.view)
                         projectedFrame.origin.x += transitionInfo.insets.left
                         projectedFrame.size.width -= transitionInfo.insets.left + transitionInfo.insets.right
@@ -1390,7 +1391,7 @@ final class ContextControllerNode: ViewControllerTracingNode, ASScrollViewDelega
             return
         }
     }
-
+    
     func getActionsMinHeight() -> ContextController.ActionsHeight? {
         if !self.actionsContainerNode.bounds.height.isZero {
             return ContextController.ActionsHeight(
@@ -2157,7 +2158,7 @@ public protocol ContextReferenceContentSource: AnyObject {
     var shouldBeDismissed: Signal<Bool, NoError> { get }
     
     var forceDisplayBelowKeyboard: Bool { get }
-
+    
     func transitionInfo() -> ContextControllerReferenceViewInfo?
 }
 
@@ -2169,7 +2170,7 @@ public extension ContextReferenceContentSource {
     var forceDisplayBelowKeyboard: Bool {
         return false
     }
-
+    
     var shouldBeDismissed: Signal<Bool, NoError> {
         return .single(false)
     }
@@ -2220,7 +2221,7 @@ public protocol ContextExtractedContentSource: AnyObject {
     var blurBackground: Bool { get }
     var shouldBeDismissed: Signal<Bool, NoError> { get }
     var additionalInsets: UIEdgeInsets { get }
-
+    
     var actionsHorizontalAlignment: ContextActionsHorizontalAlignment { get }
     
     func takeView() -> ContextControllerTakeViewInfo?
@@ -2231,7 +2232,7 @@ public extension ContextExtractedContentSource {
     var initialAppearanceOffset: CGPoint {
         return .zero
     }
-
+    
     var centerVertically: Bool {
         return false
     }
@@ -2239,15 +2240,15 @@ public extension ContextExtractedContentSource {
     var adjustContentHorizontally: Bool {
         return false
     }
-
+    
     var adjustContentForSideInset: Bool {
         return false
     }
-
+    
     var additionalInsets: UIEdgeInsets {
         return .zero
     }
-
+    
     var actionsHorizontalAlignment: ContextActionsHorizontalAlignment {
         return .default
     }
@@ -2255,7 +2256,7 @@ public extension ContextExtractedContentSource {
     var shouldBeDismissed: Signal<Bool, NoError> {
         return .single(false)
     }
-
+    
     var keepDefaultContentTouches: Bool {
         return false
     }
@@ -2434,7 +2435,7 @@ public final class ContextController: ViewController, StandalonePresentableContr
         case starsReactions(topCount: Int)
         case videoProcessing
         case collageReordering
-
+        
         public static func ==(lhs: Tip, rhs: Tip) -> Bool {
             switch lhs {
             case .textSelection:
@@ -2606,7 +2607,7 @@ public final class ContextController: ViewController, StandalonePresentableContr
         self.workaroundUseLegacyImplementation = workaroundUseLegacyImplementation
         self.disableScreenshots = disableScreenshots
         self.hideReactionPanelTail = hideReactionPanelTail
-
+        
         super.init(navigationBarPresentationData: nil)
         
         if let mainSource = configuration.sources.first(where: { $0.id == configuration.initialId }) {
@@ -2811,7 +2812,7 @@ public final class ContextController: ViewController, StandalonePresentableContr
         self.presentingViewController?.dismiss(animated: false, completion: nil)
         self.dismissed?()
     }
-
+    
     public func dismissWithoutAnimation() {
         if !self.wasDismissed {
             self.wasDismissed = true
@@ -2846,7 +2847,7 @@ public final class ContextController: ViewController, StandalonePresentableContr
     public func animateDismissalIfNeeded() {
         self.controllerNode.animateDismissalIfNeeded()
     }
-
+    
     public func cancelReactionAnimation() {
         self.controllerNode.cancelReactionAnimation()
     }

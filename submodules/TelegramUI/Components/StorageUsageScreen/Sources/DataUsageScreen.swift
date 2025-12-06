@@ -212,7 +212,7 @@ final class DataUsageScreenComponent: Component {
             case .photos:
                 return UIColor(rgb: 0x5AC8FA)
             case .videos:
-                return UIColor(rgb: 0x007AFF)
+                return UIColor(rgb: 0x0088ff)
             case .files:
                 return UIColor(rgb: 0x34C759)
             case .music:
@@ -371,7 +371,7 @@ final class DataUsageScreenComponent: Component {
             
             self.autoDownloadSettingsContainerView = UIView()
             self.autoDownloadSettingsContainerView.clipsToBounds = true
-            self.autoDownloadSettingsContainerView.layer.cornerRadius = 10.0
+            self.autoDownloadSettingsContainerView.layer.cornerRadius = 26.0
             
             super.init(frame: frame)
             

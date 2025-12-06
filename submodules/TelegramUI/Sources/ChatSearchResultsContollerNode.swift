@@ -85,7 +85,7 @@ private enum ChatListSearchEntry: Comparable, Identifiable {
                 if case .savedMessagesChats = location {
                     displayAsMessage = false
                 }
-
+            
                 return ChatListItem(
                     presentationData: presentationData,
                     context: context,
@@ -162,7 +162,7 @@ class ChatSearchResultsControllerNode: ViewControllerTracingNode, ASScrollViewDe
     private var matchesOnlyBcOfFAN: Set<MessageId>
     private var loadMorePaused: Bool
     private let mappedLocation: ChatListControllerLocation
-
+    
     private var interaction: ChatListNodeInteraction?
     
     private let listNode: ListView
@@ -195,7 +195,7 @@ class ChatSearchResultsControllerNode: ViewControllerTracingNode, ASScrollViewDe
         } else {
             self.mappedLocation = .chatList(groupId: .root)
         }
-
+         
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.presentationData = presentationData
         self.presentationDataPromise = Promise(ChatListPresentationData(theme: self.presentationData.theme, fontSize: self.presentationData.listsFontSize, strings: self.presentationData.strings, dateTimeFormat: self.presentationData.dateTimeFormat, nameSortOrder: self.presentationData.nameSortOrder, nameDisplayOrder: self.presentationData.nameDisplayOrder, disableAnimations: true))

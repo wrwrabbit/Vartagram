@@ -162,7 +162,7 @@ public final class WindowHostView {
     let updateDeferScreenEdgeGestures: (UIRectEdge) -> Void
     let updatePrefersOnScreenNavigationHidden: (Bool) -> Void
     let updateStatusBar: (UIStatusBarStyle, Bool, ContainedViewLayoutTransition) -> Void
-
+    
     var present: ((ContainableController, PresentationSurfaceLevel, Bool, @escaping () -> Void) -> Void)?
     var presentInGlobalOverlay: ((_ controller: ContainableController) -> Void)?
     var addGlobalPortalHostViewImpl: ((PortalSourceView) -> Void)?
@@ -195,11 +195,7 @@ public final class WindowHostView {
     }
     
     fileprivate var onScreenNavigationHeight: CGFloat? {
-        if #available(iOSApplicationExtension 11.0, iOS 11.0, *) {
-            return self.eventView.safeAreaInsets.bottom.isLessThanOrEqualTo(0.0) ? nil : self.eventView.safeAreaInsets.bottom
-        } else {
-            return nil
-        }
+        return self.eventView.safeAreaInsets.bottom.isLessThanOrEqualTo(0.0) ? nil : self.eventView.safeAreaInsets.bottom
     }
 }
 
@@ -223,6 +219,18 @@ public extension UIView {
         } else {
             return nil
         }
+    }
+    
+    func findFirstResponder() -> UIView? {
+        if self.isFirstResponder {
+            return self
+        }
+        for subview in self.subviews {
+            if let result = subview.findFirstResponder() {
+                return result
+            }
+        }
+        return nil
     }
 }
 
@@ -266,6 +274,7 @@ public class Window1 {
     private var statusBarChangeObserver: AnyObject?
     private var keyboardRotationChangeObserver: AnyObject?
     private var keyboardFrameChangeObserver: AnyObject?
+    private var keyboardWillHideObserver: AnyObject?
     private var keyboardTypeChangeObserver: AnyObject?
     private var voiceOverStatusObserver: AnyObject?
     
@@ -343,7 +352,7 @@ public class Window1 {
         self.badgeView = UIImageView()
         self.badgeView.image = UIImage(bundleImageName: "Components/AppBadge")
         self.badgeView.isHidden = true
-
+        
         self.systemUserInterfaceStyle = hostView.systemUserInterfaceStyle
         
         let boundsSize = self.hostView.eventView.bounds.size
@@ -392,7 +401,7 @@ public class Window1 {
         self.presentationContext.updateStatusBar = { [weak self] transition in
             self?.updateStatusBar(transition: transition)
         }
-
+        
         let updateOpaqueOverlays: () -> Void = { [weak self] in
             guard let strongSelf = self else {
                 return
@@ -408,7 +417,7 @@ public class Window1 {
         self.topPresentationContext.updateStatusBar = { [weak self] transition in
             self?.updateStatusBar(transition: transition)
         }
-
+        
         self.hostView.present = { [weak self] controller, level, blockInteraction, completion in
             self?.present(controller, on: level, blockInteraction: blockInteraction, completion: completion)
         }
@@ -479,7 +488,7 @@ public class Window1 {
                 strongSelf.updateLayout { $0.update(statusBarHeight: statusBarHeight, transition: transition, overrideTransition: false) }
             }
         })*/
-
+        
         self.keyboardRotationChangeObserver = NotificationCenter.default.addObserver(forName: NSNotification.Name("UITextEffectsWindowDidRotateNotification"), object: nil, queue: nil, using: { [weak self] notification in
             if let strongSelf = self {
                 if !strongSelf.hostView.isUpdatingOrientationLayout {
@@ -509,6 +518,12 @@ public class Window1 {
             }
         })
         
+        #if DEBUG && false
+        let testView = UIView()
+        testView.backgroundColor = .blue
+        testView.layer.zPosition = 1000.0
+        self.hostView.containerView.addSubview(testView)
+        #endif
         self.keyboardFrameChangeObserver = NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillChangeFrameNotification, object: nil, queue: nil, using: { [weak self] notification in
             if let strongSelf = self {
                 var isTablet = false
@@ -520,6 +535,10 @@ public class Window1 {
                 if isTablet && keyboardFrame.isEmpty {
                     return
                 }
+                
+                #if DEBUG && false
+                testView.frame = keyboardFrame.insetBy(dx: -2.0, dy: -2.0)
+                #endif
                                 
                 if #available(iOSApplicationExtension 14.2, iOS 14.2, *), UIAccessibility.prefersCrossFadeTransitions {
                 } else if let keyboardView = strongSelf.statusBarHost?.keyboardView {
@@ -610,7 +629,10 @@ public class Window1 {
                             
                 var duration: Double = (notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber)?.doubleValue ?? 0.0
                 if duration > Double.ulpOfOne {
-                    duration = 0.5
+                    if #available(iOS 26.0, *) {
+                    } else {
+                        duration = 0.5
+                    }
                 }
                 let curve: UInt = (notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber)?.uintValue ?? 7
                 
@@ -631,6 +653,12 @@ public class Window1 {
                 
                 strongSelf.updateLayout { $0.update(inputHeight: keyboardHeight.isLessThanOrEqualTo(0.0) ? nil : keyboardHeight, transition: transition, overrideTransition: false) }
             }
+        })
+        self.keyboardWillHideObserver = NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: nil, using: { [weak self] notification in
+            guard let self else {
+                return
+            }
+            let _ = self
         })
         
         if #available(iOSApplicationExtension 11.0, iOS 11.0, *) {
@@ -705,6 +733,9 @@ public class Window1 {
         }
         if let keyboardFrameChangeObserver = self.keyboardFrameChangeObserver {
             NotificationCenter.default.removeObserver(keyboardFrameChangeObserver)
+        }
+        if let keyboardWillHideObserver = self.keyboardWillHideObserver {
+            NotificationCenter.default.removeObserver(keyboardWillHideObserver)
         }
         if let keyboardTypeChangeObserver = self.keyboardTypeChangeObserver {
             NotificationCenter.default.removeObserver(keyboardTypeChangeObserver)
@@ -904,7 +935,7 @@ public class Window1 {
                         self?.inCallNavigate?()
                     }
                 }
-
+                
                 self.hostView.containerView.insertSubview(rootController.view, at: 0)
                 if !self.windowLayout.size.width.isZero && !self.windowLayout.size.height.isZero {
                     rootController.displayNode.frame = CGRect(origin: CGPoint(), size: self.windowLayout.size)
@@ -992,26 +1023,26 @@ public class Window1 {
     private func updateStatusBar(transition: ContainedViewLayoutTransition) {
         var style: UIStatusBarStyle = .default
         var isHidden = false
-
+        
         if let rootController = self._rootController as? NavigationController {
             let statusBar = rootController.statusBar
             style = statusBar.style
             isHidden = statusBar.isHidden
         }
-
+        
         if let statusBar = self.presentationContext.statusBar {
             style = statusBar.style
             isHidden = statusBar.isHidden
         }
-
+        
         if let statusBar = self.topPresentationContext.statusBar {
             style = statusBar.style
             isHidden = statusBar.isHidden
         }
-
+        
         self.hostView.updateStatusBar(style, isHidden, transition)
     }
-
+    
     private func layoutSubviews(force: Bool) {
         if self.tracingStatusBarsInvalidated, let _ = keyboardManager {
             self.tracingStatusBarsInvalidated = false
@@ -1206,6 +1237,9 @@ public class Window1 {
                 let updatedInputOffset = inputHeightOffsetForLayout(self.windowLayout)
                 if !previousInputOffset.isEqual(to: updatedInputOffset) {
                     let hide = updatingLayout.transition.isAnimated && updatingLayout.layout.upperKeyboardInputPositionBound == updatingLayout.layout.size.height
+                    if hide {
+                        print("hide with \(updatingLayout.transition)")
+                    }
                     self.keyboardManager?.updateInteractiveInputOffset(updatedInputOffset, transition: updatingLayout.transition, completion: { [weak self] in
                         if let strongSelf = self, hide {
                             strongSelf.updateLayout {
@@ -1325,7 +1359,7 @@ public class Window1 {
                 $0.update(upperKeyboardInputPositionBound: self.windowLayout.size.height, transition: transition, overrideTransition: false)
             }
         } else {
-            self.hostView.containerView.endEditing(true)
+            self.hostView.containerView.findFirstResponder()?.resignFirstResponder()
         }
     }
     
@@ -1347,8 +1381,14 @@ public class Window1 {
         }
         
         if canDismiss, let inputHeight = self.windowLayout.inputHeight, currentLocation.y + (self.keyboardGestureAccessoryHeight ?? 0.0) > self.windowLayout.size.height - inputHeight {
+            let springDuration: CGFloat
+            if #available(iOS 26.0, *) {
+                springDuration = 0.3832
+            } else {
+                springDuration = 0.25
+            }
             self.updateLayout {
-                $0.update(upperKeyboardInputPositionBound: self.windowLayout.size.height, transition: .animated(duration: 0.25, curve: .spring), overrideTransition: false)
+                $0.update(upperKeyboardInputPositionBound: self.windowLayout.size.height, transition: .animated(duration: springDuration, curve: .spring), overrideTransition: false)
             }
         } else {
             self.updateLayout {
@@ -1501,18 +1541,18 @@ private class CustomDimController: ViewController {
     class Node: ASDisplayNode {
         override init() {
             super.init()
-
+            
             self.backgroundColor = .black
         }
     }
     override init(navigationBarPresentationData: NavigationBarPresentationData?) {
         super.init(navigationBarPresentationData: nil)
     }
-
+    
     required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func loadDisplayNode() {
         let node = Node()
         self.displayNode = node

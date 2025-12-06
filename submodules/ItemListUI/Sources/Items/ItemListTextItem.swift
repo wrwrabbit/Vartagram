@@ -14,7 +14,7 @@ public enum ItemListTextItemText {
     case markdown(String)
     case attributedString(NSAttributedString)
     case custom(context: AccountContext, string: NSAttributedString)
-
+    
     var text: String {
         switch self {
         case let .plain(text), let .markdown(text):
@@ -32,7 +32,7 @@ public enum ItemListTextItemLinkAction {
 public enum ItemListTextItemTextAlignment {
     case natural
     case center
-
+    
     var textAlignment: NSTextAlignment {
         switch self {
         case .natural:
@@ -119,7 +119,7 @@ public class ItemListTextItemNode: ListViewItemNode, ItemListItemNode {
     private var item: ItemListTextItem?
     
     private var chevronImage: UIImage?
-
+    
     public var tag: ItemListItemTag? {
         return self.item?.tag
     }
@@ -171,13 +171,13 @@ public class ItemListTextItemNode: ListViewItemNode, ItemListItemNode {
                 textColor = item.presentationData.theme.list.itemSecondaryTextColor
             }
             let titleBoldFont = Font.semibold(item.presentationData.fontSize.itemListBaseHeaderFontSize)
-
+                        
             var themeUpdated = false
             var chevronImage = currentChevronImage
             if currentItem?.presentationData.theme !== item.presentationData.theme {
                 themeUpdated = true
             }
-
+            
             let attributedText: NSAttributedString
             switch item.text {
             case let .plain(text):
@@ -212,19 +212,19 @@ public class ItemListTextItemNode: ListViewItemNode, ItemListItemNode {
             var insets = itemListNeighborsGroupedInsets(neighbors, params)
             insets.top += item.additionalOuterInsets.top
             insets.bottom += item.additionalOuterInsets.bottom
-
+            
             topInset += item.additionalInsets.top
             bottomInset += item.additionalInsets.bottom
-
+            
             contentSize = CGSize(width: params.width, height: titleLayout.size.height + topInset + bottomInset)
-
+            
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             
             return (layout, {
                 if let strongSelf = self {
                     strongSelf.item = item
                     strongSelf.chevronImage = chevronImage
-
+                    
                     strongSelf.activateArea.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 0.0), size: CGSize(width: params.width - params.leftInset - params.rightInset, height: layout.contentSize.height))
                     strongSelf.activateArea.accessibilityLabel = attributedText.string
                     
