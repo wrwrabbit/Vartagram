@@ -416,7 +416,7 @@ public func makeAttachmentFileControllerImpl(context: AccountContext, updatedPre
     case .audio:
         recentDocuments = .single(nil)
         |> then(
-            context.engine.messages.searchMessages(location: .general(scope: .everywhere, tags: [.music], minDate: nil, maxDate: nil), query: "", state: nil)
+            context.engine.messages.searchMessages(location: .general(scope: .everywhere, tags: [.music], minDate: nil, maxDate: nil), query: "", state: nil, inactiveSecretChatPeerIds: context.currentInactiveSecretChatPeerIds.with { $0 })
             |> map { result -> [Message]? in
                 return result.0.messages
             }
