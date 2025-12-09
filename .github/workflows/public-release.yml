@@ -6,7 +6,6 @@ on:
 jobs:
   build:
     runs-on: macos-15
-    if: github.ref == 'refs/heads/fix_build'
 
     steps:
       - uses: actions/checkout@v3
