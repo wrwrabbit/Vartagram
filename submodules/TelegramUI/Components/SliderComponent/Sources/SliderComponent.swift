@@ -143,8 +143,10 @@ public final class SliderComponent: Component {
         public func cancelGestures() {
             if let sliderView = self.sliderView, let gestureRecognizers = sliderView.gestureRecognizers {
                 for gestureRecognizer in gestureRecognizers {
-                    gestureRecognizer.isEnabled = false
-                    gestureRecognizer.isEnabled = true
+                    if gestureRecognizer.isEnabled {
+                        gestureRecognizer.isEnabled = false
+                        gestureRecognizer.isEnabled = true
+                    }
                 }
             }
         }

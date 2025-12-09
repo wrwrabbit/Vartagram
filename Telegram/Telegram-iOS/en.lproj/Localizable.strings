@@ -15339,8 +15339,10 @@ Error: %8$@";
 "Gift.AuctionBid.AddMoreStars" = "Add at least %@ to increase your bid.";
 "Gift.AuctionBid.AddMoreStars.Stars_1" = "%@ Star";
 "Gift.AuctionBid.AddMoreStars.Stars_any" = "%@ Stars";
+"Gift.AuctionBid.AddMoreStars.Set" = "Set";
 "Gift.AuctionBid.Top" = "TOP %@";
 "Gift.AuctionBid.Custom" = "Custom";
+"Gift.AuctionBid.MinimumBidIncreased" = "The minimum bid increased to **%@**.";
 
 "Gift.AuctionBid.CustomBid.Title" = "Place a Custom Bid";
 "Gift.AuctionBid.CustomBid.Text" = "If you fall below the top %@, your bid will roll over to the next drop.";
@@ -15543,3 +15545,194 @@ Error: %8$@";
 
 "LiveStream.ErrorMaxAllowedEmoji.Text_1" = "You can send up to %d emoji.";
 "LiveStream.ErrorMaxAllowedEmoji.Text_any" = "You can send up to %d emoji.";
+
+"Stars.Purchase.StarGiftOfferInfo" = "Buy Stars to make a gift buy offer.";
+
+"Notification.StarsGiftOffer.Offer" = "%1$@ offered you %2$@ for your gift %3$@";
+"Notification.StarsGiftOffer.Offer.Stars_1" = "%@ Star";
+"Notification.StarsGiftOffer.Offer.Stars_any" = "%@ Stars";
+"Notification.StarsGiftOffer.OfferYou" = "You offered %1$@ %2$@ for their gift %3$@";
+"Notification.StarsGiftOffer.OfferYou.Stars_1" = "%@ Star";
+"Notification.StarsGiftOffer.OfferYou.Stars_any" = "%@ Stars";
+
+"Notification.StarsGiftOffer.Accepted" = "%1$@ accepted your offer and sold you %2$@ for %3$@";
+"Notification.StarsGiftOffer.Accepted.Stars_1" = "%@ Star";
+"Notification.StarsGiftOffer.Accepted.Stars_any" = "%@ Stars";
+"Notification.StarsGiftOffer.AcceptedYou" = "You sold %1$@ to %2$@ for %3$@";
+"Notification.StarsGiftOffer.AcceptedYou.Stars_1" = "%@ Star";
+"Notification.StarsGiftOffer.AcceptedYou.Stars_any" = "%@ Stars";
+
+"Notification.StarsGiftOffer.Rejected" = "%1$@ rejected your offer for %2$@ – your %3$@ have been refunded";
+"Notification.StarsGiftOffer.Rejected.Stars_1" = "%@ Star";
+"Notification.StarsGiftOffer.Rejected.Stars_any" = "%@ Stars";
+"Notification.StarsGiftOffer.RejectedYou" = "You rejected %1$@'s offer";
+"Notification.StarsGiftOffer.RejectedYou.Stars_1" = "%@ Star";
+"Notification.StarsGiftOffer.RejectedYou.Stars_any" = "%@ Stars";
+
+"Notification.StarsGiftOffer.Expired" = "%1$@ didn't respond to your offer for %2$@ within %3$@ – your %4$@ have been refunded";
+"Notification.StarsGiftOffer.Expired.Stars_1" = "%@ Star";
+"Notification.StarsGiftOffer.Expired.Stars_any" = "%@ Stars";
+"Notification.StarsGiftOffer.ExpiredYou" = "The offer from %1$@ to buy your %2$@ for %3$@ has expired";
+"Notification.StarsGiftOffer.ExpiredYou.Stars_1" = "%@ Star";
+"Notification.StarsGiftOffer.ExpiredYou.Stars_any" = "%@ Stars";
+
+"CreateExternalStream.RevokeStreamKey" = "Revoke Stream Key";
+"CreateExternalStream.Revoke.Text" = "Do you want to revoke the stream key?";
+"CreateExternalStream.Revoke.Revoke" = "Revoke";
+
+"Gift.AuctionBid.UntilEnd" = "until the end";
+"Gift.AuctionBid.BeforeStart" = "before start";
+"Gift.AuctionBid.RoundSubtitle" = "Round %@ of %@";
+"Gift.AuctionBid.TopWinnersTotal" = "Top 3 of %@ Winners";
+
+"Gift.Acquired.GiftRound" = "%1$@ in round %2$@";
+
+"Gift.Options.Gift.Soon" = "soon";
+
+"Chat.Auction.StartsIn" = "starts in ";
+"Chat.Auction.View" = "VIEW";
+"Chat.Auction.Upcoming" = "Upcoming Auction";
+
+"Gift.Auction.Start" = "Start";
+"Gift.Auction.End" = "End";
+"Gift.Auction.Quantity" = "Quantity";
+"Gift.Auction.TotalRounds" = "Rounds";
+"Gift.Auction.TimeRound" = "Round %@";
+"Gift.Auction.TimeRounds" = "Rounds %@";
+"Gift.Auction.StartsInHours" = "auction starts in {h}:{m}:{s}";
+"Gift.Auction.StartsInMinutes" = "auction starts in {m}:{s}";
+"Gift.Auction.EarlyBid" = "Place an Early Bid";
+"Gift.Auction.ViewVariants" = "View";
+"Gift.Auction.Variants_1" = "%@ Variant";
+"Gift.Auction.Variants_any" = "%@ Variants";
+
+"Gift.Auction.Hours_1" = "%@ hour";
+"Gift.Auction.Hours_any" = "%@ hours";
+"Gift.Auction.Minutes_1" = "%@ minute";
+"Gift.Auction.Minutes_any" = "%@ minutes";
+"Gift.Auction.Seconds_1" = "%@ second";
+"Gift.Auction.Seconds_any" = "%@ seconds";
+"Gift.Auction.HoursEach_1" = "%@ hour each";
+"Gift.Auction.HoursEach_any" = "%@ hours each";
+"Gift.Auction.MinutesEach_1" = "%@ minute each";
+"Gift.Auction.MinutesEach_any" = "%@ minutes each";
+"Gift.Auction.Extension" = "+ %1$@ for late bids in top %2$@";
+
+"ChatList.Auctions.UpcomingAuction" = "Upcoming Auction";
+
+"Gift.AuctionBid.UpcomingBid" = "You've placed an early bid";
+"ChatList.Auctions.Status.UpcomingBid" = "You've placed an early bid.";
+"Gift.ActiveAuctions.UpcomingBid" = "You've placed an early bid";
+
+"Login.PhoneWithPasskeySubtitle" = "Enter your phone number\nor [log in using Passkey >](passkey)";
+"PrivacySettings.Passkey" = "Passkey";
+"Attachment.SharedAudio" = "SHARED AUDIO";
+"Attachment.FilesSearchPlaceholder" = "Search shared audio";
+"Chat.GiftPurchaseOffer.Reject" = "Reject";
+"Chat.GiftPurchaseOffer.Accept" = "Accept";
+"Chat.GiftPurchaseOffer.RejectConfirmation.Title" = "Reject Offer";
+"Chat.GiftPurchaseOffer.RejectConfirmation.Text" = "Are you sure you want to reject the offer from **%@**?";
+"Chat.GiftPurchaseOffer.RejectConfirmation.Reject" = "Reject";
+
+"Passkeys.DeleteAlert.Title" = "Delete Passkey?";
+"Passkeys.DeleteAlert.Text" = "Once deleted, this passkey can't be used to log in.\n\nDon't forget to remove it from your password manager too.";
+"Passkeys.DeleteAlert.Action" = "Delete";
+"Passkeys.Into.Title" = "Protect your account";
+"Passkeys.Subtitle" = "Log in safely and keep your account secure.";
+"Passkeys.Into.Title0" = "Create a Passkey";
+"Passkeys.Into.Text0" = "Make a passkey to sign in easily and safely.";
+"Passkeys.Into.Title1" = "Log in with Face ID";
+"Passkeys.Into.Text1" = "Use Face ID, Touch ID, or your passcode to sign in.";
+"Passkeys.Into.Title2" = "Store Passkey Securely";
+"Passkeys.Into.Text2" = "Your passkey is safely kept in your iCloud Keychain.";
+"Passkeys.ButtonCreate" = "Create Passkey";
+"Passkeys.ButtonSkip" = "Skip";
+"Passkeys.Title" = "Passkeys";
+"Passkeys.Subtitle" = "Log in safely and keep your account secure.";
+"Passkeys.EmptyName" = "Passkey";
+"Passkeys.PasskeyCreatedPattern" = "created %@";
+"Passkeys.PasskeyCreatedAndUsedPattern" = "created %1$@ • used %2$@";
+"Passkeys.AddPasskey" = "Create Passkey";
+"Passkeys.ListFooter" = "Your passkeys are stored securely in your password manager.";
+
+"Gift.Demo.Title" = "Unique Collectibles";
+"Gift.Demo.Description" = "Telegram Gifts are collectible items you can trade or showcase on your profile.";
+"Gift.Demo.Unique.Title" = "Unique";
+"Gift.Demo.Unique.Text" = "Upgrade your gifts to get a unique number, model, backdrop and symbol.";
+"Gift.Demo.Tradable.Title" = "Tradable";
+"Gift.Demo.Tradable.Text" = "Sell your gift on Telegram or on third-party NFT marketplaces.";
+"Gift.Demo.Wearable.Title" = "Wearable";
+"Gift.Demo.Wearable.Text" = "Display gifts on your page and set them as profile covers or statuses.";
+"Gift.Demo.Understood" = "Understood";
+
+"Gift.Variants.RandomTraits" = "Random Traits";
+"Gift.Variants.SelectedTraits" = "Selected Traits";
+"Gift.Variants.Randomize" = "Randomize Traits";
+"Gift.Variants.Model" = "model";
+"Gift.Variants.Backdrop" = "backdrop";
+"Gift.Variants.Symbol" = "symbol";
+"Gift.Variants.Models" = "Models";
+"Gift.Variants.Backdrops" = "Backdrops";
+"Gift.Variants.Symbols" = "Symbols";
+
+"Gift.Variants.CollectionInfo" = "This collection features %@";
+"Gift.Variants.CollectionInfo.Model_1" = "**%@** unique model";
+"Gift.Variants.CollectionInfo.Model_any" = "**%@** unique models";
+"Gift.Variants.CollectionInfo.Backdrop_1" = "**%@** unique backdrop";
+"Gift.Variants.CollectionInfo.Backdrop_any" = "**%@** unique backdrops";
+"Gift.Variants.CollectionInfo.Symbol_1" = "**%@** unique symbol";
+"Gift.Variants.CollectionInfo.Symbol_any" = "**%@** unique symbols";
+
+"Gift.Auction.GiftAuction" = "Gift Auction";
+"Gift.Auction.UpcomingAuction" = "Upcoming Auction";
+"Gift.Auction.LearnMore" = "Learn more about Telegram Gifts >";
+
+"Gift.AuctionBid.UpcomingTitle" = "Place an Early Bid";
+
+"Gift.View.Context.BuyOffer" = "Offer to Buy";
+
+"Gift.Offer.Title" = "Offer to Buy";
+"Gift.Offer.OfferStars" = "Offer Stars";
+"Gift.Offer.OfferTon" = "Offer TON";
+"Gift.Offer.PriceSectionStars" = "STARS TO OFFER";
+"Gift.Offer.PriceSectionTon" = "TON TO OFFER";
+"Gift.Offer.PricePlaceholder" = "Price";
+"Gift.Offer.PriceDescriptionStars" = "Enter the number of Stars you'd like to offer for **%@**.";
+"Gift.Offer.PriceDescriptionTon" = "Enter the number of TON you'd like to offer for **%@**.";
+"Gift.Offer.Duration" = "Offer Duration";
+"Gift.Offer.DurationDescriptionStars" = "Choose how long **%@** can accept your offer. When the time expires, your Stars will be automatically refunded.";
+"Gift.Offer.DurationDescriptionTon" = "Choose how long **%@** can accept your offer. When the time expires, your TON will be automatically refunded.";
+"Gift.Offer.Duration.Hours_1" = "%@ Hour";
+"Gift.Offer.Duration.Hours_any" = "%@ Hours";
+"Gift.Offer.Offer" = "Offer";
+"Gift.Offer.GiftMinAmountToast.Text" = "You cannot offer less than %@ for this gift";
+
+"Gift.WearPreview.Limited" = "limited";
+"Gift.WearPreview.Upgraded" = "upgraded";
+"Gift.WearPreview.FreeUpgrade" = "Free\nUpgrade";
+"Gift.WearPreview.LearnMore" = "Learn more about wearing Telegram Gifts >";
+
+"Notification.StarGift.Sold" = "sold";
+"Notification.StarGiftOffer.Offer" = "**%1$@** offered you **%2$@** for your gift **%3$@**.";
+"Notification.StarGiftOffer.OfferYou" = "You offered **%1$@** **%2$@** for their gift **%3$@**.";
+"Notification.StarGiftOffer.Offer.Stars_1" = "%@ Star";
+"Notification.StarGiftOffer.Offer.Stars_any" = "%@ Stars";
+
+"Notification.StarGiftOffer.Status.Accepted" = "This offer was accepted.";
+"Notification.StarGiftOffer.Status.Expired" = "This offer has expired.";
+"Notification.StarGiftOffer.Status.Expires" = "This offer expires in %@";
+"Notification.StarGiftOffer.Status.Rejected" = "This offer was rejected.";
+
+"Notification.StarGiftOffer.Expiration.Hours_1" = "%@ h";
+"Notification.StarGiftOffer.Expiration.Hours_any" = "%@ h";
+"Notification.StarGiftOffer.Expiration.Minutes_1" = "%@ m";
+"Notification.StarGiftOffer.Expiration.Minutes_any" = "%@ m";
+"Notification.StarGiftOffer.Expiration.Delimiter" = " ";
+
+"Chat.GiftPurchaseOffer.AcceptConfirmation.Title" = "Confirm Sale";
+"Chat.GiftPurchaseOffer.AcceptConfirmation.Text" = "Do you want to sell **%1$@** to %2$@ for **%3$@**? You'll receive **%4$@** after fees.";
+"Chat.GiftPurchaseOffer.AcceptConfirmation.Text.Stars_1" = "%@ Star";
+"Chat.GiftPurchaseOffer.AcceptConfirmation.Text.Stars_any" = "%@ Stars";
+"Chat.GiftPurchaseOffer.AcceptConfirmation.BadValue" = "The value of this gift is **%@** higher than the offer.";
+"Chat.GiftPurchaseOffer.AcceptConfirmation.Confirm" = "Confirm Sale";
+

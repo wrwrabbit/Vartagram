@@ -494,7 +494,7 @@ private func inviteLinkEditControllerEntries(invite: ExportedInvitation?, state:
             var label: String = ""
             if let subscriptionFee = state.subscriptionFee, subscriptionFee > StarsAmount.zero {
                 let usdRate = Double(configuration.usdWithdrawRate) / 1000.0 / 100.0
-                label = presentationData.strings.InviteLink_Create_FeePerMonth("≈\(formatTonUsdValue(subscriptionFee.value, divide: false, rate: usdRate, dateTimeFormat: presentationData.dateTimeFormat))").string
+                label = presentationData.strings.InviteLink_Create_FeePerMonth("~\(formatTonUsdValue(subscriptionFee.value, divide: false, rate: usdRate, dateTimeFormat: presentationData.dateTimeFormat))").string
             }
             entries.append(.subscriptionFee(presentationData.theme, presentationData.strings.InviteLink_Create_FeePlaceholder, isEditingEnabled, state.subscriptionFee, label, StarsAmount(value: configuration.maxFee, nanos: 0)))
         }

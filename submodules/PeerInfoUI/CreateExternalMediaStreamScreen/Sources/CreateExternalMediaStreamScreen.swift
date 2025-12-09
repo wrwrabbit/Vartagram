@@ -14,6 +14,9 @@ import BundleIconComponent
 import AnimatedStickerComponent
 import ActivityIndicatorComponent
 import GlassBarButtonComponent
+import ListSectionComponent
+import ListActionItemComponent
+import PlainButtonComponent
 
 private final class CreateExternalMediaStreamScreenComponent: CombinedComponent {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
@@ -49,41 +52,51 @@ private final class CreateExternalMediaStreamScreenComponent: CombinedComponent 
     final class State: ComponentState {
         let context: AccountContext
         let peerId: EnginePeer.Id
+        let mode: CreateExternalMediaStreamScreen.Mode
         
         private(set) var credentials: GroupCallStreamCredentials?
         var isDelayingLoadingIndication: Bool = true
         
-        private var credentialsDisposable: Disposable?
+        private let credentialsDisposable = MetaDisposable()
         private let activeActionDisposable = MetaDisposable()
         
-        init(context: AccountContext, peerId: EnginePeer.Id, credentialsPromise: Promise<GroupCallStreamCredentials>?) {
+        init(context: AccountContext, peerId: EnginePeer.Id, mode: CreateExternalMediaStreamScreen.Mode, credentialsPromise: Promise<GroupCallStreamCredentials>?) {
             self.context = context
             self.peerId = peerId
+            self.mode = mode
             
             super.init()
             
+            self.getCredentials(credentialsPromise: credentialsPromise)
+        }
+        
+        deinit {
+            self.credentialsDisposable.dispose()
+            self.activeActionDisposable.dispose()
+        }
+        
+        func getCredentials(credentialsPromise: Promise<GroupCallStreamCredentials>? = nil, revoke: Bool = false) {
             let credentialsSignal: Signal<GroupCallStreamCredentials, NoError>
             if let credentialsPromise = credentialsPromise {
                 credentialsSignal = credentialsPromise.get()
             } else {
-                credentialsSignal = context.engine.calls.getGroupCallStreamCredentials(peerId: peerId, isLiveStream: false, revokePreviousCredentials: false)
+                var isLiveStream = false
+                if case let .create(isLiveStreamValue) = self.mode {
+                    isLiveStream = isLiveStreamValue
+                }
+                credentialsSignal = self.context.engine.calls.getGroupCallStreamCredentials(peerId: self.peerId, isLiveStream: isLiveStream, revokePreviousCredentials: revoke)
                 |> `catch` { _ -> Signal<GroupCallStreamCredentials, NoError> in
                     return .never()
                 }
             }
-            self.credentialsDisposable = (credentialsSignal |> deliverOnMainQueue).start(next: { [weak self] result in
+            self.credentialsDisposable.set((credentialsSignal |> deliverOnMainQueue).start(next: { [weak self] result in
                 guard let strongSelf = self else {
                     return
                 }
                 
                 strongSelf.credentials = result
                 strongSelf.updated(transition: .immediate)
-            })
-        }
-        
-        deinit {
-            self.credentialsDisposable?.dispose()
-            self.activeActionDisposable.dispose()
+            }))
         }
         
         func copyCredentials(_ key: KeyPath<GroupCallStreamCredentials, String>) {
@@ -160,7 +173,7 @@ private final class CreateExternalMediaStreamScreenComponent: CombinedComponent 
     }
     
     func makeState() -> State {
-        return State(context: self.context, peerId: self.peerId, credentialsPromise: self.credentialsPromise)
+        return State(context: self.context, peerId: self.peerId, mode: self.mode, credentialsPromise: self.credentialsPromise)
     }
     
     static var body: Body {
@@ -176,26 +189,25 @@ private final class CreateExternalMediaStreamScreenComponent: CombinedComponent 
         
         let activityIndicator = Child(ActivityIndicatorComponent.self)
         
-        let credentialsBackground = Child(RoundedRectangle.self)
+        let credentialsSection = Child(ListSectionComponent.self)
         
-        let credentialsStripe = Child(Rectangle.self)
-        let credentialsURLTitle = Child(MultilineTextComponent.self)
-        let credentialsURLText = Child(MultilineTextComponent.self)
-        
-        let credentialsKeyTitle = Child(MultilineTextComponent.self)
-        let credentialsKeyText = Child(MultilineTextComponent.self)
-        
-        let credentialsCopyURLButton = Child(Button.self)
-        let credentialsCopyKeyButton = Child(Button.self)
+//        let credentialsBackground = Child(RoundedRectangle.self)
+//        let credentialsStripe = Child(Rectangle.self)
+//        let credentialsURLTitle = Child(MultilineTextComponent.self)
+//        let credentialsURLText = Child(MultilineTextComponent.self)
+//        
+//        let credentialsKeyTitle = Child(MultilineTextComponent.self)
+//        let credentialsKeyText = Child(MultilineTextComponent.self)
+//        
+//        let credentialsCopyURLButton = Child(Button.self)
+//        let credentialsCopyKeyButton = Child(Button.self)
         
         return { context in
             let topInset: CGFloat = 16.0
             let sideInset: CGFloat = 16.0
             let buttonSideInset: CGFloat = 36.0
-            let credentialsSideInset: CGFloat = 16.0
-            let credentialsTopInset: CGFloat = 12.0
-            let credentialsTitleSpacing: CGFloat = 5.0
             
+            let component = context.component
             let environment = context.environment[ViewControllerComponentContainer.Environment.self].value
             let state = context.state
             
@@ -355,124 +367,145 @@ private final class CreateExternalMediaStreamScreenComponent: CombinedComponent 
             )
             
             let textFrame = CGRect(origin: CGPoint(x: floor((context.availableSize.width - text.size.width) / 2.0), y: animationFrame.maxY + 18.0), size: text.size)
-            
             context.add(text
                 .position(CGPoint(x: textFrame.midX, y: textFrame.midY))
             )
             
-            let credentialsFrame = CGRect(origin: CGPoint(x: sideInset, y: textFrame.maxY + 30.0), size: credentialsAreaSize)
-            
             if let credentials = context.state.credentials {
-                let credentialsURLTitle = credentialsURLTitle.update(
-                    component: MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.CreateExternalStream_ServerUrl, font: Font.regular(15.0), textColor: theme.list.itemPrimaryTextColor, paragraphAlignment: .left)),
-                        horizontalAlignment: .left,
-                        maximumNumberOfLines: 1
-                    ),
-                    availableSize: CGSize(width: credentialsAreaSize.width - credentialsSideInset * 2.0, height: credentialsAreaSize.height),
-                    transition: context.transition
+                var credentialsSectionItems: [AnyComponentWithIdentity<Empty>] = []
+                credentialsSectionItems.append(
+                    AnyComponentWithIdentity(id: "url", component: AnyComponent(
+                        ListActionItemComponent(
+                            theme: theme,
+                            style: .glass,
+                            title: AnyComponent(VStack([
+                                AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
+                                    text: .plain(NSAttributedString(
+                                        string: environment.strings.CreateExternalStream_ServerUrl,
+                                        font: Font.regular(15.0),
+                                        textColor: theme.list.itemPrimaryTextColor
+                                    )),
+                                    maximumNumberOfLines: 1
+                                ))),
+                                AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
+                                    text: .plain(NSAttributedString(string: credentials.url, font: Font.regular(17.0), textColor: theme.list.itemAccentColor, paragraphAlignment: .left)),
+                                    horizontalAlignment: .left,
+                                    truncationType: .middle,
+                                    maximumNumberOfLines: 1
+                                )))
+                            ], alignment: .left, spacing: 5.0)),
+                            contentInsets: UIEdgeInsets(top: 14.0, left: 0.0, bottom: 14.0, right: 0.0),
+                            accessory: .custom(ListActionItemComponent.CustomAccessory(
+                                component: AnyComponentWithIdentity(
+                                    id: "copy",
+                                    component: AnyComponent(
+                                        PlainButtonComponent(
+                                            content: AnyComponent(BundleIconComponent(name: "Chat/Context Menu/Copy", tintColor: theme.list.itemAccentColor)),
+                                            action: { [weak state] in
+                                                guard let state = state else {
+                                                    return
+                                                }
+                                                state.copyCredentials(\.url)
+                                            },
+                                            animateScale: false
+                                        )
+                                    )
+                                ),
+                                insets: UIEdgeInsets(top: 0.0, left: 8.0, bottom: 0.0, right: 14.0),
+                                isInteractive: true
+                            )),
+                            action: nil
+                        )
+                    ))
                 )
                 
-                let credentialsKeyTitle = credentialsKeyTitle.update(
-                    component: MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.CreateExternalStream_StreamKey, font: Font.regular(15.0), textColor: theme.list.itemPrimaryTextColor, paragraphAlignment: .left)),
-                        horizontalAlignment: .left,
-                        maximumNumberOfLines: 1
-                    ),
-                    availableSize: CGSize(width: credentialsAreaSize.width - credentialsSideInset * 2.0, height: credentialsAreaSize.height),
-                    transition: context.transition
+                credentialsSectionItems.append(
+                    AnyComponentWithIdentity(id: "key", component: AnyComponent(
+                        ListActionItemComponent(
+                            theme: theme,
+                            style: .glass,
+                            title: AnyComponent(VStack([
+                                AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
+                                    text: .plain(NSAttributedString(
+                                        string: environment.strings.CreateExternalStream_StreamKey,
+                                        font: Font.regular(15.0),
+                                        textColor: theme.list.itemPrimaryTextColor
+                                    )),
+                                    maximumNumberOfLines: 1
+                                ))),
+                                AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
+                                    text: .plain(NSAttributedString(string: credentials.streamKey, font: Font.regular(17.0), textColor: theme.list.itemAccentColor, paragraphAlignment: .left)),
+                                    horizontalAlignment: .left,
+                                    truncationType: .middle,
+                                    maximumNumberOfLines: 1
+                                )))
+                            ], alignment: .left, spacing: 5.0)),
+                            contentInsets: UIEdgeInsets(top: 14.0, left: 0.0, bottom: 14.0, right: 0.0),
+                            accessory: .custom(ListActionItemComponent.CustomAccessory(
+                                component: AnyComponentWithIdentity(
+                                    id: "copy",
+                                    component: AnyComponent(
+                                        PlainButtonComponent(
+                                            content: AnyComponent(BundleIconComponent(name: "Chat/Context Menu/Copy", tintColor: theme.list.itemAccentColor)),
+                                            action: { [weak state] in
+                                                guard let state = state else {
+                                                    return
+                                                }
+                                                state.copyCredentials(\.streamKey)
+                                            },
+                                            animateScale: false
+                                        )
+                                    )
+                                ),
+                                insets: UIEdgeInsets(top: 0.0, left: 8.0, bottom: 0.0, right: 14.0),
+                                isInteractive: true
+                            )),
+                            action: nil
+                        )
+                    ))
                 )
                 
-                let credentialsURLText = credentialsURLText.update(
-                    component: MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: credentials.url, font: Font.regular(17.0), textColor: theme.list.itemAccentColor, paragraphAlignment: .left)),
-                        horizontalAlignment: .left,
-                        truncationType: .middle,
-                        maximumNumberOfLines: 1
-                    ),
-                    availableSize: CGSize(width: credentialsAreaSize.width - credentialsSideInset * 2.0 - 22.0, height: credentialsAreaSize.height),
-                    transition: context.transition
-                )
-                
-                let credentialsKeyText = credentialsKeyText.update(
-                    component: MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: credentials.streamKey, font: Font.regular(17.0), textColor: theme.list.itemAccentColor, paragraphAlignment: .left)),
-                        horizontalAlignment: .left,
-                        truncationType: .middle,
-                        maximumNumberOfLines: 1
-                    ),
-                    availableSize: CGSize(width: credentialsAreaSize.width - credentialsSideInset * 2.0 - 48.0, height: credentialsAreaSize.height),
-                    transition: context.transition
-                )
-                
-                let credentialsBackground = credentialsBackground.update(
-                    component: RoundedRectangle(color: theme.list.itemBlocksBackgroundColor, cornerRadius: 26.0),
-                    availableSize: credentialsAreaSize,
-                    transition: context.transition
-                )
-                
-                let credentialsStripe = credentialsStripe.update(
-                    component: Rectangle(color: theme.list.itemPlainSeparatorColor),
-                    availableSize: CGSize(width: credentialsAreaSize.width - credentialsSideInset * 2.0, height: UIScreenPixel),
-                    transition: context.transition
-                )
-                
-                let credentialsCopyURLButton = credentialsCopyURLButton.update(
-                    component: Button(
-                        content: AnyComponent(BundleIconComponent(name: "Chat/Context Menu/Copy", tintColor: theme.list.itemAccentColor)),
-                        action: { [weak state] in
-                            guard let state = state else {
-                                return
+                credentialsSectionItems.append(
+                    AnyComponentWithIdentity(id: "revoke", component: AnyComponent(
+                        ListActionItemComponent(
+                            theme: theme,
+                            style: .glass,
+                            title: AnyComponent(MultilineTextComponent(
+                                text: .plain(NSAttributedString(string: environment.strings.CreateExternalStream_RevokeStreamKey, font: Font.regular(17.0), textColor: theme.list.itemDestructiveColor)),
+                                horizontalAlignment: .center,
+                                truncationType: .middle,
+                                maximumNumberOfLines: 1
+                            )),
+                            titleAlignment: .center,
+                            action: { [weak state] _ in
+                                guard let state = state else {
+                                    return
+                                }
+                                let alertController = textAlertController(context: component.context, title: nil, text: environment.strings.CreateExternalStream_Revoke_Text, actions: [TextAlertAction(type: .genericAction, title: environment.strings.Common_Cancel, action: {
+                                }), TextAlertAction(type: .defaultAction, title: environment.strings.CreateExternalStream_Revoke_Revoke, action: { [weak state] in
+                                    state?.getCredentials(revoke: true)
+                                })])
+                                environment.controller()?.present(alertController, in: .window(.root))
                             }
-                            state.copyCredentials(\.url)
-                        }
-                    ).minSize(CGSize(width: 44.0, height: 44.0)),
-                    availableSize: CGSize(width: 44.0, height: 44.0),
+                        )
+                    ))
+                )
+                
+                let credentialsSection = credentialsSection.update(
+                    component: ListSectionComponent(
+                        theme: theme,
+                        style: .glass,
+                        header: nil,
+                        footer: nil,
+                        items: credentialsSectionItems
+                    ),
+                    availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0, height: context.availableSize.height),
                     transition: context.transition
                 )
-                
-                let credentialsCopyKeyButton = credentialsCopyKeyButton.update(
-                    component: Button(
-                        content: AnyComponent(BundleIconComponent(name: "Chat/Context Menu/Copy", tintColor: theme.list.itemAccentColor)),
-                        action: { [weak state] in
-                            guard let state = state else {
-                                return
-                            }
-                            state.copyCredentials(\.streamKey)
-                        }
-                    ).minSize(CGSize(width: 44.0, height: 44.0)),
-                    availableSize: CGSize(width: 44.0, height: 44.0),
-                    transition: context.transition
-                )
-                
-                context.add(credentialsBackground
-                    .position(CGPoint(x: credentialsFrame.midX, y: credentialsFrame.midY))
-                )
-                
-                context.add(credentialsStripe
-                    .position(CGPoint(x: credentialsFrame.minX + credentialsSideInset + credentialsStripe.size.width / 2.0, y: credentialsFrame.minY + credentialsItemHeight))
-                )
-                
-                context.add(credentialsURLTitle
-                    .position(CGPoint(x: credentialsFrame.minX + credentialsSideInset + credentialsURLTitle.size.width / 2.0, y: credentialsFrame.minY + credentialsTopInset + credentialsURLTitle.size.height / 2.0))
-                )
-                context.add(credentialsURLText
-                    .position(CGPoint(x: credentialsFrame.minX + credentialsSideInset + credentialsURLText.size.width / 2.0, y: credentialsFrame.minY + credentialsTopInset + credentialsTitleSpacing + credentialsURLTitle.size.height + credentialsURLText.size.height / 2.0))
-                )
-                context.add(credentialsCopyURLButton
-                    .position(CGPoint(x: credentialsFrame.maxX - 4.0 - credentialsCopyURLButton.size.width / 2.0, y: credentialsFrame.minY + credentialsItemHeight / 2.0))
-                )
-                
-                context.add(credentialsKeyTitle
-                    .position(CGPoint(x: credentialsFrame.minX + credentialsSideInset + credentialsKeyTitle.size.width / 2.0, y: credentialsFrame.minY + credentialsItemHeight + credentialsTopInset + credentialsKeyTitle.size.height / 2.0))
-                )
-                context.add(credentialsKeyText
-                    .position(CGPoint(x: credentialsFrame.minX + credentialsSideInset + credentialsKeyText.size.width / 2.0, y: credentialsFrame.minY + credentialsItemHeight + credentialsTopInset + credentialsTitleSpacing + credentialsKeyTitle.size.height + credentialsKeyText.size.height / 2.0))
-                )
-                context.add(credentialsCopyKeyButton
-                    .position(CGPoint(x: credentialsFrame.maxX - 4.0 - credentialsCopyKeyButton.size.width / 2.0, y: credentialsFrame.minY + credentialsItemHeight + credentialsItemHeight / 2.0))
-                )
+                context.add(credentialsSection
+                    .position(CGPoint(x: context.availableSize.width / 2.0, y: textFrame.maxY + 30.0 + credentialsSection.size.height / 2.0)))
             } else if !context.state.isDelayingLoadingIndication {
+                let credentialsFrame = CGRect(origin: CGPoint(x: sideInset, y: textFrame.maxY + 30.0), size: credentialsAreaSize)
                 let activityIndicator = activityIndicator.update(
                     component: ActivityIndicatorComponent(color: theme.list.controlSecondaryColor),
                     availableSize: CGSize(width: 100.0, height: 100.0),

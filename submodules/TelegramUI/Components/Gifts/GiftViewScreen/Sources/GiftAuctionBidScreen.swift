@@ -216,6 +216,12 @@ private final class BadgeComponent: Component {
                     subtitleView.alpha = 1.0
                 }
                 badgeOffset.y -= 6.0 + UIScreenPixel
+                
+                let subtitleBadgeWidth = subtitleSize.width + 60.0
+                if subtitleBadgeWidth > badgeWidth {
+                    badgeOffset.x -= (subtitleBadgeWidth - badgeWidth) * 0.5
+                    badgeWidth = subtitleBadgeWidth
+                }
             } else if let subtitleView = self.subtitle.view {
                 subtitleView.alpha = 0.0
             }
@@ -362,13 +368,13 @@ private final class BadgeComponent: Component {
 private final class PeerPlaceComponent: Component {
     let theme: PresentationTheme
     let color: UIColor
-    let place: Int32
+    let place: Int32?
     let groupingSeparator: String
     
     init(
         theme: PresentationTheme,
         color: UIColor,
-        place: Int32,
+        place: Int32?,
         groupingSeparator: String
     ) {
         self.theme = theme
@@ -414,9 +420,9 @@ private final class PeerPlaceComponent: Component {
             
             let textColor: UIColor
             let backgroundColors: [UIColor]?
-            if component.place < 4 {
+            if let place = component.place, place < 4 {
                 textColor = .white
-                switch component.place {
+                switch place {
                 case 1:
                     backgroundColors = [UIColor(rgb: 0xffa901), UIColor(rgb: 0xffcd3b)]
                 case 2:
@@ -446,11 +452,21 @@ private final class PeerPlaceComponent: Component {
             let backgroundFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - backgroundSize.width) * 0.5), y: floorToScreenPixels((availableSize.height - backgroundSize.height) * 0.5)), size: backgroundSize)
             self.background.frame = backgroundFrame
             
+            var placeString: String
+            if let place = component.place {
+                placeString = presentationStringsFormattedNumber(place, component.groupingSeparator)
+                if place >= 100 {
+                    placeString = "\(compactNumericCountString(Int(place), decimalSeparator: ".", showDecimalPart: false))+"
+                }
+            } else {
+                placeString = "–"
+            }
+            
             let labelSize = self.label.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(component.place, component.groupingSeparator), font: Font.regular(17.0), textColor: textColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: placeString, font: Font.with(size: 17.0, traits: .monospacedNumbers), textColor: textColor)))),
                 environment: {},
-                containerSize: CGSize(width: 40.0, height: 40.0)
+                containerSize: CGSize(width: 60.0, height: 40.0)
             )
             let labelFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - labelSize.width) * 0.5), y: floorToScreenPixels((availableSize.height - labelSize.height) * 0.5)), size: labelSize)
             if let labelView = self.label.view {
@@ -477,6 +493,7 @@ private final class PeerComponent: Component {
     enum Status {
         case winning
         case outbid
+        case returned
     }
     
     let context: AccountContext
@@ -595,8 +612,8 @@ private final class PeerComponent: Component {
             var color = component.theme.list.itemSecondaryTextColor
             switch component.status {
             case .winning:
-                color = component.theme.list.itemDisclosureActions.constructive.fillColor
-            case .outbid:
+                color = UIColor(rgb: 0x53a939)
+            case .outbid, .returned:
                 color = component.theme.list.itemDestructiveColor
             default:
                 break
@@ -606,7 +623,7 @@ private final class PeerComponent: Component {
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
             let placeSize = self.place.update(
                 transition: .immediate,
-                component: AnyComponent(PeerPlaceComponent(theme: component.theme, color: color, place: component.place, groupingSeparator: presentationData.dateTimeFormat.groupingSeparator)),
+                component: AnyComponent(PeerPlaceComponent(theme: component.theme, color: color, place: component.status == .returned ? nil : component.place, groupingSeparator: presentationData.dateTimeFormat.groupingSeparator)),
                 environment: {},
                 containerSize: CGSize(width: 40.0, height: 40.0)
             )
@@ -670,7 +687,7 @@ private final class PeerComponent: Component {
             }
             
             if let icon = self.amountStar.image {
-                self.amountStar.frame = CGRect(origin: CGPoint(x: amountFrame.minX - icon.size.width, y: floorToScreenPixels((size.height - icon.size.height) / 2.0) - UIScreenPixel), size: icon.size)
+                self.amountStar.frame = CGRect(origin: CGPoint(x: amountFrame.minX - icon.size.width - 2.0, y: floorToScreenPixels((size.height - icon.size.height) / 2.0) - UIScreenPixel), size: icon.size)
             }
             
             self.separator.backgroundColor = component.theme.list.itemPlainSeparatorColor.cgColor
@@ -946,6 +963,7 @@ private final class GiftAuctionBidScreenComponent: Component {
     let hideName: Bool
     let gift: StarGift
     let auctionContext: GiftAuctionContext
+    let acquiredGifts: Signal<[GiftAuctionAcquiredGift], NoError>?
     
     init(
         context: AccountContext,
@@ -954,7 +972,8 @@ private final class GiftAuctionBidScreenComponent: Component {
         entities: [MessageTextEntity]?,
         hideName: Bool,
         gift: StarGift,
-        auctionContext: GiftAuctionContext
+        auctionContext: GiftAuctionContext,
+        acquiredGifts: Signal<[GiftAuctionAcquiredGift], NoError>?
     ) {
         self.context = context
         self.toPeerId = toPeerId
@@ -963,6 +982,7 @@ private final class GiftAuctionBidScreenComponent: Component {
         self.hideName = hideName
         self.gift = gift
         self.auctionContext = auctionContext
+        self.acquiredGifts = acquiredGifts
     }
     
     static func ==(lhs: GiftAuctionBidScreenComponent, rhs: GiftAuctionBidScreenComponent) -> Bool {
@@ -1127,8 +1147,7 @@ private final class GiftAuctionBidScreenComponent: Component {
         private let sliderPlus = ComponentView<Empty>()
         private let badge = ComponentView<Empty>()
         
-        private var liveStreamPerks: [ComponentView<Empty>] = []
-        private var liveStreamMessagePreview: ComponentView<Empty>?
+        private var auctionStats: [ComponentView<Empty>] = []
         
         private let myGifts = ComponentView<Empty>()
                 
@@ -1309,29 +1328,16 @@ private final class GiftAuctionBidScreenComponent: Component {
             }
         }
         
-        private var lastAcquiredGiftsReloadTime: Double?
-        private func reloadAcquiredGifts() {
+        private func loadAcquiredGifts() {
             guard let component = self.component, case let .generic(gift) = component.gift else {
                 return
             }
-            
-            let currentTime = CFAbsoluteTimeGetCurrent()
-            if let lastAcquiredGiftsReloadTime = self.lastAcquiredGiftsReloadTime, currentTime < lastAcquiredGiftsReloadTime + 5 {
-                return
-            }
-            self.lastAcquiredGiftsReloadTime = currentTime
             self.giftAuctionAcquiredGiftsDisposable.set((component.context.engine.payments.getGiftAuctionAcquiredGifts(giftId: gift.id)
             |> deliverOnMainQueue).startStrict(next: { [weak self] acquiredGifts in
                 guard let self else {
                     return
                 }
-                let previous = self.giftAuctionAcquiredGifts
                 self.giftAuctionAcquiredGifts = acquiredGifts
-                
-                if let previous, previous.count < acquiredGifts.count {
-                    self.resetSliderValue()
-                    self.addSubview(ConfettiView(frame: self.bounds))
-                }
                 self.state?.updated(transition: .easeInOut(duration: 0.25))
             }))
         }
@@ -1527,10 +1533,15 @@ private final class GiftAuctionBidScreenComponent: Component {
                             title: nil,
                             text: presentationData.strings.Gift_AuctionBid_AddMoreStars(presentationData.strings.Gift_AuctionBid_AddMoreStars_Stars(Int32(clamping: myMinBidAmount - myBidAmount))).string,
                             timeout: nil,
-                            customUndoText: nil
+                            customUndoText: presentationData.strings.Gift_AuctionBid_AddMoreStars_Set
                         ),
                         position: .bottom,
-                        action: { _ in return true }
+                        action: { [weak self] action in
+                            if let self, case .undo = action {
+                                self.resetSliderValue(component: self.component, forceMinimum: true)
+                            }
+                            return true
+                        }
                     ),
                     in: .current
                 )
@@ -1557,14 +1568,7 @@ private final class GiftAuctionBidScreenComponent: Component {
             
             let signal = BotCheckoutController.InputData.fetch(context: component.context, source: source)
             |> `catch` { error -> Signal<BotCheckoutController.InputData, SendBotPaymentFormError> in
-                switch error {
-                case .disallowedStarGifts:
-                    return .fail(.disallowedStarGift)
-                case .starGiftsUserLimit:
-                    return .fail(.starGiftUserLimit)
-                default:
-                    return .fail(.generic)
-                }
+                return .fail(.generic)
             }
             |> mapToSignal { inputData -> Signal<SendBotPaymentResult, SendBotPaymentFormError> in
                 return component.context.engine.payments.sendStarsPaymentForm(formId: inputData.form.id, source: source)
@@ -1599,11 +1603,13 @@ private final class GiftAuctionBidScreenComponent: Component {
                 controller?.present(
                     UndoOverlayController(
                         presentationData: presentationData,
-                        content: .actionSucceeded(
+                        content: .universalImage(
+                            image: generateTintedImage(image:  UIImage(bundleImageName: "Premium/Auction/BidMedium"), color: .white)!,
+                            size: nil,
                             title: title,
                             text: text,
-                            cancel: nil,
-                            destructive: false
+                            customUndoText: nil,
+                            timeout: nil
                         ),
                         position: .bottom,
                         action: { _ in return true }
@@ -1612,6 +1618,40 @@ private final class GiftAuctionBidScreenComponent: Component {
                 )
                                 
                 component.context.starsContext?.load(force: true)
+            }, error: { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                
+                HapticFeedback().error()
+                
+                let currentValue = self.amount.realValue
+                self.component?.context.starsContext?.load(force: true)
+                self.resetSliderValue(component: self.component, forceMinimum: true)
+                
+                if self.amount.realValue > currentValue {
+                    controller.present(
+                        UndoOverlayController(
+                            presentationData: presentationData,
+                            content: .info(
+                                title: nil,
+                                text: presentationData.strings.Gift_AuctionBid_MinimumBidIncreased(presentationData.strings.Gift_AuctionBid_AddMoreStars_Stars(Int32(clamping: self.amount.realValue))).string,
+                                timeout: nil,
+                                customUndoText: nil
+                            ),
+                            position: .bottom,
+                            action: { _ in
+                                return true
+                            }
+                        ),
+                        in: .current
+                    )
+                }
+                
+                Queue.mainQueue().after(0.1) {
+                    self.isLoading = false
+                    self.state?.updated()
+                }
             })
         }
         
@@ -1783,7 +1823,7 @@ private final class GiftAuctionBidScreenComponent: Component {
             }
             
             var minBidAmount: Int64 = 100
-            if case let .ongoing(_, _, _, auctionMinBidAmount, _, _, _, _, _, _) = auctionState.auctionState {
+            if case let .ongoing(_, _, _, auctionMinBidAmount, _, _, _, _, _, _, _, _) = auctionState.auctionState {
                 minBidAmount = auctionMinBidAmount
                 if let myMinBidAmount = auctionState.myState.minBidAmount {
                     minBidAmount = myMinBidAmount
@@ -1818,25 +1858,26 @@ private final class GiftAuctionBidScreenComponent: Component {
             self.environment?.controller()?.present(controller, in: .window(.root))
         }
         
-        func resetSliderValue() {
+        func resetSliderValue(component: GiftAuctionBidScreenComponent? = nil, forceMinimum: Bool = false) {
             guard let state = self.giftAuctionState else {
                 return
             }
             var minBidAmount: Int64 = 100
             var maxBidAmount: Int64 = 50000
-            if case let .ongoing(_, _, _, auctionMinBidAmount, bidLevels, _, _, _, _, _) = state.auctionState {
+            if case let .ongoing(_, _, _, auctionMinBidAmount, bidLevels, _, _, _, _, _, _, _) = state.auctionState {
                 minBidAmount = auctionMinBidAmount
                 if let firstLevel = bidLevels.first(where: { $0.position == 1 }) {
                     maxBidAmount = max(maxBidAmount, Int64(Double(firstLevel.amount) * 1.5))
                 }
             }
-            var currentValue = max(Int(minBidAmount), 100)
-            if let myBidAmount = state.myState.bidAmount {
-                currentValue = Int(myBidAmount)
-            }
-            
+            var currentValue = Int(minBidAmount)
             var minAllowedRealValue: Int64 = minBidAmount
             if let myBidAmount = state.myState.bidAmount {
+                if let component, let bidPeerId = state.myState.bidPeerId, bidPeerId != component.toPeerId || forceMinimum, let myMinBidAmount = state.myState.minBidAmount {
+                    currentValue = Int(myMinBidAmount)
+                } else {
+                    currentValue = Int(myBidAmount)
+                }
                 minAllowedRealValue = myBidAmount
             }
             
@@ -1926,21 +1967,35 @@ private final class GiftAuctionBidScreenComponent: Component {
                 }
                 
                 let context = component.context
+                let auctionContext = component.auctionContext
                 self.giftAuctionDisposable = (component.auctionContext.state
-                |> deliverOnMainQueue).start(next: { [weak self] state in
+                |> deliverOnMainQueue).start(next: { [weak self] auctionState in
                     guard let self else {
                         return
                     }
                     let isFirstTime = self.giftAuctionState == nil
-                    self.giftAuctionState = state
+                    let previousState = self.giftAuctionState
+                    self.giftAuctionState = auctionState
                     
                     var peerIds: [EnginePeer.Id] = []
                     var transition = ComponentTransition.spring(duration: 0.4)
 
                     if isFirstTime {
                         peerIds.append(context.account.peerId)
-                        self.resetSliderValue()
+                        self.resetSliderValue(component: component)
                         transition = .immediate
+                        
+                        if let acquiredGifts = component.acquiredGifts {
+                            self.giftAuctionAcquiredGiftsDisposable.set((acquiredGifts
+                            |> take(1)
+                            |> deliverOnMainQueue).start(next: { [weak self] acquiredGifts in
+                                self?.giftAuctionAcquiredGifts = acquiredGifts
+                            }))
+                        } else if let acquiredCount = auctionState?.myState.acquiredCount, acquiredCount > 0 {
+                            Queue.mainQueue().justDispatch {
+                                self.loadAcquiredGifts()
+                            }
+                        }
                     }
                     
                     if !peerIds.isEmpty {
@@ -1964,6 +2019,52 @@ private final class GiftAuctionBidScreenComponent: Component {
                         })
                     }
                     self.state?.updated(transition: transition)
+                    
+                    if let acquiredCount = auctionState?.myState.acquiredCount, let previousAcquiredCount = previousState?.myState.acquiredCount, acquiredCount > previousAcquiredCount {
+                        Queue.mainQueue().justDispatch {
+                            self.loadAcquiredGifts()
+                        }
+                        if !isFirstTime {
+                            if let bidPeerId = previousState?.myState.bidPeerId, let controller = self.environment?.controller() {
+                                if let navigationController = controller.navigationController as? NavigationController {
+                                    var controllers = navigationController.viewControllers
+                                    controllers = controllers.filter { !($0 is GiftAuctionBidScreen) && !($0 is GiftSetupScreenProtocol) && !($0 is GiftOptionsScreenProtocol) && !($0 is PeerInfoScreen) && !($0 is ContactSelectionController) }
+                                                                        
+                                    var foundController = false
+                                    for controller in controllers.reversed() {
+                                        if let chatController = controller as? ChatController, case .peer(id: bidPeerId) = chatController.chatLocation {
+                                            chatController.hintPlayNextOutgoingGift()
+                                            foundController = true
+                                            break
+                                        }
+                                    }
+                                    if !foundController {
+                                        let chatController = component.context.sharedContext.makeChatController(context: component.context, chatLocation: .peer(id: bidPeerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil)
+                                        chatController.hintPlayNextOutgoingGift()
+                                        controllers.append(chatController)
+                                    }
+                                    navigationController.setViewControllers(controllers, animated: true)
+                                    
+                                    for controller in controllers {
+                                        if controller is MinimizableController {
+                                            controller.dismiss(animated: true)
+                                        }
+                                    }
+                                }
+                            } else {
+                                self.resetSliderValue()
+                                self.addSubview(ConfettiView(frame: self.bounds))
+                            }
+                        }
+                    }
+                    
+                    if case .finished = auctionState?.auctionState, let controller = self.environment?.controller() {
+                        if let navigationController = controller.navigationController as? NavigationController {
+                            controller.dismiss()
+                            let auctionController = context.sharedContext.makeGiftAuctionViewScreen(context: context, auctionContext: auctionContext, completion: { _, _ in })
+                            navigationController.pushViewController(auctionController)
+                        }
+                    }
                 })
                 
                 self.giftAuctionTimer = SwiftSignalKit.Timer(timeout: 0.5, repeat: true, completion: { [weak self] in
@@ -1971,10 +2072,6 @@ private final class GiftAuctionBidScreenComponent: Component {
                     self?.state?.updated()
                 }, queue: Queue.mainQueue())
                 self.giftAuctionTimer?.start()
-                
-                Queue.mainQueue().justDispatch {
-                    self.reloadAcquiredGifts()
-                }
             }
             
             self.component = component
@@ -2094,12 +2191,93 @@ private final class GiftAuctionBidScreenComponent: Component {
                 giftsPerRound = giftsPerRoundValue
             }
             
+            var myBidTitleComponent: AnyComponent<Empty>?
+            var myBidComponent: AnyComponent<Empty>?
+            
+            var topBidsTitleComponent: AnyComponent<Empty>?
+            var topBidsComponents: [(EnginePeer.Id, AnyComponent<Empty>)] = []
+            
+            var isUpcoming = false
+            let place: Int32
+            if let giftAuctionState = self.giftAuctionState, case let .ongoing(_, startDate, _, _, bidLevels, topBidders, _, _, _, _, _, lastGiftNumber) = giftAuctionState.auctionState {
+                if currentTime < startDate {
+                    isUpcoming = true
+                }
+                var myBidAmount = Int64(self.amount.realValue)
+                var myBidDate = currentTime
+                var isBiddingUp = true
+                
+                if let currentAmount = giftAuctionState.myState.bidAmount, let currentDate = giftAuctionState.myState.bidDate, currentAmount >= myBidAmount {
+                    myBidAmount = currentAmount
+                    myBidDate = currentDate
+                    isBiddingUp = false
+                }
+                                
+                place = giftAuctionState.getPlace(myBid: myBidAmount, myBidDate: myBidDate) ?? 1
+                                    
+                var bidTitle: String
+                var bidTitleColor: UIColor
+                var bidStatus: PeerComponent.Status?
+                
+                var giftTitle: String?
+                var giftNumber: Int32?
+                if isBiddingUp {
+                    bidTitleColor = environment.theme.list.itemSecondaryTextColor
+                    bidTitle = environment.strings.Gift_AuctionBid_BidPreview
+                } else if isUpcoming {
+                    bidTitleColor = environment.theme.list.itemSecondaryTextColor
+                    bidTitle = environment.strings.Gift_AuctionBid_UpcomingBid
+                } else if giftAuctionState.myState.isReturned {
+                    bidTitle = environment.strings.Gift_AuctionBid_Outbid
+                    bidTitleColor = environment.theme.list.itemDestructiveColor
+                    bidStatus = .returned
+                } else if place > giftsPerRound {
+                    bidTitle = environment.strings.Gift_AuctionBid_Outbid
+                    bidTitleColor = environment.theme.list.itemDestructiveColor
+                    bidStatus = .outbid
+                } else {
+                    bidTitle = environment.strings.Gift_AuctionBid_Winning
+                    bidTitleColor = UIColor(rgb: 0x53a939)
+                    bidStatus = .winning
+                    if case let .generic(gift) = giftAuctionState.gift {
+                        giftTitle = gift.title
+                        giftNumber = lastGiftNumber + place
+                    }
+                }
+                
+                if let peer = self.peersMap[component.context.account.peerId] {
+                    myBidTitleComponent = AnyComponent(PeerHeaderComponent(color: bidTitleColor, dateTimeFormat: environment.dateTimeFormat, title: bidTitle, giftTitle: giftTitle, giftNumber: giftNumber))
+                    myBidComponent = AnyComponent(PeerComponent(context: component.context, theme: environment.theme, groupingSeparator: environment.dateTimeFormat.groupingSeparator, peer: peer, place: place, amount: myBidAmount, status: bidStatus, isLast: true, action: nil))
+                }
+                
+                var i: Int32 = 1
+                for peer in topBidders {
+                    var bid: Int64 = 0
+                    for level in bidLevels {
+                        if level.position == i {
+                            bid = level.amount
+                            break
+                        }
+                    }
+                    topBidsComponents.append((peer.id, AnyComponent(PeerComponent(context: component.context, theme: environment.theme, groupingSeparator: environment.dateTimeFormat.groupingSeparator, peer: peer, place: i, amount: bid, isLast: i == topBidders.count, action: nil))))
+                    i += 1
+                }
+                
+                if !topBidsComponents.isEmpty {
+                    topBidsTitleComponent = AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_AuctionBid_TopWinnersTotal("\(giftsPerRound)").string.uppercased(), font: Font.medium(13.0), textColor: environment.theme.list.itemSecondaryTextColor))))
+                }
+            } else {
+                place = 1
+            }
+            
             var topCutoffRealValue: Int?
-            if let giftAuctionState = self.giftAuctionState, case let .ongoing(_, _, _, _, bidLevels, _, _, _, _, _) = giftAuctionState.auctionState {
-                for bidLevel in bidLevels {
-                    if bidLevel.position == giftsPerRound - 1 {
-                        topCutoffRealValue = Int(bidLevel.amount)
-                        break
+            if place > giftsPerRound {
+                if let giftAuctionState = self.giftAuctionState, case let .ongoing(_, _, _, _, bidLevels, _, _, _, _, _, _, _) = giftAuctionState.auctionState {
+                    for bidLevel in bidLevels {
+                        if bidLevel.position == giftsPerRound - 1 {
+                            topCutoffRealValue = Int(bidLevel.amount)
+                            break
+                        }
                     }
                 }
             }
@@ -2206,224 +2384,190 @@ private final class GiftAuctionBidScreenComponent: Component {
                 self.badgeStars.frame = starsRect
                 self.badgeStars.update(size: starsRect.size, color: sliderColor, emitterPosition: CGPoint(x: badgeFrame.midX, y: badgeFrame.maxY - 32.0))
             }
+                        
+            var auctionStats: [([AnimatedTextComponent.Item], String)] = []
             
-            var myBidTitleComponent: AnyComponent<Empty>?
-            var myBidComponent: AnyComponent<Empty>?
-            
-            var topBidsTitleComponent: AnyComponent<Empty>?
-            var topBidsComponents: [(EnginePeer.Id, AnyComponent<Empty>)] = []
-            
-            let place: Int32
-            if let giftAuctionState = self.giftAuctionState, case let .ongoing(_, _, _, _, bidLevels, topBidders, _, _, _, _) = giftAuctionState.auctionState {
-                var myBidAmount = Int64(self.amount.realValue)
-                var myBidDate = currentTime
-                var isBiddingUp = true
-                
-                if let currentAmount = giftAuctionState.myState.bidAmount, let currentDate = giftAuctionState.myState.bidDate, currentAmount >= myBidAmount {
-                    myBidAmount = currentAmount
-                    myBidDate = currentDate
-                    isBiddingUp = false
-                }
-                
-                place = giftAuctionState.getPlace(myBid: myBidAmount, myBidDate: myBidDate) ?? 1
-                                    
-                var bidTitle: String
-                var bidTitleColor: UIColor
-                var bidStatus: PeerComponent.Status?
-                if isBiddingUp {
-                    bidTitleColor = environment.theme.list.itemSecondaryTextColor
-                    bidTitle = environment.strings.Gift_AuctionBid_BidPreview
-                } else if place > giftsPerRound {
-                    bidTitle = environment.strings.Gift_AuctionBid_Outbid
-                    bidTitleColor = environment.theme.list.itemDestructiveColor
-                    bidStatus = .outbid
-                } else {
-                    bidTitle = environment.strings.Gift_AuctionBid_Winning
-                    bidTitleColor = environment.theme.list.itemDisclosureActions.constructive.fillColor
-                    bidStatus = .winning
-                }
-                
-                if let peer = self.peersMap[component.context.account.peerId] {
-                    myBidTitleComponent = AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: bidTitle.uppercased(), font: Font.medium(13.0), textColor: bidTitleColor))))
-                    myBidComponent = AnyComponent(PeerComponent(context: component.context, theme: environment.theme, groupingSeparator: environment.dateTimeFormat.groupingSeparator, peer: peer, place: place, amount: myBidAmount, status: bidStatus, isLast: true, action: nil))
-                }
-                
-                var i: Int32 = 1
-                for peer in topBidders {
-                    var bid: Int64 = 0
-                    for level in bidLevels {
-                        if level.position == i {
-                            bid = level.amount
-                            break
-                        }
-                    }
-                    topBidsComponents.append((peer.id, AnyComponent(PeerComponent(context: component.context, theme: environment.theme, groupingSeparator: environment.dateTimeFormat.groupingSeparator, peer: peer, place: i, amount: bid, isLast: i == topBidders.count, action: peer.id != component.context.account.peerId ? { [weak self] in self?.openPeer(peer, dismiss: false) } : nil))))
-                    i += 1
-                }
-                
-                if !topBidsComponents.isEmpty {
-                    topBidsTitleComponent = AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_AuctionBid_TopWinners.uppercased(), font: Font.medium(13.0), textColor: environment.theme.list.itemSecondaryTextColor))))
-                }
-            } else {
-                place = 1
-            }
-            
-            var perks: [([AnimatedTextComponent.Item], String)] = []
-            
-            var minBidIsSmall = false
             var minBidAnimatedItems: [AnimatedTextComponent.Item] = []
-            var untilNextDropAnimatedItems: [AnimatedTextComponent.Item] = []
+            var untilNextRoundAnimatedItems: [AnimatedTextComponent.Item] = []
             var dropsLeftAnimatedItems: [AnimatedTextComponent.Item] = []
             
-            if let auctionState = self.giftAuctionState?.auctionState {
-                if case let .ongoing(_, _, _, minBidAmount, _, _, nextDropDate, dropsLeft, _, _) = auctionState {
-                    var minBidAmount = minBidAmount
-                    if let myMinBidAmmount = self.giftAuctionState?.myState.minBidAmount {
-                        minBidAmount = myMinBidAmmount
-                    }
-                    var minBidString = "# \(presentationStringsFormattedNumber(Int32(clamping: minBidAmount), environment.dateTimeFormat.groupingSeparator))"
-                    if minBidAmount > 999999 {
-                        minBidString = "# \(minBidAmount)"
-                        minBidIsSmall = true
-                    }
-                    if let hashIndex = minBidString.firstIndex(of: "#") {
-                        var prefix = String(minBidString[..<hashIndex])
-                        if !prefix.isEmpty {
-                            prefix.removeLast()
-                            minBidAnimatedItems.append(
-                                AnimatedTextComponent.Item(
-                                    id: AnyHashable(minBidAnimatedItems.count),
-                                    content: .text(prefix)
-                                )
-                            )
-                        }
-                        
+            var nextRoundTitle = environment.strings.Gift_AuctionBid_UntilNext
+            if let auctionState = self.giftAuctionState?.auctionState, case let .ongoing(_, startDate, _, minBidAmount, _, _, nextDropDate, dropsLeft, currentRound, totalRounds, _, _) = auctionState {
+                if currentTime < startDate {
+                    nextRoundTitle = environment.strings.Gift_AuctionBid_BeforeStart
+                } else if currentRound == totalRounds {
+                    nextRoundTitle = environment.strings.Gift_AuctionBid_UntilEnd
+                }
+                
+                var minBidAmount = minBidAmount
+                if let myMinBidAmmount = self.giftAuctionState?.myState.minBidAmount {
+                    minBidAmount = myMinBidAmmount
+                }
+                var minBidString: String
+                if minBidAmount > 99999 {
+                    minBidString = compactNumericCountString(Int(minBidAmount), decimalSeparator: environment.dateTimeFormat.decimalSeparator, showDecimalPart: false)
+                } else {
+                    minBidString = presentationStringsFormattedNumber(Int32(clamping: minBidAmount), environment.dateTimeFormat.groupingSeparator)
+                }
+                minBidString = "# \(minBidString)"
+                if let hashIndex = minBidString.firstIndex(of: "#") {
+                    var prefix = String(minBidString[..<hashIndex])
+                    if !prefix.isEmpty {
+                        prefix.removeLast()
                         minBidAnimatedItems.append(
                             AnimatedTextComponent.Item(
                                 id: AnyHashable(minBidAnimatedItems.count),
-                                content: .icon("Premium/Stars/StarMedium", tint: false, offset: CGPoint(x: 1.0, y: 2.0 - UIScreenPixel))
+                                content: .text(prefix)
                             )
                         )
-                        
-                        let suffixStart = minBidString.index(after: hashIndex)
-                        let suffix = minBidString[suffixStart...]
-                        
-                        var i = suffix.startIndex
-                        while i < suffix.endIndex {
-                            if suffix[i].isNumber {
-                                var j = i
-                                while j < suffix.endIndex, suffix[j].isNumber {
-                                    j = suffix.index(after: j)
-                                }
-                                let string = suffix[i..<j]
-                                if let value = Int(string) {
-                                    minBidAnimatedItems.append(
-                                        AnimatedTextComponent.Item(
-                                            id: AnyHashable(minBidAnimatedItems.count),
-                                            content: .number(value, minDigits: string.count)
-                                        )
-                                    )
-                                }
-                                i = j
-                            } else {
-                                var j = i
-                                while j < suffix.endIndex, !suffix[j].isNumber {
-                                    j = suffix.index(after: j)
-                                }
-                                let textRun = String(suffix[i..<j])
-                                if !textRun.isEmpty {
-                                    minBidAnimatedItems.append(
-                                        AnimatedTextComponent.Item(
-                                            id: AnyHashable(minBidAnimatedItems.count),
-                                            content: .text(textRun)
-                                        )
-                                    )
-                                }
-                                i = j
+                    }
+                    
+                    minBidAnimatedItems.append(
+                        AnimatedTextComponent.Item(
+                            id: AnyHashable(minBidAnimatedItems.count),
+                            content: .icon("Premium/Stars/StarMedium", tint: false, offset: CGPoint(x: 1.0, y: 2.0 - UIScreenPixel))
+                        )
+                    )
+                    
+                    let suffixStart = minBidString.index(after: hashIndex)
+                    let suffix = minBidString[suffixStart...]
+                    
+                    var i = suffix.startIndex
+                    while i < suffix.endIndex {
+                        if suffix[i].isNumber {
+                            var j = i
+                            while j < suffix.endIndex, suffix[j].isNumber {
+                                j = suffix.index(after: j)
                             }
+                            let string = suffix[i..<j]
+                            if let value = Int(string) {
+                                minBidAnimatedItems.append(
+                                    AnimatedTextComponent.Item(
+                                        id: AnyHashable(minBidAnimatedItems.count),
+                                        content: .number(value, minDigits: string.count)
+                                    )
+                                )
+                            }
+                            i = j
+                        } else {
+                            var j = i
+                            while j < suffix.endIndex, !suffix[j].isNumber {
+                                j = suffix.index(after: j)
+                            }
+                            let textRun = String(suffix[i..<j])
+                            if !textRun.isEmpty {
+                                minBidAnimatedItems.append(
+                                    AnimatedTextComponent.Item(
+                                        id: AnyHashable(minBidAnimatedItems.count),
+                                        content: .text(textRun)
+                                    )
+                                )
+                            }
+                            i = j
                         }
-                    } else {
-                        minBidAnimatedItems.append(AnimatedTextComponent.Item(id: "static", content: .text(minBidString)))
                     }
-                    
-                    let dropTimeout = max(0, nextDropDate - currentTime)
-                    
-                    let minutes = Int(dropTimeout / 60)
-                    let seconds = Int(dropTimeout % 60)
-                    
-                    if dropTimeout == 0, place <= giftsPerRound  {
-                        Queue.mainQueue().after(1.5, {
-                            self.reloadAcquiredGifts()
-                        })
+                } else {
+                    minBidAnimatedItems.append(AnimatedTextComponent.Item(id: "static", content: .text(minBidString)))
+                }
+                
+                let dropTimeout: Int32
+                if currentTime < startDate {
+                    dropTimeout = max(0, startDate - currentTime)
+                } else {
+                    dropTimeout = max(0, nextDropDate - currentTime)
+                }
+                
+                let hours = Int(dropTimeout / 3600)
+                let minutes = Int((dropTimeout % 3600) / 60)
+                let seconds = Int(dropTimeout % 60)
+                
+                if hours > 0 {
+                    untilNextRoundAnimatedItems.append(AnimatedTextComponent.Item(id: "h", content: .number(hours, minDigits: 1)))
+                    untilNextRoundAnimatedItems.append(AnimatedTextComponent.Item(id: "colon1", content: .text(":")))
+                    untilNextRoundAnimatedItems.append(AnimatedTextComponent.Item(id: "m", content: .number(minutes, minDigits: 2)))
+                    untilNextRoundAnimatedItems.append(AnimatedTextComponent.Item(id: "colon2", content: .text(":")))
+                    untilNextRoundAnimatedItems.append(AnimatedTextComponent.Item(id: "s", content: .number(seconds, minDigits: 2)))
+                } else {
+                    untilNextRoundAnimatedItems.append(AnimatedTextComponent.Item(id: "m", content: .number(minutes, minDigits: 2)))
+                    untilNextRoundAnimatedItems.append(AnimatedTextComponent.Item(id: "colon", content: .text(":")))
+                    untilNextRoundAnimatedItems.append(AnimatedTextComponent.Item(id: "s", content: .number(seconds, minDigits: 2)))
+                }
+                
+                if dropsLeft >= 10000 {
+                    var compactString = compactNumericCountString(Int(dropsLeft), decimalSeparator: ".", showDecimalPart: false)
+                    let suffix = String(compactString.suffix(1))
+                    compactString.removeLast()
+                    if let value = Int(compactString) {
+                        dropsLeftAnimatedItems = [
+                            AnimatedTextComponent.Item(id: "drops", content: .number(value, minDigits: 1)),
+                            AnimatedTextComponent.Item(id: "suffix", content: .text(suffix))
+                        ]
                     }
-                    
-                    untilNextDropAnimatedItems.append(AnimatedTextComponent.Item(id: "m", content: .number(minutes, minDigits: 2)))
-                    untilNextDropAnimatedItems.append(AnimatedTextComponent.Item(id: "colon", content: .text(":")))
-                    untilNextDropAnimatedItems.append(AnimatedTextComponent.Item(id: "s", content: .number(seconds, minDigits: 2)))
-                        
+                } else {
                     dropsLeftAnimatedItems = [AnimatedTextComponent.Item(id: "drops", content: .number(Int(dropsLeft), minDigits: 1))]
                 }
             }
             
-            perks.append((
+            auctionStats.append((
                 minBidAnimatedItems,
                 environment.strings.Gift_AuctionBid_MinimumBid
             ))
             
-            perks.append((
-                untilNextDropAnimatedItems,
-                environment.strings.Gift_AuctionBid_UntilNext
+            auctionStats.append((
+                untilNextRoundAnimatedItems,
+                nextRoundTitle
             ))
             
-            perks.append((
+            auctionStats.append((
                 dropsLeftAnimatedItems,
                 environment.strings.Gift_AuctionBid_Left
             ))
             
             contentHeight += 54.0
             
-            let perkHeight: CGFloat = 60.0
-            let perkSpacing: CGFloat = 10.0
-            let perkWidth: CGFloat = floor((availableSize.width - sideInset * 2.0 - perkSpacing * CGFloat(perks.count - 1)) / CGFloat(perks.count))
+            let statSpacing: CGFloat = 10.0
+            let statWidth: CGFloat = floor((availableSize.width - sideInset * 2.0 - statSpacing * CGFloat(auctionStats.count - 1)) / CGFloat(auctionStats.count))
+            let statHeight: CGFloat = 60.0
             
-            for i in 0 ..< perks.count {
-                var perkFrame = CGRect(origin: CGPoint(x: sideInset + CGFloat(i) * (perkWidth + perkSpacing), y: contentHeight), size: CGSize(width: perkWidth, height: perkHeight))
-                if i == perks.count - 1 {
-                    perkFrame.size.width = max(0.0, availableSize.width - sideInset - perkFrame.minX)
+            for i in 0 ..< auctionStats.count {
+                var statFrame = CGRect(origin: CGPoint(x: sideInset + CGFloat(i) * (statWidth + statSpacing), y: contentHeight), size: CGSize(width: statWidth, height: statHeight))
+                if i == auctionStats.count - 1 {
+                    statFrame.size.width = max(0.0, availableSize.width - sideInset - statFrame.minX)
                 }
-                let perkView: ComponentView<Empty>
-                if self.liveStreamPerks.count > i {
-                    perkView = self.liveStreamPerks[i]
+                let statView: ComponentView<Empty>
+                if self.auctionStats.count > i {
+                    statView = self.auctionStats[i]
                 } else {
-                    perkView = ComponentView()
-                    self.liveStreamPerks.append(perkView)
+                    statView = ComponentView()
+                    self.auctionStats.append(statView)
                 }
-                let perk = perks[i]
-                let _ = perkView.update(
+                let stat = auctionStats[i]
+                let _ = statView.update(
                     transition: transition,
                     component: AnyComponent(AuctionStatComponent(
                         context: component.context,
-                        gift: i == perks.count - 1 ? component.auctionContext.gift : nil,
-                        title: perk.0,
-                        subtitle: perk.1,
-                        small: i == 0 && minBidIsSmall,
+                        gift: i == auctionStats.count - 1 ? component.auctionContext.gift : nil,
+                        title: stat.0,
+                        subtitle: stat.1,
+                        small: false,
                         theme: environment.theme
                     )),
                     environment: {},
-                    containerSize: perkFrame.size
+                    containerSize: statFrame.size
                 )
-                if let perkComponentView = perkView.view {
+                if let perkComponentView = statView.view {
                     if perkComponentView.superview == nil {
                         self.scrollContentView.addSubview(perkComponentView)
                     }
-                    transition.setFrame(view: perkComponentView, frame: perkFrame)
+                    transition.setFrame(view: perkComponentView, frame: statFrame)
                 }
             }
             
-            contentHeight += perkHeight
+            contentHeight += statHeight
             contentHeight += 24.0
             
-            if let giftAuctionAcquiredGifts = self.giftAuctionAcquiredGifts, giftAuctionAcquiredGifts.count > 0, case let .generic(gift) = component.gift {
+            let acquiredGiftsCount = self.giftAuctionState?.myState.acquiredCount ?? 0
+            if acquiredGiftsCount > 0, case let .generic(gift) = component.gift {
                 var myGiftsTransition = transition
                 let myGiftsSize = self.myGifts.update(
                     transition: .immediate,
@@ -2431,7 +2575,7 @@ private final class GiftAuctionBidScreenComponent: Component {
                         PlainButtonComponent(content: AnyComponent(
                             HStack([
                                 AnyComponentWithIdentity(id: "count", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(Int32(giftAuctionAcquiredGifts.count), environment.dateTimeFormat.groupingSeparator), font: Font.regular(17.0), textColor: environment.theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(Int32(acquiredGiftsCount), environment.dateTimeFormat.groupingSeparator), font: Font.regular(17.0), textColor: environment.theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "spacing", component: AnyComponent(
                                     Rectangle(color: .clear, width: 8.0, height: 1.0)
@@ -2447,7 +2591,7 @@ private final class GiftAuctionBidScreenComponent: Component {
                                     )
                                 )),
                                 AnyComponentWithIdentity(id: "text", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(environment.strings.Gift_Auction_ItemsBought(Int32(giftAuctionAcquiredGifts.count)))", font: Font.regular(17.0), textColor: environment.theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(environment.strings.Gift_Auction_ItemsBought(Int32(acquiredGiftsCount)))", font: Font.regular(17.0), textColor: environment.theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "arrow", component: AnyComponent(
                                     BundleIconComponent(name: "Chat/Context Menu/Arrow", tintColor: environment.theme.actionSheet.controlAccentColor)
@@ -2563,25 +2707,40 @@ private final class GiftAuctionBidScreenComponent: Component {
             var initialContentHeight = contentHeight
             let clippingY: CGFloat
             
+            let titleString: String
+            if isUpcoming {
+                titleString = environment.strings.Gift_AuctionBid_UpcomingTitle
+            } else {
+                titleString = environment.strings.Gift_AuctionBid_Title
+            }
+            
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: environment.strings.Gift_AuctionBid_Title, font: Font.semibold(17.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: titleString, font: Font.semibold(17.0), textColor: environment.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
             )
+            
+            var subtitleString = environment.strings.Gift_AuctionBid_Subtitle("\(giftsPerRound)").string
+            if let auctionState = self.giftAuctionState?.auctionState, case let .ongoing(_, _, _, _, _, _, _, _, currentRound, totalRounds, _, _) = auctionState {
+                subtitleString = environment.strings.Gift_AuctionBid_RoundSubtitle(
+                    presentationStringsFormattedNumber(currentRound, environment.dateTimeFormat.groupingSeparator),
+                    presentationStringsFormattedNumber(totalRounds, environment.dateTimeFormat.groupingSeparator),
+                ).string
+            }
             
             let subtitleSize = self.subtitle.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: environment.strings.Gift_AuctionBid_Subtitle("\(giftsPerRound)").string, font: Font.regular(13.0), textColor: environment.theme.list.itemSecondaryTextColor))
+                    text: .plain(NSAttributedString(string: isUpcoming ? "" : subtitleString, font: Font.regular(13.0), textColor: environment.theme.list.itemSecondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
             )
             
-            let titleFrame = CGRect(origin: CGPoint(x: floor((availableSize.width - titleSize.width) * 0.5), y: 19.0), size: titleSize)
+            let titleFrame = CGRect(origin: CGPoint(x: floor((availableSize.width - titleSize.width) * 0.5), y: isUpcoming ? 27.0 : 19.0), size: titleSize)
             if let titleView = self.title.view {
                 if titleView.superview == nil {
                     self.navigationBarContainer.addSubview(titleView)
@@ -2904,7 +3063,7 @@ public class GiftAuctionBidScreen: ViewControllerComponentContainer {
     private var didPlayAppearAnimation: Bool = false
     private var isDismissed: Bool = false
     
-    public init(context: AccountContext, toPeerId: EnginePeer.Id, text: String?, entities: [MessageTextEntity]?, hideName: Bool, auctionContext: GiftAuctionContext) {
+    public init(context: AccountContext, toPeerId: EnginePeer.Id, text: String?, entities: [MessageTextEntity]?, hideName: Bool, auctionContext: GiftAuctionContext, acquiredGifts: Signal<[GiftAuctionAcquiredGift], NoError>?) {
         self.context = context
         
         super.init(context: context, component: GiftAuctionBidScreenComponent(
@@ -2914,7 +3073,8 @@ public class GiftAuctionBidScreen: ViewControllerComponentContainer {
             entities: entities,
             hideName: hideName,
             gift: auctionContext.gift,
-            auctionContext: auctionContext
+            auctionContext: auctionContext,
+            acquiredGifts: acquiredGifts
         ), navigationBarAppearance: .none, theme: .default)
         
         self.statusBar.statusBarStyle = .Ignore
@@ -3378,5 +3538,103 @@ private final class GiftViewContextReferenceContentSource: ContextReferenceConte
     
     func transitionInfo() -> ContextControllerReferenceViewInfo? {
         return ContextControllerReferenceViewInfo(referenceView: self.sourceView, contentAreaInScreenSpace: UIScreen.main.bounds)
+    }
+}
+
+private final class PeerHeaderComponent: CombinedComponent {
+    let color: UIColor
+    let dateTimeFormat: PresentationDateTimeFormat
+    let title: String
+    let giftTitle: String?
+    let giftNumber: Int32?
+    
+    public init(
+        color: UIColor,
+        dateTimeFormat: PresentationDateTimeFormat,
+        title: String,
+        giftTitle: String?,
+        giftNumber: Int32?
+    ) {
+        self.color = color
+        self.dateTimeFormat = dateTimeFormat
+        self.title = title
+        self.giftTitle = giftTitle
+        self.giftNumber = giftNumber
+    }
+    
+    static func ==(lhs: PeerHeaderComponent, rhs: PeerHeaderComponent) -> Bool {
+        if lhs.color != rhs.color {
+            return false
+        }
+        if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.giftTitle != rhs.giftTitle {
+            return false
+        }
+        if lhs.giftNumber != rhs.giftNumber {
+            return false
+        }
+        return true
+    }
+    
+    static var body: Body {
+        let title = Child(MultilineTextComponent.self)
+        
+        let background = Child(RoundedRectangle.self)
+        let giftTitle = Child(MultilineTextComponent.self)
+        
+        return { context in
+            let component = context.component
+            
+            let title = title.update(
+                component: MultilineTextComponent(
+                    text: .plain(NSAttributedString(string: component.title.uppercased(), font: Font.medium(13.0), textColor: component.color))
+                ),
+                availableSize: CGSize(width: context.availableSize.width - 16.0, height: context.availableSize.height),
+                transition: .immediate
+            )
+            context.add(title
+                .position(CGPoint(x: title.size.width / 2.0, y: title.size.height / 2.0))
+            )
+            
+            var contentSize = title.size
+            if let titleString = component.giftTitle, let giftNumber = component.giftNumber {
+                let giftTitle = giftTitle.update(
+                    component: MultilineTextComponent(
+                        text: .plain(NSAttributedString(string: "\(titleString) #\(formatCollectibleNumber(giftNumber, dateTimeFormat: component.dateTimeFormat))", font: Font.regular(12.0), textColor: component.color))
+                    ),
+                    availableSize: CGSize(width: context.availableSize.width - 16.0, height: context.availableSize.height),
+                    transition: .immediate
+                )
+                
+                let spacing: CGFloat = 6.0
+                let padding: CGFloat = 5.0
+                let backgroundSize = CGSize(width: giftTitle.size.width + padding * 2.0, height: giftTitle.size.height + 4.0)
+                let background = background.update(
+                    component: RoundedRectangle(
+                        color: component.color.withAlphaComponent(0.1),
+                        cornerRadius: backgroundSize.height / 2.0
+                    ),
+                    availableSize: backgroundSize,
+                    transition: .immediate
+                )
+                context.add(background
+                    .position(CGPoint(x: title.size.width + spacing + padding + giftTitle.size.width / 2.0, y: title.size.height / 2.0))
+                    .appear(.default())
+                    .disappear(.default())
+                )
+
+                context.add(giftTitle
+                    .position(CGPoint(x: title.size.width + spacing + padding + giftTitle.size.width / 2.0, y: title.size.height / 2.0))
+                    .appear(.default())
+                    .disappear(.default())
+                )
+                
+                contentSize.width += spacing + backgroundSize.width
+            }
+ 
+            return contentSize
+        }
     }
 }

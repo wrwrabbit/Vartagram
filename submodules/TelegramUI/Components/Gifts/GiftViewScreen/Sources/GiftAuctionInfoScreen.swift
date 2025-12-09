@@ -80,7 +80,7 @@ private final class GiftAuctionInfoSheetContent: CombinedComponent {
             
             let _ = (self.auctionContext.state
             |> deliverOnMainQueue).startStandalone(next: { [weak self] state in
-                if let self, case let .ongoing(_, _, _, _, _, _, _, _, _, totalRounds) = state?.auctionState {
+                if let self, case let .ongoing(_, _, _, _, _, _, _, _, _, totalRounds, _, _) = state?.auctionState {
                     self.rounds = totalRounds
                     self.updated()
                 }

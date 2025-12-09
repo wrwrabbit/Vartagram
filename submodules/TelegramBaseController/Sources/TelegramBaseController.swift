@@ -565,7 +565,7 @@ open class TelegramBaseController: ViewController, KeyShortcutResponder {
                                 guard let self, let auction else {
                                     return
                                 }
-                                let controller = self.context.sharedContext.makeGiftAuctionBidScreen(context: self.context, toPeerId: auction.currentBidPeerId ?? self.context.account.peerId, text: nil, entities: nil, hideName: false, auctionContext: auction)
+                                let controller = self.context.sharedContext.makeGiftAuctionBidScreen(context: self.context, toPeerId: auction.currentBidPeerId ?? self.context.account.peerId, text: nil, entities: nil, hideName: false, auctionContext: auction, acquiredGifts: nil)
                                 self.push(controller)
                             })
                         }

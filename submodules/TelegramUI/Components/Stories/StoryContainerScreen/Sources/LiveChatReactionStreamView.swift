@@ -94,8 +94,6 @@ private func avatarViewLettersImage(size: CGSize, peerId: EnginePeer.Id, letters
 }
 
 private func makePeerBadgeImage(engine: TelegramEngine, peer: EnginePeer, count: Int) async -> UIImage {
-    let count = 123
-    
     let avatarSize: CGFloat = 16.0
     let avatarInset: CGFloat = 2.0
     let avatarIconSpacing: CGFloat = 2.0

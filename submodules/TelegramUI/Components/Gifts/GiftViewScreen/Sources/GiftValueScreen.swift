@@ -370,7 +370,7 @@ private final class GiftValueSheetContent: CombinedComponent {
                 )
             ))
                                     
-            let valueString = "⭐️\(formatStarsAmountText(StarsAmount(value: component.valueInfo.initialSaleStars, nanos: 0), dateTimeFormat: dateTimeFormat)) (≈\(formatCurrencyAmount(component.valueInfo.initialSalePrice, currency: component.valueInfo.currency)))"
+            let valueString = "⭐️\(formatStarsAmountText(StarsAmount(value: component.valueInfo.initialSaleStars, nanos: 0), dateTimeFormat: dateTimeFormat)) (~\(formatCurrencyAmount(component.valueInfo.initialSalePrice, currency: component.valueInfo.currency)))"
             let valueAttributedString = NSMutableAttributedString(string: valueString, font: tableFont, textColor: tableTextColor)
             let range = (valueAttributedString.string as NSString).range(of: "⭐️")
             if range.location != NSNotFound {

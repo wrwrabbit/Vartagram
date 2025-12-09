@@ -272,7 +272,9 @@ private final class GiftAuctionCustomBidAlertContentNode: AlertContentNode {
         if !hadValidLayout {
             if let amountFieldView = self.amountField.view as? AmountFieldComponent.View {
                 amountFieldView.activateInput()
-                amountFieldView.selectAll()
+                Queue.mainQueue().justDispatch {
+                    amountFieldView.selectAll()
+                }
             }
         }
         

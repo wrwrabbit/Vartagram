@@ -32,13 +32,14 @@ import InAppPurchaseManager
 import BlurredBackgroundComponent
 import ProgressNavigationButtonNode
 import Markdown
-import GiftViewScreen
 import UndoUI
 import ConfettiEffect
 import EdgeEffect
 import AnimatedTextComponent
 import GlassBarButtonComponent
 import MessageInputPanelComponent
+import GiftRemainingCountComponent
+import GlassBackgroundComponent
 
 private final class GiftSetupScreenComponent: Component {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
@@ -46,17 +47,20 @@ private final class GiftSetupScreenComponent: Component {
     let context: AccountContext
     let peerId: EnginePeer.Id
     let subject: GiftSetupScreen.Subject
+    let auctionAcquiredGifts: Signal<[GiftAuctionAcquiredGift], NoError>?
     let completion: (() -> Void)?
     
     init(
         context: AccountContext,
         peerId: EnginePeer.Id,
         subject: GiftSetupScreen.Subject,
+        auctionAcquiredGifts: Signal<[GiftAuctionAcquiredGift], NoError>?,
         completion: (() -> Void)? = nil
     ) {
         self.context = context
         self.peerId = peerId
         self.subject = subject
+        self.auctionAcquiredGifts = auctionAcquiredGifts
         self.completion = completion
     }
     
@@ -110,6 +114,7 @@ private final class GiftSetupScreenComponent: Component {
         private let upgradeSection = ComponentView<Empty>()
         private let hideSection = ComponentView<Empty>()
         
+        private let glassContainerView = GlassBackgroundContainerView()
         private let inputPanel = ComponentView<Empty>()
         private let inputPanelExternalState = MessageInputPanelComponent.ExternalState()
         
@@ -479,7 +484,8 @@ private final class GiftSetupScreenComponent: Component {
                     text: textInputText.string,
                     entities: entities,
                     hideName: self.hideName,
-                    auctionContext: auctionContext
+                    auctionContext: auctionContext,
+                    acquiredGifts: component.auctionAcquiredGifts
                 )
                 environment.controller()?.dismiss()
                 navigationController.pushViewController(controller)
@@ -579,7 +585,6 @@ private final class GiftSetupScreenComponent: Component {
                             controllers.append(chatController)
                         }
                         navigationController.setViewControllers(controllers, animated: true)
-                        
                         
                         if case let .starGift(starGift, _) = component.subject, let perUserLimit = starGift.perUserLimit {
                             Queue.mainQueue().after(0.5) {
@@ -883,6 +888,8 @@ private final class GiftSetupScreenComponent: Component {
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
             let themeUpdated = self.environment?.theme !== environment.theme
             
+            let theme = environment.theme.withModalBlocksBackground()
+            
             let resetScrolling = self.scrollView.bounds.width != availableSize.width
             
             let fillingSize: CGFloat
@@ -1089,7 +1096,7 @@ private final class GiftSetupScreenComponent: Component {
             
             if themeUpdated {
                 self.dimView.backgroundColor = UIColor(white: 0.0, alpha: 0.5)
-                self.backgroundLayer.backgroundColor = environment.theme.list.blocksBackgroundColor.cgColor
+                self.backgroundLayer.backgroundColor = theme.list.blocksBackgroundColor.cgColor
             }
                         
             transition.setFrame(view: self.dimView, frame: CGRect(origin: CGPoint(), size: availableSize))
@@ -1361,11 +1368,16 @@ private final class GiftSetupScreenComponent: Component {
                     transition.setFrame(view: introContentView, frame: CGRect(origin: CGPoint(x: rawSideInset, y: 0.0), size: introContentSize))
                 }
                 
-                let inputPanelFrame = CGRect(origin: CGPoint(x: rawSideInset + inputPanelInset, y: contentHeight + introContentSize.height - inputPanelInset - inputPanelSize.height + 6.0), size: inputPanelSize)
+                let glassContainerFrame = CGRect(origin: CGPoint(x: rawSideInset + inputPanelInset, y: contentHeight + introContentSize.height - inputPanelInset - inputPanelSize.height + 6.0 - 20.0), size: CGSize(width: inputPanelSize.width, height: inputPanelSize.height + 40.0))
+                self.glassContainerView.update(size: glassContainerFrame.size, isDark: theme.overallDarkAppearance, transition: transition)
+                
+                let inputPanelFrame = CGRect(origin: CGPoint(x: 0.0, y: 20.0), size: inputPanelSize)
                 if let inputPanelView = self.inputPanel.view {
                     if inputPanelView.superview == nil {
-                        self.scrollContentView.addSubview(inputPanelView)
+                        self.scrollContentView.addSubview(self.glassContainerView)
+                        self.glassContainerView.contentView.addSubview(inputPanelView)
                     }
+                    transition.setFrame(view: self.glassContainerView, frame: glassContainerFrame)
                     transition.setFrame(view: inputPanelView, frame: inputPanelFrame)
                 }
             }
@@ -1378,18 +1390,18 @@ private final class GiftSetupScreenComponent: Component {
                     let resaleSectionSize = self.resaleSection.update(
                         transition: transition,
                         component: AnyComponent(ListSectionComponent(
-                            theme: environment.theme,
+                            theme: theme,
                             style: .glass,
                             header: nil,
                             footer: nil,
                             items: [
                                 AnyComponentWithIdentity(id: 0, component: AnyComponent(ListActionItemComponent(
-                                    theme: environment.theme,
+                                    theme: theme,
                                     style: .glass,
                                     title: AnyComponent(VStack([
                                         AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(
                                             MultilineTextComponent(
-                                                text: .plain(NSAttributedString(string: environment.strings.Gift_Send_AvailableForResale, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemPrimaryTextColor))
+                                                text: .plain(NSAttributedString(string: environment.strings.Gift_Send_AvailableForResale, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: theme.list.itemPrimaryTextColor))
                                             )
                                         )),
                                     ], alignment: .left, spacing: 2.0)),
@@ -1397,7 +1409,7 @@ private final class GiftSetupScreenComponent: Component {
                                         text: .plain(NSAttributedString(
                                             string: presentationStringsFormattedNumber(Int32(availability.resale), environment.dateTimeFormat.groupingSeparator),
                                             font: Font.regular(presentationData.listsFontSize.baseDisplaySize),
-                                            textColor: environment.theme.list.itemSecondaryTextColor
+                                            textColor: theme.list.itemSecondaryTextColor
                                         )),
                                         maximumNumberOfLines: 0
                                     ))), insets: UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 16.0))),
@@ -1440,7 +1452,7 @@ private final class GiftSetupScreenComponent: Component {
                     let starsFooterText = NSMutableAttributedString(attributedString: parseMarkdownIntoAttributedString(starsFooterRawString, attributes: footerAttributes))
                     
                     if self.cachedChevronImage == nil || self.cachedChevronImage?.1 !== environment.theme {
-                        self.cachedChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Item List/InlineTextRightArrow"), color: environment.theme.list.itemAccentColor)!, environment.theme)
+                        self.cachedChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Item List/InlineTextRightArrow"), color: theme.list.itemAccentColor)!, environment.theme)
                     }
                     if let range = starsFooterText.string.range(of: "#") {
                         starsFooterText.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: false)), range: NSRange(range, in: starsFooterText.string))
@@ -1450,7 +1462,7 @@ private final class GiftSetupScreenComponent: Component {
                     }
                     
                     let priceString = presentationStringsFormattedNumber(Int32(starsPrice), environment.dateTimeFormat.groupingSeparator)
-                    let starsAttributedText = NSMutableAttributedString(string: environment.strings.Gift_Send_PayWithStars("#\(priceString)").string, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemPrimaryTextColor)
+                    let starsAttributedText = NSMutableAttributedString(string: environment.strings.Gift_Send_PayWithStars("#\(priceString)").string, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: theme.list.itemPrimaryTextColor)
                     let range = (starsAttributedText.string as NSString).range(of: "#")
                     if range.location != NSNotFound {
                         starsAttributedText.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: false)), range: range)
@@ -1460,7 +1472,7 @@ private final class GiftSetupScreenComponent: Component {
                     let starsSectionSize = self.starsSection.update(
                         transition: transition,
                         component: AnyComponent(ListSectionComponent(
-                            theme: environment.theme,
+                            theme: theme,
                             style: .glass,
                             header: nil,
                             footer: AnyComponent(MultilineTextWithEntitiesComponent(
@@ -1470,7 +1482,7 @@ private final class GiftSetupScreenComponent: Component {
                                 placeholderColor: .clear,
                                 text: .plain(starsFooterText),
                                 maximumNumberOfLines: 0,
-                                highlightColor: environment.theme.list.itemAccentColor.withAlphaComponent(0.1),
+                                highlightColor: theme.list.itemAccentColor.withAlphaComponent(0.1),
                                 highlightInset: UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: -8.0),
                                 highlightAction: { attributes in
                                     if let _ = attributes[NSAttributedString.Key(rawValue: TelegramTextAttributes.URL)] {
@@ -1496,7 +1508,7 @@ private final class GiftSetupScreenComponent: Component {
                             )),
                             items: [
                                 AnyComponentWithIdentity(id: 0, component: AnyComponent(ListActionItemComponent(
-                                    theme: environment.theme,
+                                    theme: theme,
                                     style: .glass,
                                     title: AnyComponent(VStack([
                                         AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(
@@ -1504,7 +1516,7 @@ private final class GiftSetupScreenComponent: Component {
                                                 context: component.context,
                                                 animationCache: component.context.animationCache,
                                                 animationRenderer: component.context.animationRenderer,
-                                                placeholderColor: environment.theme.list.mediaPlaceholderColor,
+                                                placeholderColor: theme.list.mediaPlaceholderColor,
                                                 text: .plain(starsAttributedText)
                                             )
                                         )),
@@ -1550,13 +1562,13 @@ private final class GiftSetupScreenComponent: Component {
                     let upgradeFooterText = NSMutableAttributedString(attributedString: parsedString)
                     
                     if self.cachedChevronImage == nil || self.cachedChevronImage?.1 !== environment.theme {
-                        self.cachedChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Item List/InlineTextRightArrow"), color: environment.theme.list.itemAccentColor)!, environment.theme)
+                        self.cachedChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Item List/InlineTextRightArrow"), color: theme.list.itemAccentColor)!, environment.theme)
                     }
                     if let range = upgradeFooterText.string.range(of: ">"), let chevronImage = self.cachedChevronImage?.0 {
                         upgradeFooterText.addAttribute(.attachment, value: chevronImage, range: NSRange(range, in: upgradeFooterText.string))
                     }
                     
-                    let upgradeAttributedText = NSMutableAttributedString(string: environment.strings.Gift_Send_Upgrade("#\(upgradeStars)").string, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemPrimaryTextColor)
+                    let upgradeAttributedText = NSMutableAttributedString(string: environment.strings.Gift_Send_Upgrade("#\(upgradeStars)").string, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: theme.list.itemPrimaryTextColor)
                     let range = (upgradeAttributedText.string as NSString).range(of: "#")
                     if range.location != NSNotFound {
                         upgradeAttributedText.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: false)), range: range)
@@ -1566,13 +1578,13 @@ private final class GiftSetupScreenComponent: Component {
                     let upgradeSectionSize = self.upgradeSection.update(
                         transition: transition,
                         component: AnyComponent(ListSectionComponent(
-                            theme: environment.theme,
+                            theme: theme,
                             style: .glass,
                             header: nil,
                             footer: AnyComponent(MultilineTextComponent(
                                 text: .plain(upgradeFooterText),
                                 maximumNumberOfLines: 0,
-                                highlightColor: environment.theme.list.itemAccentColor.withAlphaComponent(0.1),
+                                highlightColor: theme.list.itemAccentColor.withAlphaComponent(0.1),
                                 highlightInset: UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: -8.0),
                                 highlightAction: { attributes in
                                     if let _ = attributes[NSAttributedString.Key(rawValue: TelegramTextAttributes.URL)] {
@@ -1591,17 +1603,14 @@ private final class GiftSetupScreenComponent: Component {
                                         guard let self, let component = self.component, let controller = self.environment?.controller(), let upgradePreview else {
                                             return
                                         }
-                                        let previewController = GiftViewScreen(
-                                            context: component.context,
-                                            subject: .upgradePreview(upgradePreview.attributes, peerName)
-                                        )
+                                        let previewController = component.context.sharedContext.makeGiftUpgradePreviewScreen(context: component.context, attributes: upgradePreview.attributes, peerName: peerName)
                                         controller.push(previewController)
                                     })
                                 }
                             )),
                             items: [
                                 AnyComponentWithIdentity(id: 0, component: AnyComponent(ListActionItemComponent(
-                                    theme: environment.theme,
+                                    theme: theme,
                                     style: .glass,
                                     title: AnyComponent(VStack([
                                         AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(
@@ -1609,7 +1618,7 @@ private final class GiftSetupScreenComponent: Component {
                                                 context: component.context,
                                                 animationCache: component.context.animationCache,
                                                 animationRenderer: component.context.animationRenderer,
-                                                placeholderColor: environment.theme.list.mediaPlaceholderColor,
+                                                placeholderColor: theme.list.mediaPlaceholderColor,
                                                 text: .plain(upgradeAttributedText)
                                             )
                                         )),
@@ -1650,27 +1659,27 @@ private final class GiftSetupScreenComponent: Component {
                 let hideSectionSize = self.hideSection.update(
                     transition: transition,
                     component: AnyComponent(ListSectionComponent(
-                        theme: environment.theme,
+                        theme: theme,
                         style: .glass,
                         header: nil,
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: hideSectionFooterString,
                                 font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
-                                textColor: environment.theme.list.freeTextColor
+                                textColor: theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
                         )),
                         items: [
                             AnyComponentWithIdentity(id: 0, component: AnyComponent(ListActionItemComponent(
-                                theme: environment.theme,
+                                theme: theme,
                                 style: .glass,
                                 title: AnyComponent(VStack([
                                     AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                                         text: .plain(NSAttributedString(
                                             string: isSelfGift ? environment.strings.Gift_SendSelf_HideMyName : environment.strings.Gift_Send_HideMyName,
                                             font: Font.regular(presentationData.listsFontSize.baseDisplaySize),
-                                            textColor: environment.theme.list.itemPrimaryTextColor
+                                            textColor: theme.list.itemPrimaryTextColor
                                         )),
                                         maximumNumberOfLines: 1
                                     ))),
@@ -1704,20 +1713,28 @@ private final class GiftSetupScreenComponent: Component {
                 contentHeight -= 77.0
                 contentHeight += 16.0
                 
-                let remains: Int32 = availability.remains
+                var remains: Int32 = availability.remains
+                if let auctionState = self.giftAuctionState {
+                    switch auctionState.auctionState {
+                    case let .ongoing(_, _, _, _, _, _, _, giftsLeft, _, _, _, _):
+                        remains = giftsLeft
+                    case .finished:
+                        remains = 0
+                    }
+                }
                 let total: Int32 = availability.total
                 let position = CGFloat(remains) / CGFloat(total)
                 let sold = total - remains
                 let remainingCountSize = self.remainingCount.update(
                     transition: transition,
-                    component: AnyComponent(RemainingCountComponent(
-                        inactiveColor: environment.theme.list.itemBlocksBackgroundColor,
+                    component: AnyComponent(GiftRemainingCountComponent(
+                        inactiveColor: theme.list.itemBlocksBackgroundColor,
                         activeColors: [UIColor(rgb: 0x72d6ff), UIColor(rgb: 0x32a0f9)],
                         inactiveTitle: environment.strings.Gift_Send_Remains(remains),
                         inactiveValue: "",
-                        inactiveTitleColor: environment.theme.list.itemSecondaryTextColor,
+                        inactiveTitleColor: theme.list.itemSecondaryTextColor,
                         activeTitle: "",
-                        activeValue: environment.strings.Gift_Send_Sold(sold),
+                        activeValue: sold > 0 ? environment.strings.Gift_Send_Sold(sold) : "",
                         activeTitleColor: .white,
                         badgeText: "",
                         badgePosition: position,
@@ -1744,7 +1761,7 @@ private final class GiftSetupScreenComponent: Component {
                     let auctionFooterText = NSMutableAttributedString(attributedString: parsedString)
                     
                     if self.cachedChevronImage == nil || self.cachedChevronImage?.1 !== environment.theme {
-                        self.cachedChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Item List/InlineTextRightArrow"), color: environment.theme.list.itemAccentColor)!, environment.theme)
+                        self.cachedChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Item List/InlineTextRightArrow"), color: theme.list.itemAccentColor)!, environment.theme)
                     }
                     if let range = auctionFooterText.string.range(of: ">"), let chevronImage = self.cachedChevronImage?.0 {
                         auctionFooterText.addAttribute(.attachment, value: chevronImage, range: NSRange(range, in: auctionFooterText.string))
@@ -1755,7 +1772,7 @@ private final class GiftSetupScreenComponent: Component {
                         component: AnyComponent(MultilineTextComponent(
                             text: .plain(auctionFooterText),
                             maximumNumberOfLines: 0,
-                            highlightColor: environment.theme.list.itemAccentColor.withAlphaComponent(0.1),
+                            highlightColor: theme.list.itemAccentColor.withAlphaComponent(0.1),
                             highlightInset: UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: -8.0),
                             highlightAction: { attributes in
                                 if let _ = attributes[NSAttributedString.Key(rawValue: TelegramTextAttributes.URL)] {
@@ -1820,22 +1837,30 @@ private final class GiftSetupScreenComponent: Component {
             
             var buttonTitleItems: [AnyComponentWithIdentity<Empty>] = []
             if let _ = self.giftAuction {
-                let buttonAttributedString = NSMutableAttributedString(string: environment.strings.Gift_Setup_PlaceBid, font: Font.semibold(17.0), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
-                buttonTitleItems.append(AnyComponentWithIdentity(id: "bid", component: AnyComponent(
-                    MultilineTextComponent(text: .plain(buttonAttributedString))
-                )))
+                var isUpcoming = false
                 if let giftAuctionState = self.giftAuctionState {
                     switch giftAuctionState.auctionState {
-                    case let .ongoing(_, _, endTime, _, _, _, _, _, _, _):
+                    case let .ongoing(_, startTime, endTime, _, _, _, _, _, _, _, _, _):
                         let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
-                        
-                        let endTimeout = max(0, endTime - currentTime)
+                        let endTimeout: Int32
+                        if currentTime < startTime {
+                            endTimeout = max(0, startTime - currentTime)
+                            isUpcoming = true
+                        } else {
+                            endTimeout = max(0, endTime - currentTime)
+                        }
                         
                         let hours = Int(endTimeout / 3600)
                         let minutes = Int((endTimeout % 3600) / 60)
                         let seconds = Int(endTimeout % 60)
                         
-                        let rawString = hours > 0 ? environment.strings.Gift_Auction_TimeLeftHours : environment.strings.Gift_Auction_TimeLeftMinutes
+                        let rawString: String
+                        if isUpcoming {
+                            rawString = hours > 0 ? environment.strings.Gift_Auction_StartsInHours : environment.strings.Gift_Auction_StartsInMinutes
+                        } else {
+                            rawString = hours > 0 ? environment.strings.Gift_Auction_TimeLeftHours : environment.strings.Gift_Auction_TimeLeftMinutes
+                        }
+                        
                         var buttonAnimatedTitleItems: [AnimatedTextComponent.Item] = []
                         var startIndex = rawString.startIndex
                         while true {
@@ -1875,11 +1900,15 @@ private final class GiftSetupScreenComponent: Component {
                         buttonIsEnabled = false
                     }
                 }
+                let buttonAttributedString = NSMutableAttributedString(string: isUpcoming ? environment.strings.Gift_Auction_EarlyBid : environment.strings.Gift_Setup_PlaceBid, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+                buttonTitleItems.insert(AnyComponentWithIdentity(id: "bid", component: AnyComponent(
+                    MultilineTextComponent(text: .plain(buttonAttributedString))
+                )), at: 0)
             } else {
-                let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.semibold(17.0), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+                let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
                 if let range = buttonAttributedString.string.range(of: "#"), let starImage = self.cachedStarImage?.0 {
                     buttonAttributedString.addAttribute(.attachment, value: starImage, range: NSRange(range, in: buttonAttributedString.string))
-                    buttonAttributedString.addAttribute(.foregroundColor, value: environment.theme.list.itemCheckColors.foregroundColor, range: NSRange(range, in: buttonAttributedString.string))
+                    buttonAttributedString.addAttribute(.foregroundColor, value: theme.list.itemCheckColors.foregroundColor, range: NSRange(range, in: buttonAttributedString.string))
                     buttonAttributedString.addAttribute(.baselineOffset, value: 1.5, range: NSRange(range, in: buttonAttributedString.string))
                     buttonAttributedString.addAttribute(.kern, value: 2.0, range: NSRange(range, in: buttonAttributedString.string))
                 }
@@ -1896,9 +1925,9 @@ private final class GiftSetupScreenComponent: Component {
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
                         style: .glass,
-                        color: environment.theme.list.itemCheckColors.fillColor,
-                        foreground: environment.theme.list.itemCheckColors.foregroundColor,
-                        pressedColor: environment.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9),
+                        color: theme.list.itemCheckColors.fillColor,
+                        foreground: theme.list.itemCheckColors.foregroundColor,
+                        pressedColor: theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9),
                         isShimmering: true
                     ),
                     content: AnyComponentWithIdentity(
@@ -1919,7 +1948,7 @@ private final class GiftSetupScreenComponent: Component {
             let bottomEdgeEffectHeight: CGFloat = bottomPanelHeight
             let bottomEdgeEffectFrame = CGRect(origin: CGPoint(x: rawSideInset, y: availableSize.height - bottomEdgeEffectHeight), size: CGSize(width: fillingSize, height: bottomEdgeEffectHeight))
             transition.setFrame(view: self.bottomEdgeEffectView, frame: bottomEdgeEffectFrame)
-            self.bottomEdgeEffectView.update(content: environment.theme.actionSheet.opaqueItemBackgroundColor, blur: true, alpha: 1.0, rect: bottomEdgeEffectFrame, edge: .bottom, edgeSize: bottomEdgeEffectFrame.height, transition: transition)
+            self.bottomEdgeEffectView.update(content: theme.list.blocksBackgroundColor, blur: true, alpha: 1.0, rect: bottomEdgeEffectFrame, edge: .bottom, edgeSize: bottomEdgeEffectFrame.height, transition: transition)
             if self.bottomEdgeEffectView.superview == nil {
                 self.containerView.addSubview(self.bottomEdgeEffectView)
             }
@@ -2005,7 +2034,7 @@ private final class GiftSetupScreenComponent: Component {
     }
 }
 
-public class GiftSetupScreen: ViewControllerComponentContainer {
+public class GiftSetupScreen: ViewControllerComponentContainer, GiftSetupScreenProtocol {
     public enum Subject: Equatable {
         case premium(PremiumGiftProduct)
         case starGift(StarGift.Gift, Bool?)
@@ -2020,6 +2049,7 @@ public class GiftSetupScreen: ViewControllerComponentContainer {
         context: AccountContext,
         peerId: EnginePeer.Id,
         subject: Subject,
+        auctionAcquiredGifts: Signal<[GiftAuctionAcquiredGift], NoError>? = nil,
         completion: (() -> Void)? = nil
     ) {
         self.context = context
@@ -2028,6 +2058,7 @@ public class GiftSetupScreen: ViewControllerComponentContainer {
             context: context,
             peerId: peerId,
             subject: subject,
+            auctionAcquiredGifts: auctionAcquiredGifts,
             completion: completion
         ), navigationBarAppearance: .none, theme: .default)
         

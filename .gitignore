@@ -76,3 +76,4 @@ buildServer.json
 Telegram.LSP.json
 **/.build/**
 spm-files
+.bsp/**

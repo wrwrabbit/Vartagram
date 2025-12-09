@@ -58,6 +58,19 @@ private extension ComponentTransition.Animation.Curve {
             preconditionFailure()
         }
     }
+
+    var viewAnimationOptions: UIView.AnimationOptions {
+        switch self {
+            case .linear:
+                return [.curveLinear]
+            case .easeInOut:
+                return [.curveEaseInOut]
+            case .spring:
+                return UIView.AnimationOptions(rawValue: 7 << 16)
+            case .custom:
+                return []
+        }
+    }
 }
 
 public extension ComponentTransition.Animation {
@@ -66,6 +79,24 @@ public extension ComponentTransition.Animation {
             return true
         } else {
             return false
+        }
+    }
+}
+
+public extension ComponentTransition {
+    func animateView(allowUserInteraction: Bool = false, delay: Double = 0.0, _ f: @escaping () -> Void, completion: ((Bool) -> Void)? = nil) {
+        switch self.animation {
+        case .none:
+            f()
+            completion?(true)
+        case let .curve(duration, curve):
+            var options = curve.viewAnimationOptions
+            if allowUserInteraction {
+                options.insert(.allowUserInteraction)
+            }
+            UIView.animate(withDuration: duration, delay: delay, options: options, animations: {
+                f()
+            }, completion: completion)
         }
     }
 }

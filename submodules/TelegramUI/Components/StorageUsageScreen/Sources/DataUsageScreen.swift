@@ -24,6 +24,7 @@ import TelegramStringFormatting
 import GalleryData
 import AnimatedTextComponent
 import TelegramUIPreferences
+import SegmentControlComponent
 
 final class DataUsageScreenComponent: Component {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment

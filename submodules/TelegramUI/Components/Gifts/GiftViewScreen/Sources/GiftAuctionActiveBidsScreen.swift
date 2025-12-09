@@ -331,7 +331,7 @@ private final class GiftAuctionActiveBidsScreenComponent: Component {
                                         guard let self, let component = self.component, let auction, let controller = environment.controller(), let navigationController = controller.navigationController as? NavigationController else {
                                             return
                                         }
-                                        let bidController = component.context.sharedContext.makeGiftAuctionBidScreen(context: component.context, toPeerId: auction.currentBidPeerId ?? component.context.account.peerId, text: nil, entities: nil, hideName: false, auctionContext: auction)
+                                        let bidController = component.context.sharedContext.makeGiftAuctionBidScreen(context: component.context, toPeerId: auction.currentBidPeerId ?? component.context.account.peerId, text: nil, entities: nil, hideName: false, auctionContext: auction, acquiredGifts: nil)
                                         navigationController.pushViewController(bidController)
                                     })
                                 }
@@ -663,11 +663,13 @@ private final class ActiveAuctionComponent: Component {
             var titleText: String = ""
             var subtitleText: String = ""
             var subtitleTextColor = component.theme.list.itemPrimaryTextColor
-            if case let .ongoing(_, _, _, _, _, _, nextRoundDate, _, currentRound, totalRound) = component.state.auctionState, let myBid = component.state.myState.bidAmount {
+            if case let .ongoing(_, startDate, _, _, _, _, nextRoundDate, _, currentRound, totalRound, _, _) = component.state.auctionState, let myBid = component.state.myState.bidAmount {
                 titleText = component.strings.Gift_ActiveAuctions_Round("\(currentRound)", "\(totalRound)").string
                 
                 let bidString = "#\(presentationStringsFormattedNumber(Int32(clamping: myBid), component.dateTimeFormat.groupingSeparator))"
-                if let place = component.state.place, case let .generic(gift) = component.state.gift, let auctionGiftsPerRound = gift.auctionGiftsPerRound, place > auctionGiftsPerRound {
+                if component.currentTime < startDate {
+                    subtitleText = component.strings.Gift_ActiveAuctions_UpcomingBid
+                } else if let place = component.state.place, case let .generic(gift) = component.state.gift, let auctionGiftsPerRound = gift.auctionGiftsPerRound, place > auctionGiftsPerRound {
                     subtitleText = component.strings.Gift_ActiveAuctions_Outbid(bidString).string
                     subtitleTextColor = component.theme.list.itemDestructiveColor
                 } else {

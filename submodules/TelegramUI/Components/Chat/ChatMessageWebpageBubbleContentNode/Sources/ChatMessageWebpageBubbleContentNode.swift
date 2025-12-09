@@ -346,7 +346,7 @@ public final class ChatMessageWebpageBubbleContentNode: ChatMessageBubbleContent
                 case "telegram_auction":
                     for attribute in webpage.attributes {
                         if case let .giftAuction(giftAuction) = attribute, case let .generic(gift) = giftAuction.gift {
-                            let media = GiftAuctionPreviewMedia(content: gift, centerColor: UIColor(rgb: UInt32(bitPattern: giftAuction.centerColor)), edgeColor: UIColor(rgb: UInt32(bitPattern: giftAuction.edgeColor)), endTime: giftAuction.endDate)
+                            let media = GiftAuctionPreviewMedia(content: gift, endTime: giftAuction.endDate)
                             mediaAndFlags = ([media], [])
                             break
                         }
@@ -490,19 +490,29 @@ public final class ChatMessageWebpageBubbleContentNode: ChatMessageBubbleContent
                             actionTitle = item.presentationData.strings.Chat_ViewAlbum
                         case "telegram_auction":
                             var hasEnded = false
+                            var isUpcoming = false
+                            let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
                             for attribute in webpage.attributes {
                                 if case let .giftAuction(giftAuction) = attribute {
-                                    let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
+                                    if case let .generic(gift) = giftAuction.gift, let auctionStartDate = gift.auctionStartDate, currentTime < auctionStartDate {
+                                        isUpcoming = true
+                                    }
                                     if giftAuction.endDate < currentTime {
                                         hasEnded = true
                                     }
                                     break
                                 }
                             }
-                            subtitle = NSAttributedString(string: item.presentationData.strings.Chat_Auction, font: titleFont)
                             text = nil
-                            actionTitle = hasEnded ? item.presentationData.strings.Chat_Auction_ViewResults : item.presentationData.strings.Chat_Auction_Join
-                            actionIcon = !hasEnded ? .bid : nil
+                            if isUpcoming {
+                                subtitle = NSAttributedString(string: item.presentationData.strings.Chat_Auction_Upcoming, font: titleFont)
+                                actionTitle = item.presentationData.strings.Chat_Auction_View
+                                actionIcon = nil
+                            } else {
+                                subtitle = NSAttributedString(string: item.presentationData.strings.Chat_Auction, font: titleFont)
+                                actionTitle = hasEnded ? item.presentationData.strings.Chat_Auction_ViewResults : item.presentationData.strings.Chat_Auction_Join
+                                actionIcon = !hasEnded ? .bid : nil
+                            }
                         default:
                             break
                     }

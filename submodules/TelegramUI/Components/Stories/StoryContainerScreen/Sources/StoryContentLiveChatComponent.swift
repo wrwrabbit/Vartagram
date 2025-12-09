@@ -576,16 +576,28 @@ final class StoryContentLiveChatComponent: Component {
                             if !self.isChatExpanded {
                                 var hasNewMessages = false
                                 for message in state.messages {
-                                    if message.isIncoming && !previousMessagesState.messages.contains(where: { $0.id == message.id }) {
-                                        hasNewMessages = true
+                                    if message.isIncoming {
+                                        if !previousMessagesState.messages.contains(where: { $0.id == message.id }) {
+                                            hasNewMessages = true
+                                        }
                                         
-                                        if message.isIncoming, let paidStars = message.paidStars, let author = message.author {
+                                        if let paidStars = message.paidStars, let author = message.author {
                                             self.reactionStreamView?.add(peer: author, count: Int(paidStars))
                                         }
                                     }
                                 }
                                 if hasNewMessages {
                                     component.external.hasUnseenMessages = true
+                                }
+                            }
+                            
+                            for message in state.messages {
+                                if message.isIncoming {
+                                    if !previousMessagesState.messages.contains(where: { $0.id == message.id }) {
+                                        if let paidStars = message.paidStars, let author = message.author {
+                                            self.reactionStreamView?.add(peer: author, count: Int(paidStars))
+                                        }
+                                    }
                                 }
                             }
                             

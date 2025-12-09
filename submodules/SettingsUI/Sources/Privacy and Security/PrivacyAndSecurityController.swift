@@ -19,6 +19,7 @@ import PremiumUI
 import AuthorizationUI
 import AuthenticationServices
 import ChatTimerScreen
+import PasskeysScreen
 
 private final class PrivacyAndSecurityControllerArguments {
     let account: Account
@@ -35,6 +36,7 @@ private final class PrivacyAndSecurityControllerArguments {
     let openSavedMusicPrivacy: () -> Void
     let openPasscode: () -> Void
     let openTwoStepVerification: (TwoStepVerificationAccessConfiguration?) -> Void
+    let openPasskeys: () -> Void
     let openActiveSessions: () -> Void
     let toggleArchiveAndMuteNonContacts: (Bool) -> Void
     let setupAccountAutoremove: () -> Void
@@ -44,7 +46,7 @@ private final class PrivacyAndSecurityControllerArguments {
     let openMessagePrivacy: () -> Void
     let openGiftsPrivacy: () -> Void
     
-    init(account: Account, openBlockedUsers: @escaping () -> Void, openLastSeenPrivacy: @escaping () -> Void, openGroupsPrivacy: @escaping () -> Void, openVoiceCallPrivacy: @escaping () -> Void, openProfilePhotoPrivacy: @escaping () -> Void, openForwardPrivacy: @escaping () -> Void, openPhoneNumberPrivacy: @escaping () -> Void, openVoiceMessagePrivacy: @escaping () -> Void, openBioPrivacy: @escaping () -> Void, openBirthdayPrivacy: @escaping () -> Void, openSavedMusicPrivacy: @escaping () -> Void, openPasscode: @escaping () -> Void, openTwoStepVerification: @escaping (TwoStepVerificationAccessConfiguration?) -> Void, openActiveSessions: @escaping () -> Void, toggleArchiveAndMuteNonContacts: @escaping (Bool) -> Void, setupAccountAutoremove: @escaping () -> Void, setupMessageAutoremove: @escaping () -> Void, openDataSettings: @escaping () -> Void, openEmailSettings: @escaping (String?) -> Void, openMessagePrivacy: @escaping () -> Void, openGiftsPrivacy: @escaping () -> Void) {
+    init(account: Account, openBlockedUsers: @escaping () -> Void, openLastSeenPrivacy: @escaping () -> Void, openGroupsPrivacy: @escaping () -> Void, openVoiceCallPrivacy: @escaping () -> Void, openProfilePhotoPrivacy: @escaping () -> Void, openForwardPrivacy: @escaping () -> Void, openPhoneNumberPrivacy: @escaping () -> Void, openVoiceMessagePrivacy: @escaping () -> Void, openBioPrivacy: @escaping () -> Void, openBirthdayPrivacy: @escaping () -> Void, openSavedMusicPrivacy: @escaping () -> Void, openPasscode: @escaping () -> Void, openTwoStepVerification: @escaping (TwoStepVerificationAccessConfiguration?) -> Void, openPasskeys: @escaping () -> Void, openActiveSessions: @escaping () -> Void, toggleArchiveAndMuteNonContacts: @escaping (Bool) -> Void, setupAccountAutoremove: @escaping () -> Void, setupMessageAutoremove: @escaping () -> Void, openDataSettings: @escaping () -> Void, openEmailSettings: @escaping (String?) -> Void, openMessagePrivacy: @escaping () -> Void, openGiftsPrivacy: @escaping () -> Void) {
         self.account = account
         self.openBlockedUsers = openBlockedUsers
         self.openLastSeenPrivacy = openLastSeenPrivacy
@@ -59,6 +61,7 @@ private final class PrivacyAndSecurityControllerArguments {
         self.openSavedMusicPrivacy = openSavedMusicPrivacy
         self.openPasscode = openPasscode
         self.openTwoStepVerification = openTwoStepVerification
+        self.openPasskeys = openPasskeys
         self.openActiveSessions = openActiveSessions
         self.toggleArchiveAndMuteNonContacts = toggleArchiveAndMuteNonContacts
         self.setupAccountAutoremove = setupAccountAutoremove
@@ -113,6 +116,7 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     case selectivePrivacyInfo(PresentationTheme, String)
     case passcode(PresentationTheme, String, Bool, String)
     case twoStepVerification(PresentationTheme, String, String, TwoStepVerificationAccessConfiguration?)
+    case passkeys(PresentationTheme, String, String)
     case loginEmail(PresentationTheme, String, String?)
     case loginEmailInfo(PresentationTheme, String)
     case activeSessions(PresentationTheme, String, String)
@@ -129,7 +133,7 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     
     var section: ItemListSectionId {
         switch self {
-        case .blockedPeers, .activeSessions, .passcode, .twoStepVerification, .messageAutoremoveTimeout, .messageAutoremoveInfo:
+        case .blockedPeers, .activeSessions, .passcode, .twoStepVerification, .passkeys, .messageAutoremoveTimeout, .messageAutoremoveInfo:
             return PrivacyAndSecuritySection.general.rawValue
         case .loginEmail, .loginEmailInfo:
             return PrivacyAndSecuritySection.loginEmail.rawValue
@@ -154,60 +158,62 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 return 3
             case .twoStepVerification:
                 return 4
-            case .messageAutoremoveTimeout:
+            case .passkeys:
                 return 5
-            case .messageAutoremoveInfo:
+            case .messageAutoremoveTimeout:
                 return 6
-            case .loginEmail:
+            case .messageAutoremoveInfo:
                 return 7
-            case .loginEmailInfo:
+            case .loginEmail:
                 return 8
-            case .privacyHeader:
+            case .loginEmailInfo:
                 return 9
-            case .phoneNumberPrivacy:
+            case .privacyHeader:
                 return 10
-            case .lastSeenPrivacy:
+            case .phoneNumberPrivacy:
                 return 11
-            case .profilePhotoPrivacy:
+            case .lastSeenPrivacy:
                 return 12
-            case .bioPrivacy:
+            case .profilePhotoPrivacy:
                 return 13
-            case .giftsAutoSavePrivacy:
+            case .bioPrivacy:
                 return 14
-            case .birthdayPrivacy:
+            case .giftsAutoSavePrivacy:
                 return 15
-            case .savedMusicPrivacy:
+            case .birthdayPrivacy:
                 return 16
-            case .forwardPrivacy:
+            case .savedMusicPrivacy:
                 return 17
-            case .voiceCallPrivacy:
+            case .forwardPrivacy:
                 return 18
-            case .voiceMessagePrivacy:
+            case .voiceCallPrivacy:
                 return 19
-            case .messagePrivacy:
+            case .voiceMessagePrivacy:
                 return 20
-            case .groupPrivacy:
+            case .messagePrivacy:
                 return 21
-            case .groupPrivacyFooter:
+            case .groupPrivacy:
                 return 22
-            case .selectivePrivacyInfo:
+            case .groupPrivacyFooter:
                 return 23
-            case .autoArchiveHeader:
+            case .selectivePrivacyInfo:
                 return 24
-            case .autoArchive:
+            case .autoArchiveHeader:
                 return 25
-            case .autoArchiveInfo:
+            case .autoArchive:
                 return 26
-            case .accountHeader:
+            case .autoArchiveInfo:
                 return 27
-            case .accountTimeout:
+            case .accountHeader:
                 return 28
-            case .accountInfo:
+            case .accountTimeout:
                 return 29
-            case .dataSettings:
+            case .accountInfo:
                 return 30
-            case .dataSettingsInfo:
+            case .dataSettings:
                 return 31
+            case .dataSettingsInfo:
+                return 32
         }
     }
     
@@ -317,6 +323,12 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 }
             case let .twoStepVerification(lhsTheme, lhsText, lhsValue, lhsData):
                 if case let .twoStepVerification(rhsTheme, rhsText, rhsValue, rhsData) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue, lhsData == rhsData {
+                    return true
+                } else {
+                    return false
+                }
+            case let .passkeys(lhsTheme, lhsText, lhsValue):
+                if case let .passkeys(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
                     return true
                 } else {
                     return false
@@ -488,6 +500,10 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/TwoStepAuth")?.precomposed(), title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openTwoStepVerification(data)
                 })
+            case let .passkeys(_, text, value):
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/Passkeys")?.precomposed(), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                    arguments.openPasskeys()
+                })
             case let .messageAutoremoveTimeout(_, text, value):
                 return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/Timer")?.precomposed(), title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.setupMessageAutoremove()
@@ -617,6 +633,8 @@ private func privacyAndSecurityControllerEntries(
     activeWebsitesCount: Int,
     hasTwoStepAuth: Bool?,
     twoStepAuthData: TwoStepVerificationAccessConfiguration?,
+    hasPasskeys: Bool?,
+    displayPasskeys: Bool,
     canAutoarchive: Bool,
     isPremiumDisabled: Bool,
     isPremium: Bool,
@@ -653,6 +671,14 @@ private func privacyAndSecurityControllerEntries(
         twoStepAuthString = hasTwoStepAuth ? presentationData.strings.PrivacySettings_PasscodeOn : presentationData.strings.PrivacySettings_PasscodeOff
     }
     entries.append(.twoStepVerification(presentationData.theme, presentationData.strings.PrivacySettings_TwoStepAuth, twoStepAuthString, twoStepAuthData))
+    
+    if displayPasskeys {
+        var passkeysString = ""
+        if let hasPasskeys = hasPasskeys {
+            passkeysString = hasPasskeys ? presentationData.strings.PrivacySettings_PasscodeOn : presentationData.strings.PrivacySettings_PasscodeOff
+        }
+        entries.append(.passkeys(presentationData.theme, presentationData.strings.PrivacySettings_Passkey, passkeysString))
+    }
     
     if let privacySettings = privacySettings {
         let value: Int32?
@@ -788,6 +814,7 @@ public func privacyAndSecurityController(
     updatedSettings: ((AccountPrivacySettings?) -> Void)? = nil,
     updatedBlockedPeers: ((BlockedPeersContext?) -> Void)? = nil,
     updatedHasTwoStepAuth: ((Bool) -> Void)? = nil,
+    updatedHasPasskeys: ((Bool) -> Void)? = nil,
     focusOnItemTag: PrivacyAndSecurityEntryTag? = nil,
     activeSessionsContext: ActiveSessionsContext? = nil,
     webSessionsContext: WebSessionsContext? = nil,
@@ -835,6 +862,10 @@ public func privacyAndSecurityController(
     let updateTwoStepAuthDisposable = MetaDisposable()
     actionsDisposable.add(updateTwoStepAuthDisposable)
     
+
+    let updatePasskeyDataDisposable = MetaDisposable()
+    actionsDisposable.add(updatePasskeyDataDisposable)
+
     let twoStepAuthDataValue = Promise<TwoStepVerificationAccessConfiguration?>(nil)
     let hasTwoStepAuthDataValue = twoStepAuthDataValue.get()
     |> mapToSignal { data -> Signal<Bool?, NoError> in
@@ -855,6 +886,19 @@ public func privacyAndSecurityController(
     } else {
         twoStepAuth.set(hasTwoStepAuthDataValue)
     }
+
+    let passkeysDataValue = Promise<[TelegramPasskey]?>(nil)
+    let hasPasskeysDataValue = passkeysDataValue.get()
+    |> mapToSignal { data -> Signal<Bool?, NoError> in
+        if let data = data {
+            return .single(!data.isEmpty)
+        } else {
+            return .single(nil)
+        }
+    }
+
+    let passkeys = Promise<Bool?>()
+    passkeys.set(hasPasskeysDataValue)
     
     let loginEmail: Signal<String?, NoError>
     if let loginEmailPattern = loginEmailPattern {
@@ -893,6 +937,23 @@ public func privacyAndSecurityController(
         )
     }
     updateHasTwoStepAuth()
+
+    let updateHasPasskeys: () -> Void = {
+        let signal = context.engine.auth.passkeysData()
+        |> map { value -> [TelegramPasskey]? in
+            return value
+        }
+        |> deliverOnMainQueue
+        updatePasskeyDataDisposable.set(
+            signal.start(next: { value in
+                passkeysDataValue.set(.single(value))
+                if let value {
+                    updatedHasPasskeys?(!value.isEmpty)
+                }
+            })
+        )
+    }
+    updateHasPasskeys()
     
     var setupEmailImpl: ((String?) -> Void)?
 
@@ -1203,6 +1264,14 @@ public func privacyAndSecurityController(
             let controller = twoStepVerificationUnlockSettingsController(context: context, mode: .access(intro: false, data: data.flatMap({ Signal<TwoStepVerificationUnlockSettingsControllerData, NoError>.single(.access(configuration: $0)) })))
             pushControllerImpl?(controller, true)
         })
+    }, openPasskeys: {
+        Task { @MainActor in
+            let initialPasskeysData = await (passkeysDataValue.get() |> take(1)).get()
+            let passkeysScreen = PasskeysScreen(context: context, displaySkip: false, initialPasskeysData: initialPasskeysData, passkeysDataUpdated: { passkeysData in
+                passkeysDataValue.set(.single(passkeysData))
+            }, completion: {}, cancel: {})
+            pushControllerImpl?(passkeysScreen, true)
+        }
     }, openActiveSessions: {
         pushControllerImpl?(recentSessionsController(context: context, activeSessionsContext: activeSessionsContext, webSessionsContext: webSessionsContext, websitesOnly: true), true)
     }, toggleArchiveAndMuteNonContacts: { archiveValue in
@@ -1442,6 +1511,15 @@ public func privacyAndSecurityController(
         updatedBlockedPeers?(blockedPeersContext)
     }))
     
+    var displayPasskeys = false
+    if let data = context.currentAppConfiguration.with({ $0 }).data {
+        if let _ = data["ios_display_passkeys"] {
+            displayPasskeys = true
+        } else if let isDev = data["dev"] as? Double, isDev == 1.0 {
+            displayPasskeys = true
+        }
+    }
+    
     let signal = combineLatest(
         queue: .mainQueue(),
         context.sharedContext.presentationData,
@@ -1454,11 +1532,12 @@ public func privacyAndSecurityController(
         webSessionsContext.state,
         context.sharedContext.accountManager.accessChallengeData(),
         combineLatest(twoStepAuth.get(), twoStepAuthDataValue.get()),
+        combineLatest(passkeys.get(), passkeysDataValue.get()),
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.App()),
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId)),
         loginEmail
     )
-    |> map { presentationData, state, privacySettings, noticeView, sharedData, recentPeers, blockedPeersState, activeWebsitesState, accessChallengeData, twoStepAuth, appConfiguration, accountPeer, loginEmail -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, state, privacySettings, noticeView, sharedData, recentPeers, blockedPeersState, activeWebsitesState, accessChallengeData, twoStepAuth, passkeys, appConfiguration, accountPeer, loginEmail -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var canAutoarchive = false
         if let data = appConfiguration.data, let hasAutoarchive = data["autoarchive_setting_available"] as? Bool {
             canAutoarchive = hasAutoarchive
@@ -1474,7 +1553,7 @@ public func privacyAndSecurityController(
         let isPremium = accountPeer?.isPremium ?? false
         let isPremiumDisabled = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 }).isPremiumDisabled
         
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: privacyAndSecurityControllerEntries(presentationData: presentationData, state: state, privacySettings: privacySettings, accessChallengeData: accessChallengeData.data, blockedPeerCount: blockedPeersState.totalCount, activeWebsitesCount: activeWebsitesState.sessions.count, hasTwoStepAuth: twoStepAuth.0, twoStepAuthData: twoStepAuth.1, canAutoarchive: canAutoarchive, isPremiumDisabled: isPremiumDisabled, isPremium: isPremium, loginEmail: loginEmail, accountPeer: accountPeer), style: .blocks, ensureVisibleItemTag: focusOnItemTag, animateChanges: false)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: privacyAndSecurityControllerEntries(presentationData: presentationData, state: state, privacySettings: privacySettings, accessChallengeData: accessChallengeData.data, blockedPeerCount: blockedPeersState.totalCount, activeWebsitesCount: activeWebsitesState.sessions.count, hasTwoStepAuth: twoStepAuth.0, twoStepAuthData: twoStepAuth.1, hasPasskeys: passkeys.0, displayPasskeys: displayPasskeys, canAutoarchive: canAutoarchive, isPremiumDisabled: isPremiumDisabled, isPremium: isPremium, loginEmail: loginEmail, accountPeer: accountPeer), style: .blocks, ensureVisibleItemTag: focusOnItemTag, animateChanges: false)
         
         return (controllerState, (listState, arguments))
     }

@@ -29,6 +29,7 @@ swift_library(
         "//submodules/TelegramUI/Components/AnimatedTextComponent",
         "//submodules/TelegramUI/Components/BottomButtonPanelComponent",
         "//submodules/TelegramUI/Components/SliderComponent",
+        "//submodules/TelegramUI/Components/SegmentControlComponent",
         "//submodules/CheckNode",
         "//submodules/Markdown",
         "//submodules/ContextUI",

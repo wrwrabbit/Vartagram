@@ -157,40 +157,6 @@ public final class SheetComponent<ChildEnvironmentType: Sendable & Equatable>: C
         }
     }
     
-    final class BackgroundView: UIView {
-        let topCornersView = UIView()
-        let bottomCornersView = UIView()
-        
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-            
-            self.topCornersView.clipsToBounds = true
-            self.topCornersView.layer.cornerCurve = .continuous
-            self.topCornersView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-            
-            self.bottomCornersView.clipsToBounds = true
-            self.bottomCornersView.layer.cornerCurve = .continuous
-            self.bottomCornersView.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
-            
-            self.addSubview(self.topCornersView)
-            self.topCornersView.addSubview(self.bottomCornersView)
-        }
-        
-        required init?(coder: NSCoder) {
-            preconditionFailure()
-        }
-        
-        func update(size: CGSize, color: UIColor, topCornerRadius: CGFloat, bottomCornerRadius: CGFloat, transition: ComponentTransition) {
-            transition.setCornerRadius(layer: self.topCornersView.layer, cornerRadius: topCornerRadius)
-            transition.setCornerRadius(layer: self.bottomCornersView.layer, cornerRadius: bottomCornerRadius)
-            
-            transition.setFrame(view: self.topCornersView, frame: CGRect(origin: .zero, size: size))
-            transition.setFrame(view: self.bottomCornersView, frame: CGRect(origin: .zero, size: size))
-            
-            transition.setBackgroundColor(view: self.bottomCornersView, color: color)
-        }
-    }
-        
     public final class View: UIView, UIScrollViewDelegate, ComponentTaggedView {
         public final class Tag {
             public init() {
@@ -208,9 +174,9 @@ public final class SheetComponent<ChildEnvironmentType: Sendable & Equatable>: C
         
         private let dimView: UIView
         private let scrollView: ScrollView
-        private let backgroundView: BackgroundView
+        private let backgroundView: SheetBackgroundView
         private var effectView: UIVisualEffectView?
-        private let clipView: BackgroundView
+        private let clipView: SheetBackgroundView
         private let contentView: ComponentView<ChildEnvironmentType>
         private var headerView: ComponentView<Empty>?
         
@@ -233,8 +199,8 @@ public final class SheetComponent<ChildEnvironmentType: Sendable & Equatable>: C
             self.scrollView.showsHorizontalScrollIndicator = false
             self.scrollView.alwaysBounceVertical = true
             
-            self.backgroundView = BackgroundView()
-            self.clipView = BackgroundView()
+            self.backgroundView = SheetBackgroundView()
+            self.clipView = SheetBackgroundView()
             
             self.contentView = ComponentView<ChildEnvironmentType>()
             
@@ -339,7 +305,11 @@ public final class SheetComponent<ChildEnvironmentType: Sendable & Equatable>: C
             
             let transition = ContainedViewLayoutTransition.animated(duration: 0.4, curve: .spring)
             let targetPosition = self.scrollView.center
-            self.scrollView.center = targetPosition.offsetBy(dx: 0.0, dy: self.scrollView.contentSize.height)
+            var offset: CGFloat = self.scrollView.contentSize.height
+            if self.isCentered {
+                offset = self.frame.height + self.scrollView.frame.height * 0.5
+            }
+            self.scrollView.center = targetPosition.offsetBy(dx: 0.0, dy: offset)
             transition.animateView(allowUserInteraction: true, {
                 self.scrollView.center = targetPosition
             })
@@ -372,18 +342,27 @@ public final class SheetComponent<ChildEnvironmentType: Sendable & Equatable>: C
                 let contentOffset = (self.scrollView.contentOffset.y + self.scrollView.contentInset.top - self.scrollView.contentSize.height) * -1.0
                 let dismissalOffset = self.scrollView.contentSize.height + abs(contentView.frame.minY)
                 let delta = dismissalOffset - contentOffset
+                var targetPosition = self.scrollView.center.y + delta
+                if self.isCentered {
+                    targetPosition = self.frame.height + self.scrollView.frame.height * 0.5
+                }
                 
-                transition.updatePosition(layer: self.scrollView.layer, position: CGPoint(x: self.scrollView.center.x, y: self.scrollView.center.y + delta), completion: { _ in
+                transition.updatePosition(layer: self.scrollView.layer, position: CGPoint(x: self.scrollView.center.x, y: targetPosition), completion: { _ in
                     completion()
                 })
             } else {
-                self.scrollView.layer.animatePosition(from: CGPoint(), to: CGPoint(x: 0.0, y: self.scrollView.contentSize.height + abs(contentView.frame.minY)), duration: 0.25, timingFunction: CAMediaTimingFunctionName.easeInEaseOut.rawValue, removeOnCompletion: false, additive: true, completion: { _ in
+                var targetOffset: CGFloat = self.scrollView.contentSize.height + abs(contentView.frame.minY)
+                if self.isCentered {
+                    targetOffset = self.frame.height + self.scrollView.frame.height * 0.5
+                }
+                self.scrollView.layer.animatePosition(from: CGPoint(), to: CGPoint(x: 0.0, y: targetOffset), duration: 0.25, timingFunction: CAMediaTimingFunctionName.easeInEaseOut.rawValue, removeOnCompletion: false, additive: true, completion: { _ in
                     completion()
                 })
             }
         }
         
         private var currentHasInputHeight = false
+        private var isCentered = false
         private var currentAvailableSize: CGSize?
         func update(component: SheetComponent<ChildEnvironmentType>, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
             let previousHasInputHeight = self.currentHasInputHeight
@@ -398,6 +377,7 @@ public final class SheetComponent<ChildEnvironmentType: Sendable & Equatable>: C
             }
             
             self.component = component
+            self.isCentered = sheetEnvironment.isCentered
             self.currentHasInputHeight = sheetEnvironment.hasInputHeight
             
             if self.isAnimatingOut {
@@ -587,5 +567,39 @@ public final class SheetComponent<ChildEnvironmentType: Sendable & Equatable>: C
     
     public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
+    }
+}
+
+public final class SheetBackgroundView: UIView {
+    let topCornersView = UIView()
+    let bottomCornersView = UIView()
+    
+    public override init(frame: CGRect) {
+        super.init(frame: frame)
+        
+        self.topCornersView.clipsToBounds = true
+        self.topCornersView.layer.cornerCurve = .continuous
+        self.topCornersView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        
+        self.bottomCornersView.clipsToBounds = true
+        self.bottomCornersView.layer.cornerCurve = .continuous
+        self.bottomCornersView.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        
+        self.addSubview(self.topCornersView)
+        self.topCornersView.addSubview(self.bottomCornersView)
+    }
+    
+    required init?(coder: NSCoder) {
+        preconditionFailure()
+    }
+    
+    public func update(size: CGSize, color: UIColor, topCornerRadius: CGFloat, bottomCornerRadius: CGFloat, transition: ComponentTransition) {
+        transition.setCornerRadius(layer: self.topCornersView.layer, cornerRadius: topCornerRadius)
+        transition.setCornerRadius(layer: self.bottomCornersView.layer, cornerRadius: bottomCornerRadius)
+        
+        transition.setFrame(view: self.topCornersView, frame: CGRect(origin: .zero, size: size))
+        transition.setFrame(view: self.bottomCornersView, frame: CGRect(origin: .zero, size: size))
+        
+        transition.setBackgroundColor(view: self.bottomCornersView, color: color)
     }
 }

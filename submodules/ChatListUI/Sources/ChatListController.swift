@@ -137,6 +137,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     private let dismissAutoarchiveDisposable = MetaDisposable()
     private var didSuggestAutoarchive = false
     private var didSuggestLoginEmailSetup = false
+    private var didSuggestLoginPasskeySetup = false
     
     private var presentationData: PresentationData
     private let presentationDataValue = Promise<PresentationData>()
@@ -2617,6 +2618,30 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                             navigationController.pushViewController(controller)
                         }
                     })
+                    return
+                }
+                
+                if values.contains(.setupPasskey) {
+                    if strongSelf.didSuggestLoginPasskeySetup {
+                        return
+                    }
+                    strongSelf.didSuggestLoginPasskeySetup = true
+                    
+                    let _ = (context.engine.notices.getServerProvidedSuggestions(reload: true)
+                    |> deliverOnMainQueue).start(next: { [weak strongSelf] currentValues in
+                        guard let strongSelf, currentValues.contains(.setupPasskey) else {
+                            return
+                        }
+                        if let navigationController = strongSelf.navigationController as? NavigationController {
+                            let controller = strongSelf.context.sharedContext.makePasskeySetupController(context: strongSelf.context, displaySkip: true, navigationController: navigationController, completion: {
+                                let _ = context.engine.notices.dismissServerProvidedSuggestion(suggestion: ServerProvidedSuggestion.setupPasskey.id).startStandalone()
+                            }, dismiss: {
+                                let _ = context.engine.notices.dismissServerProvidedSuggestion(suggestion: ServerProvidedSuggestion.setupPasskey.id).startStandalone()
+                            })
+                            navigationController.pushViewController(controller)
+                        }
+                    })
+                    
                     return
                 }
                 

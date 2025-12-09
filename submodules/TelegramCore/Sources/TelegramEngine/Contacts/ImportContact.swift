@@ -36,7 +36,7 @@ func _internal_importContact(account: Account, firstName: String, lastName: Stri
                                 transaction.replaceContactPeerIds(peerIds)
                             }
                             if !noteText.isEmpty {
-                                transaction.updatePeerCachedData(peerIds: peerIds, update: { peerId, cachedData in
+                                transaction.updatePeerCachedData(peerIds: [peerId], update: { peerId, cachedData in
                                     (cachedData as? CachedUserData)?.withUpdatedNote(.init(text: noteText, entities: noteEntities))
                                 })
                             }
@@ -99,7 +99,7 @@ func _internal_addContactInteractively(account: Account, peerId: PeerId, firstNa
                     transaction.replaceContactPeerIds(peerIds)
                 }
                 if !noteText.isEmpty {
-                    transaction.updatePeerCachedData(peerIds: peerIds, update: { peerId, cachedData in
+                    transaction.updatePeerCachedData(peerIds: [peerId], update: { peerId, cachedData in
                         (cachedData as? CachedUserData)?.withUpdatedNote(.init(text: noteText, entities: noteEntities))
                     })
                 }

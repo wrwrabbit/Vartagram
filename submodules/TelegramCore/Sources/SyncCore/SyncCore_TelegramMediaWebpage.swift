@@ -210,52 +210,28 @@ public final class TelegramMediaWebpageGiftAuctionAttribute: PostboxCoding, Equa
         if lhs.endDate != rhs.endDate {
             return false
         }
-        if lhs.centerColor != rhs.centerColor {
-            return false
-        }
-        if lhs.edgeColor != rhs.edgeColor {
-            return false
-        }
-        if lhs.textColor != rhs.textColor {
-            return false
-        }
         return true
     }
     
     public let gift: StarGift
     public let endDate: Int32
-    public let centerColor: Int32
-    public let edgeColor: Int32
-    public let textColor: Int32
-    
+
     public init(
         gift: StarGift,
-        endDate: Int32,
-        centerColor: Int32,
-        edgeColor: Int32,
-        textColor: Int32
+        endDate: Int32
     ) {
         self.gift = gift
         self.endDate = endDate
-        self.centerColor = centerColor
-        self.edgeColor = edgeColor
-        self.textColor = textColor
     }
     
     public init(decoder: PostboxDecoder) {
         self.gift = decoder.decodeObjectForKey("gift", decoder: { StarGift(decoder: $0) }) as! StarGift
         self.endDate = decoder.decodeInt32ForKey("endDate", orElse: 0)
-        self.centerColor = decoder.decodeInt32ForKey("centerColor", orElse: 0)
-        self.edgeColor = decoder.decodeInt32ForKey("edgeColor", orElse: 0)
-        self.textColor = decoder.decodeInt32ForKey("textColor", orElse: 0)
     }
     
     public func encode(_ encoder: PostboxEncoder) {
         encoder.encodeObject(self.gift, forKey: "gift")
         encoder.encodeInt32(self.endDate, forKey: "endDate")
-        encoder.encodeInt32(self.centerColor, forKey: "centerColor")
-        encoder.encodeInt32(self.edgeColor, forKey: "edgeColor")
-        encoder.encodeInt32(self.textColor, forKey: "textColor")
     }
 }
 

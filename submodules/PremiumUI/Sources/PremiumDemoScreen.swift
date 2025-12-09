@@ -155,7 +155,7 @@ public final class PremiumGradientBackgroundComponent: Component {
     }
 }
 
-final class DemoPageEnvironment: Equatable {
+public final class DemoPageEnvironment: Equatable {
     public let isDisplaying: Bool
     public let isCentral: Bool
     public let position: CGFloat
@@ -1134,13 +1134,13 @@ private final class DemoSheetContent: CombinedComponent {
             let closeButton = closeButton.update(
                 component: GlassBarButtonComponent(
                     size: CGSize(width: 40.0, height: 40.0),
-                    backgroundColor: theme.rootController.navigationBar.glassBarButtonBackgroundColor,
-                    isDark: theme.overallDarkAppearance,
-                    state: .glass,
+                    backgroundColor: UIColor(rgb: 0x7f76f4),
+                    isDark: false,
+                    state: .tintedGlass,
                     component: AnyComponentWithIdentity(id: "close", component: AnyComponent(
                         BundleIconComponent(
                             name: "Navigation/Close",
-                            tintColor: theme.rootController.navigationBar.glassBarButtonForegroundColor
+                            tintColor: .white
                         )
                     )),
                     action: { _ in

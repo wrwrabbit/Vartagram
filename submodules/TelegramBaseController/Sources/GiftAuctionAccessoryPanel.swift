@@ -103,8 +103,9 @@ final class GiftAuctionAccessoryPanel: ASDisplayNode {
             }
         }
         
-        let titleText: String = self.strings.ChatList_Auctions_ActiveAuction(Int32(self.states.count))
-        titleItems.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: titleText, font: titleFont, textColor: self.theme.rootController.navigationBar.primaryTextColor))))))
+        let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
+        
+        var titleText: String = self.strings.ChatList_Auctions_ActiveAuction(Int32(self.states.count))
         
         let subtitleText: String
         var subtitleTextColor = self.theme.rootController.navigationBar.secondaryTextColor
@@ -113,8 +114,21 @@ final class GiftAuctionAccessoryPanel: ASDisplayNode {
         var buttonAnimatedTitleItems: [AnimatedTextComponent.Item] = []
         
         if self.states.count == 1, let auctionState = self.states.first {
+            var isUpcoming = false
+            var startTime = currentTime
+            var endTime = currentTime
+            if case let .ongoing(_, startDate, _, _, _, _, nextRoundDate, _, _, _, _, _) = auctionState.auctionState {
+                startTime = startDate
+                endTime = nextRoundDate
+                if currentTime < startDate {
+                    isUpcoming = true
+                }
+            }
+            
             let place = auctionState.place ?? 1
-            if case let .generic(gift) = auctionState.gift, let auctionGiftsPerRound = gift.auctionGiftsPerRound, place > auctionGiftsPerRound {
+            if isUpcoming {
+                subtitleText = self.strings.ChatList_Auctions_Status_UpcomingBid
+            } else if case let .generic(gift) = auctionState.gift, let auctionGiftsPerRound = gift.auctionGiftsPerRound, place > auctionGiftsPerRound {
                 subtitleText = self.strings.ChatList_Auctions_Status_Single_Outbid
                 subtitleTextColor = self.theme.list.itemDestructiveColor
                 isOutbid = true
@@ -134,13 +148,13 @@ final class GiftAuctionAccessoryPanel: ASDisplayNode {
                 subtitleText = self.strings.ChatList_Auctions_Status_Single_Winning(placeText).string
             }
             
-            let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
-            var endTime = currentTime
-            if case let .ongoing(_, _, _, _, _, _, nextRoundDate, _, _, _) = auctionState.auctionState {
-                endTime = nextRoundDate
+            let endTimeout: Int32
+            if currentTime < startTime {
+                endTimeout = max(0, startTime - currentTime)
+                titleText = self.strings.ChatList_Auctions_UpcomingAuction
+            } else {
+                endTimeout = max(0, endTime - currentTime)
             }
-            
-            let endTimeout = max(0, endTime - currentTime)
             
             let hours = Int(endTimeout / 3600)
             let minutes = Int((endTimeout % 3600) / 60)
@@ -178,6 +192,8 @@ final class GiftAuctionAccessoryPanel: ASDisplayNode {
             }
             buttonAnimatedTitleItems.append(AnimatedTextComponent.Item(id: "view", content: .text(self.strings.ChatList_Auctions_View)))
         }
+        
+        titleItems.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: titleText, font: titleFont, textColor: self.theme.rootController.navigationBar.primaryTextColor))))))
         
         let buttonSize = self.button.update(
             transition: .spring(duration: 0.2),

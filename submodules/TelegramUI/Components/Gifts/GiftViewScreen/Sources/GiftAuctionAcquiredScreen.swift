@@ -328,11 +328,21 @@ private final class GiftAuctionAcquiredScreenComponent: Component {
                 
                 
                 var giftSubject: GiftItemComponent.Subject?
+                var giftTitle: String = ""
                 if case let .generic(gift) = component.gift {
                     giftSubject = .starGift(gift: gift, price: "")
+                    giftTitle = gift.title ?? ""
                 }
                 
                 if let giftSubject {
+                    let titleString: String
+                    if let number = gift.number {
+                        let fullGiftTitle = "\(giftTitle) #\(formatCollectibleNumber(number, dateTimeFormat: environment.dateTimeFormat))"
+                        titleString = environment.strings.Gift_Acquired_GiftRound(fullGiftTitle, "\(gift.round)").string
+                    } else {
+                        titleString = environment.strings.Gift_Acquired_Round("\(gift.round)").string
+                    }
+                    
                     items.append(.init(
                         id: "header",
                         title: nil,
@@ -351,7 +361,7 @@ private final class GiftAuctionAcquiredScreenComponent: Component {
                             AnyComponentWithIdentity(
                                 id: "title",
                                 component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Acquired_Round("\(gift.round)").string, font: tableBoldFont, textColor: tableTextColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: titleString, font: tableBoldFont, textColor: tableTextColor)))
                                 )
                             )
                         ], spacing: 1.0))

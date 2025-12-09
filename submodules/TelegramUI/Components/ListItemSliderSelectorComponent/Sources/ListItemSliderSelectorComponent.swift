@@ -130,6 +130,7 @@ public final class ListItemSliderSelectorComponent: Component {
         private weak var state: EmptyComponentState?
         
         public var customUpdateIsHighlighted: ((Bool) -> Void)?
+        public var enumerateSiblings: (((UIView) -> Void) -> Void)?
         public private(set) var separatorInset: CGFloat = 0.0
         
         override public init(frame: CGRect) {

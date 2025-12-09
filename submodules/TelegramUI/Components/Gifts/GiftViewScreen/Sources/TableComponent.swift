@@ -53,10 +53,12 @@ final class TableComponent: CombinedComponent {
     
     private let theme: PresentationTheme
     private let items: [Item]
-
-    public init(theme: PresentationTheme, items: [Item]) {
+    private let semiTransparent: Bool
+    
+    public init(theme: PresentationTheme, items: [Item], semiTransparent: Bool = false) {
         self.theme = theme
         self.items = items
+        self.semiTransparent = semiTransparent
     }
 
     public static func ==(lhs: TableComponent, rhs: TableComponent) -> Bool {
@@ -64,6 +66,9 @@ final class TableComponent: CombinedComponent {
             return false
         }
         if lhs.items != rhs.items {
+            return false
+        }
+        if lhs.semiTransparent != rhs.semiTransparent {
             return false
         }
         return true
@@ -95,7 +100,10 @@ final class TableComponent: CombinedComponent {
             
             let backgroundColor = context.component.theme.actionSheet.opaqueItemBackgroundColor
             let borderColor = backgroundColor.mixedWith(context.component.theme.list.itemBlocksSeparatorColor, alpha: 0.6)
-            let secondaryBackgroundColor = context.component.theme.overallDarkAppearance ? context.component.theme.list.itemModalBlocksBackgroundColor : context.component.theme.list.itemInputField.backgroundColor
+            var secondaryBackgroundColor = context.component.theme.overallDarkAppearance ? context.component.theme.list.itemModalBlocksBackgroundColor : context.component.theme.list.itemInputField.backgroundColor
+            if context.component.semiTransparent {
+                secondaryBackgroundColor = borderColor.withMultipliedAlpha(0.5)
+            }
             
             var leftColumnWidth: CGFloat = 0.0
             

@@ -117,21 +117,15 @@ public final class GiftAuctionPreviewMedia: Media {
     public let peerIds: [PeerId] = []
     
     public let content: StarGift.Gift?
-    public let centerColor: UIColor
-    public let edgeColor: UIColor
     public let endTime: Int32
     
-    public init(content: StarGift.Gift, centerColor: UIColor, edgeColor: UIColor, endTime: Int32) {
+    public init(content: StarGift.Gift, endTime: Int32) {
         self.content = content
-        self.centerColor = centerColor
-        self.edgeColor = edgeColor
         self.endTime = endTime
     }
     
     public init(decoder: PostboxDecoder) {
         self.content = nil
-        self.centerColor = .clear
-        self.edgeColor = .clear
         self.endTime = 0
     }
     

@@ -22,7 +22,7 @@ public func ChangePhoneNumberController(context: AccountContext) -> ViewControll
     let requestDisposable = MetaDisposable()
     let changePhoneDisposable = MetaDisposable()
     
-    let controller = AuthorizationSequencePhoneEntryController(sharedContext: context.sharedContext, account: nil, countriesConfiguration: context.currentCountriesConfiguration.with { $0 }, isTestingEnvironment: false, otherAccountPhoneNumbers: (nil, []), network: context.account.network, presentationData: presentationData, openUrl: { _ in }, back: {
+    let controller = AuthorizationSequencePhoneEntryController(sharedContext: context.sharedContext, account: nil, countriesConfiguration: context.currentCountriesConfiguration.with { $0 }, apiId: 0, apiHash: "", isTestingEnvironment: false, otherAccountPhoneNumbers: (nil, []), network: context.account.network, presentationData: presentationData, openUrl: { _ in }, back: {
         dismissImpl?()
     })
     controller.loginWithNumber = { [weak controller] phoneNumber, _ in
