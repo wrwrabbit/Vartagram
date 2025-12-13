@@ -1330,6 +1330,17 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                         case .paidMessagesPriceEdited:
                             self.interfaceInteraction?.openMonoforum()
                             return true
+                        case .starGiftPurchaseOffer:
+                            let controller = self.context.sharedContext.makeGiftViewScreen(context: self.context, message: EngineMessage(message), shareStory: { [weak self] uniqueGift in
+                                Queue.mainQueue().after(0.15) {
+                                    if let self {
+                                        let controller = self.context.sharedContext.makeStorySharingScreen(context: self.context, subject: .gift(uniqueGift), parentController: self)
+                                        self.push(controller)
+                                    }
+                                }
+                            })
+                            self.push(controller)
+                            return true
                         default:
                             break
                     }
@@ -2403,7 +2414,58 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 return
             }
             
-            if let attribute = message.attributes.first(where: { $0 is SuggestedPostMessageAttribute }) as? SuggestedPostMessageAttribute {
+            if let action = message.media.first(where: { $0 is TelegramMediaAction }) as? TelegramMediaAction, case let .starGiftPurchaseOffer(gift, amount, _, isAccepted, isDeclined) = action.action, !isAccepted && !isDeclined {
+                guard let data = data?.makeData(), message.effectivelyIncoming(strongSelf.context.account.peerId) else {
+                    return
+                }
+                if data.count != 1 {
+                    return
+                }
+                let buttonType = data.withUnsafeBytes { buffer -> UInt8 in
+                    return buffer.baseAddress!.assumingMemoryBound(to: UInt8.self).pointee
+                }
+                
+                switch buttonType {
+                case 0:
+                    let _ = (strongSelf.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: message.id.peerId))
+                    |> deliverOnMainQueue).start(next: { [weak self] peer in
+                        guard let self, let peer else {
+                            return
+                        }
+                        self.present(textAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, title: self.presentationData.strings.Chat_GiftPurchaseOffer_RejectConfirmation_Title, text: self.presentationData.strings.Chat_GiftPurchaseOffer_RejectConfirmation_Text(peer.compactDisplayTitle).string, actions: [
+                            TextAlertAction(type: .genericAction, title: self.presentationData.strings.Common_Cancel, action: {}),
+                            TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Chat_GiftPurchaseOffer_RejectConfirmation_Reject, action: { [weak self] in
+                                guard let self else {
+                                    return
+                                }
+                                let _ = self.context.engine.payments.resolveStarGiftOffer(messageId: message.id, accept: false).startStandalone()
+                            })
+                        ], parseMarkdown: true), in: .window(.root))
+                    })
+                case 1:
+                    let _ = (strongSelf.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: message.id.peerId))
+                    |> deliverOnMainQueue).start(next: { [weak self] peer in
+                        guard let self, let peer, case let .unique(gift) = gift else {
+                            return
+                        }
+                        let controller = self.context.sharedContext.makeGiftOfferScreen(
+                            context: self.context,
+                            gift: gift,
+                            peer: peer,
+                            amount: amount,
+                            commit: { [weak self] in
+                                if let self {
+                                    let _ = self.context.engine.payments.resolveStarGiftOffer(messageId: message.id, accept: true).startStandalone()
+                                }
+                            }
+                        )
+                        self.present(controller, in: .window(.root))
+                    })
+                default:
+                    break
+                }
+                return
+            } else if let attribute = message.attributes.first(where: { $0 is SuggestedPostMessageAttribute }) as? SuggestedPostMessageAttribute {
                 guard let data = data?.makeData() else {
                     return
                 }

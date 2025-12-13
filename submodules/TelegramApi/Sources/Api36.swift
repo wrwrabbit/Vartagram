@@ -278,14 +278,14 @@ public extension Api.payments {
 }
 public extension Api.payments {
     enum StarGiftActiveAuctions: TypeConstructorDescription {
-        case starGiftActiveAuctions(auctions: [Api.StarGiftActiveAuctionState], users: [Api.User])
+        case starGiftActiveAuctions(auctions: [Api.StarGiftActiveAuctionState], users: [Api.User], chats: [Api.Chat])
         case starGiftActiveAuctionsNotModified
     
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
-                case .starGiftActiveAuctions(let auctions, let users):
+                case .starGiftActiveAuctions(let auctions, let users, let chats):
                     if boxed {
-                        buffer.appendInt32(-1745778728)
+                        buffer.appendInt32(-1359565892)
                     }
                     buffer.appendInt32(481674261)
                     buffer.appendInt32(Int32(auctions.count))
@@ -295,6 +295,11 @@ public extension Api.payments {
                     buffer.appendInt32(481674261)
                     buffer.appendInt32(Int32(users.count))
                     for item in users {
+                        item.serialize(buffer, true)
+                    }
+                    buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(chats.count))
+                    for item in chats {
                         item.serialize(buffer, true)
                     }
                     break
@@ -309,8 +314,8 @@ public extension Api.payments {
     
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
-                case .starGiftActiveAuctions(let auctions, let users):
-                return ("starGiftActiveAuctions", [("auctions", auctions as Any), ("users", users as Any)])
+                case .starGiftActiveAuctions(let auctions, let users, let chats):
+                return ("starGiftActiveAuctions", [("auctions", auctions as Any), ("users", users as Any), ("chats", chats as Any)])
                 case .starGiftActiveAuctionsNotModified:
                 return ("starGiftActiveAuctionsNotModified", [])
     }
@@ -325,10 +330,15 @@ public extension Api.payments {
             if let _ = reader.readInt32() {
                 _2 = Api.parseVector(reader, elementSignature: 0, elementType: Api.User.self)
             }
+            var _3: [Api.Chat]?
+            if let _ = reader.readInt32() {
+                _3 = Api.parseVector(reader, elementSignature: 0, elementType: Api.Chat.self)
+            }
             let _c1 = _1 != nil
             let _c2 = _2 != nil
-            if _c1 && _c2 {
-                return Api.payments.StarGiftActiveAuctions.starGiftActiveAuctions(auctions: _1!, users: _2!)
+            let _c3 = _3 != nil
+            if _c1 && _c2 && _c3 {
+                return Api.payments.StarGiftActiveAuctions.starGiftActiveAuctions(auctions: _1!, users: _2!, chats: _3!)
             }
             else {
                 return nil
@@ -404,13 +414,13 @@ public extension Api.payments {
 }
 public extension Api.payments {
     enum StarGiftAuctionState: TypeConstructorDescription {
-        case starGiftAuctionState(gift: Api.StarGift, state: Api.StarGiftAuctionState, userState: Api.StarGiftAuctionUserState, timeout: Int32, users: [Api.User])
+        case starGiftAuctionState(gift: Api.StarGift, state: Api.StarGiftAuctionState, userState: Api.StarGiftAuctionUserState, timeout: Int32, users: [Api.User], chats: [Api.Chat])
     
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
-                case .starGiftAuctionState(let gift, let state, let userState, let timeout, let users):
+                case .starGiftAuctionState(let gift, let state, let userState, let timeout, let users, let chats):
                     if boxed {
-                        buffer.appendInt32(244900980)
+                        buffer.appendInt32(1798960364)
                     }
                     gift.serialize(buffer, true)
                     state.serialize(buffer, true)
@@ -421,14 +431,19 @@ public extension Api.payments {
                     for item in users {
                         item.serialize(buffer, true)
                     }
+                    buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(chats.count))
+                    for item in chats {
+                        item.serialize(buffer, true)
+                    }
                     break
     }
     }
     
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
-                case .starGiftAuctionState(let gift, let state, let userState, let timeout, let users):
-                return ("starGiftAuctionState", [("gift", gift as Any), ("state", state as Any), ("userState", userState as Any), ("timeout", timeout as Any), ("users", users as Any)])
+                case .starGiftAuctionState(let gift, let state, let userState, let timeout, let users, let chats):
+                return ("starGiftAuctionState", [("gift", gift as Any), ("state", state as Any), ("userState", userState as Any), ("timeout", timeout as Any), ("users", users as Any), ("chats", chats as Any)])
     }
     }
     
@@ -451,13 +466,18 @@ public extension Api.payments {
             if let _ = reader.readInt32() {
                 _5 = Api.parseVector(reader, elementSignature: 0, elementType: Api.User.self)
             }
+            var _6: [Api.Chat]?
+            if let _ = reader.readInt32() {
+                _6 = Api.parseVector(reader, elementSignature: 0, elementType: Api.Chat.self)
+            }
             let _c1 = _1 != nil
             let _c2 = _2 != nil
             let _c3 = _3 != nil
             let _c4 = _4 != nil
             let _c5 = _5 != nil
-            if _c1 && _c2 && _c3 && _c4 && _c5 {
-                return Api.payments.StarGiftAuctionState.starGiftAuctionState(gift: _1!, state: _2!, userState: _3!, timeout: _4!, users: _5!)
+            let _c6 = _6 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 {
+                return Api.payments.StarGiftAuctionState.starGiftAuctionState(gift: _1!, state: _2!, userState: _3!, timeout: _4!, users: _5!, chats: _6!)
             }
             else {
                 return nil
@@ -516,6 +536,48 @@ public extension Api.payments {
         }
         public static func parse_starGiftCollectionsNotModified(_ reader: BufferReader) -> StarGiftCollections? {
             return Api.payments.StarGiftCollections.starGiftCollectionsNotModified
+        }
+    
+    }
+}
+public extension Api.payments {
+    enum StarGiftUpgradeAttributes: TypeConstructorDescription {
+        case starGiftUpgradeAttributes(attributes: [Api.StarGiftAttribute])
+    
+    public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+    switch self {
+                case .starGiftUpgradeAttributes(let attributes):
+                    if boxed {
+                        buffer.appendInt32(1187439471)
+                    }
+                    buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(attributes.count))
+                    for item in attributes {
+                        item.serialize(buffer, true)
+                    }
+                    break
+    }
+    }
+    
+    public func descriptionFields() -> (String, [(String, Any)]) {
+        switch self {
+                case .starGiftUpgradeAttributes(let attributes):
+                return ("starGiftUpgradeAttributes", [("attributes", attributes as Any)])
+    }
+    }
+    
+        public static func parse_starGiftUpgradeAttributes(_ reader: BufferReader) -> StarGiftUpgradeAttributes? {
+            var _1: [Api.StarGiftAttribute]?
+            if let _ = reader.readInt32() {
+                _1 = Api.parseVector(reader, elementSignature: 0, elementType: Api.StarGiftAttribute.self)
+            }
+            let _c1 = _1 != nil
+            if _c1 {
+                return Api.payments.StarGiftUpgradeAttributes.starGiftUpgradeAttributes(attributes: _1!)
+            }
+            else {
+                return nil
+            }
         }
     
     }
@@ -1608,54 +1670,6 @@ public extension Api.phone {
             let _c2 = _2 != nil
             if _c1 && _c2 {
                 return Api.phone.PhoneCall.phoneCall(phoneCall: _1!, users: _2!)
-            }
-            else {
-                return nil
-            }
-        }
-    
-    }
-}
-public extension Api.photos {
-    enum Photo: TypeConstructorDescription {
-        case photo(photo: Api.Photo, users: [Api.User])
-    
-    public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
-    switch self {
-                case .photo(let photo, let users):
-                    if boxed {
-                        buffer.appendInt32(539045032)
-                    }
-                    photo.serialize(buffer, true)
-                    buffer.appendInt32(481674261)
-                    buffer.appendInt32(Int32(users.count))
-                    for item in users {
-                        item.serialize(buffer, true)
-                    }
-                    break
-    }
-    }
-    
-    public func descriptionFields() -> (String, [(String, Any)]) {
-        switch self {
-                case .photo(let photo, let users):
-                return ("photo", [("photo", photo as Any), ("users", users as Any)])
-    }
-    }
-    
-        public static func parse_photo(_ reader: BufferReader) -> Photo? {
-            var _1: Api.Photo?
-            if let signature = reader.readInt32() {
-                _1 = Api.parse(reader, signature: signature) as? Api.Photo
-            }
-            var _2: [Api.User]?
-            if let _ = reader.readInt32() {
-                _2 = Api.parseVector(reader, elementSignature: 0, elementType: Api.User.self)
-            }
-            let _c1 = _1 != nil
-            let _c2 = _2 != nil
-            if _c1 && _c2 {
-                return Api.photos.Photo.photo(photo: _1!, users: _2!)
             }
             else {
                 return nil

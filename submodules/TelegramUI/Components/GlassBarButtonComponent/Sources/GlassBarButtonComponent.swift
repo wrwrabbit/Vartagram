@@ -79,6 +79,7 @@ public final class GlassBarButtonComponent: Component {
             super.init(frame: frame)
             
             self.containerView.isUserInteractionEnabled = false
+            self.containerView.layer.rasterizationScale = UIScreenScale
             
             self.addSubview(self.containerView)
             self.containerView.addSubview(self.genericContainerView)

@@ -253,6 +253,8 @@ private final class StarsPurchaseScreenContentComponent: CombinedComponent {
                 textString = strings.Stars_Purchase_BuyStarGiftInfo
             case .removeOriginalDetailsStarGift:
                 textString = strings.Stars_Purchase_RemoveOriginalDetailsStarGiftInfo
+            case .starGiftOffer:
+                textString = strings.Stars_Purchase_StarGiftOfferInfo
             }
             
             let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: textFont, textColor: accentColor), linkAttribute: { contents in
@@ -388,8 +390,8 @@ private final class StarsPurchaseScreenContentComponent: CombinedComponent {
                                 highlighting: .disabled,
                                 updateIsHighlighted: { view, isHighlighted in
                                     let transition: ComponentTransition = .easeInOut(duration: 0.25)
-                                    if let superview = view.superview {
-                                        transition.setScale(view: superview, scale: isHighlighted ? 0.9 : 1.0)
+                                    if let superview = view.superview?.superview?.superview?.superview {
+                                        transition.setScale(view: superview, scale: isHighlighted ? 1.05 : 1.0)
                                     }
                                 }
                             )))]
@@ -427,7 +429,7 @@ private final class StarsPurchaseScreenContentComponent: CombinedComponent {
                             style: .glass,
                             title: titleCombinedComponent,
                             titleAlignment: .center,
-                            contentInsets: UIEdgeInsets(top: 7.0, left: 0.0, bottom: 7.0, right: 0.0),
+                            contentInsets: UIEdgeInsets(top: 11.0, left: 0.0, bottom: 11.0, right: 0.0),
                             leftIcon: nil,
                             accessory: .none,
                             action: { _ in
@@ -843,7 +845,7 @@ private final class StarsPurchaseScreenComponent: CombinedComponent {
                 titleText = strings.Stars_Purchase_GetStars
             case .gift:
                 titleText = strings.Stars_Purchase_GiftStars
-            case let .topUp(requiredStars, _), let .transfer(_, requiredStars), let .reactions(_, requiredStars), let .subscription(_, requiredStars, _), let .unlockMedia(requiredStars), let .starGift(_, requiredStars), let .upgradeStarGift(requiredStars), let .transferStarGift(requiredStars), let .sendMessage(_, requiredStars), let .buyStarGift(requiredStars), let .removeOriginalDetailsStarGift(requiredStars):
+            case let .topUp(requiredStars, _), let .transfer(_, requiredStars), let .reactions(_, requiredStars), let .subscription(_, requiredStars, _), let .unlockMedia(requiredStars), let .starGift(_, requiredStars), let .upgradeStarGift(requiredStars), let .transferStarGift(requiredStars), let .sendMessage(_, requiredStars), let .buyStarGift(requiredStars), let .removeOriginalDetailsStarGift(requiredStars), let .starGiftOffer(requiredStars):
                 titleText = strings.Stars_Purchase_StarsNeeded(Int32(requiredStars))
             }
             
@@ -1311,6 +1313,10 @@ private extension StarsPurchasePurpose {
         case let .sendMessage(_, requiredStars):
             return requiredStars
         case let .buyStarGift(requiredStars):
+            return requiredStars
+        case let .removeOriginalDetailsStarGift(requiredStars):
+            return requiredStars
+        case let .starGiftOffer(requiredStars):
             return requiredStars
         default:
             return nil

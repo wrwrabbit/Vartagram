@@ -548,34 +548,6 @@ private func stringForRight(strings: PresentationStrings, right: TelegramChatAdm
     }
 }
 
-private func rightDependencies(_ right: TelegramChatAdminRightsFlags) -> [TelegramChatAdminRightsFlags] {
-    if right.contains(.canChangeInfo) {
-        return []
-    } else if right.contains(.canPostMessages) {
-        return []
-    } else if right.contains(.canEditMessages) {
-        return []
-    } else if right.contains(.canDeleteMessages) {
-        return []
-    } else if right.contains(.canBanUsers) {
-        return []
-    } else if right.contains(.canInviteUsers) {
-        return []
-    } else if right.contains(.canPinMessages) {
-        return []
-    } else if right.contains(.canAddAdmins) {
-        return []
-    } else if right.contains(.canManageDirect) {
-        return []
-    } else if right.contains(.canManageCalls) {
-        return []
-    } else if right.contains(.canBeAnonymous) {
-        return []
-    } else {
-        return []
-    }
-}
-
 private func canEditAdminRights(accountPeerId: EnginePeer.Id, channelPeer: EnginePeer, initialParticipant: ChannelParticipant?) -> Bool {
     if case let .channel(channel) = channelPeer {
         if channel.flags.contains(.isCreator) {
@@ -658,6 +630,7 @@ private func channelAdminControllerEntries(presentationData: PresentationData, s
                     .direct(.canChangeInfo),
                     .sub(.messages, messageRelatedFlags),
                     .sub(.stories, storiesRelatedFlags),
+                    .direct(.canBanUsers),
                     .direct(.canInviteUsers),
                     .direct(.canManageDirect),
                     .direct(.canManageCalls),

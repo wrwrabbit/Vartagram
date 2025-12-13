@@ -501,7 +501,7 @@ public class GlassBackgroundView: UIView {
                         let glassEffect = UIGlassEffect(style: .regular)
                         switch tintColor.kind {
                         case .panel:
-                            glassEffect.tintColor = nil
+                            glassEffect.tintColor = UIColor(white: isDark ? 0.0 : 1.0, alpha: 0.1)
                         case .custom:
                             glassEffect.tintColor = tintColor.color
                         }
@@ -519,8 +519,8 @@ public class GlassBackgroundView: UIView {
                             nativeParamsView.lumaMin = 0.0
                             nativeParamsView.lumaMax = 0.15
                         } else {
-                            nativeParamsView.lumaMin = 0.25
-                            nativeParamsView.lumaMax = 1.0
+                            nativeParamsView.lumaMin = 0.6
+                            nativeParamsView.lumaMax = 0.61
                         }
                     }
                 }
@@ -609,8 +609,8 @@ public final class GlassBackgroundContainerView: UIView {
                 nativeParamsView.lumaMin = 0.0
                 nativeParamsView.lumaMax = 0.15
             } else {
-                nativeParamsView.lumaMin = 0.25
-                nativeParamsView.lumaMax = 1.0
+                nativeParamsView.lumaMin = 0.6
+                nativeParamsView.lumaMax = 0.61
             }
             
             transition.setFrame(view: nativeView, frame: CGRect(origin: CGPoint(), size: size))

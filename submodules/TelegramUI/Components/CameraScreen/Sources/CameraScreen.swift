@@ -46,7 +46,7 @@ let collageGrids: [Camera.CollageGrid] = [
     Camera.CollageGrid(rows: [Camera.CollageGrid.Row(columns: 2), Camera.CollageGrid.Row(columns: 2), Camera.CollageGrid.Row(columns: 2)])
 ]
 
-enum CameraMode: Equatable {
+enum CameraMode: Int32, Equatable {
     case photo
     case video
     case live
@@ -318,6 +318,7 @@ private final class CameraScreenComponent: CombinedComponent {
         
         fileprivate var sendAsPeerId: EnginePeer.Id?
         fileprivate var isCustomTarget = false
+        fileprivate var canLivestream = true
         
         private var privacy: EngineStoryPrivacy = EngineStoryPrivacy(base: .everyone, additionallyIncludePeers: [])
         private var allowComments = true
@@ -388,6 +389,17 @@ private final class CameraScreenComponent: CombinedComponent {
                 if let customTarget = controller.customTarget {
                     self.sendAsPeerId = customTarget
                     self.isCustomTarget = true
+                    
+                    let _ = (self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: customTarget))
+                    |> deliverOnMainQueue).start(next: { [weak self] peer in
+                        guard let self else {
+                            return
+                        }
+                        if case let .channel(channel) = peer, case .group = channel.info {
+                            self.canLivestream = false
+                            self.updated()
+                        }
+                    })
                 }
                 
                 let _ = (mediaEditorStoredState(engine: self.context.engine)
@@ -2091,7 +2103,7 @@ private final class CameraScreenComponent: CombinedComponent {
                 }
                 
                 var availableModes: [CameraMode] = [.photo, .video]
-                if !isTablet {
+                if !isTablet && state.canLivestream {
                     availableModes.append(.live)
                 }
                 

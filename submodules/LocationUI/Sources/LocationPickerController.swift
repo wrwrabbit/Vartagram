@@ -446,9 +446,9 @@ public func storyLocationPickerController(
 ) -> ViewController {
     let presentationData = context.sharedContext.currentPresentationData.with({ $0 }).withUpdated(theme: defaultDarkColorPresentationTheme)
     let updatedPresentationData: (PresentationData, Signal<PresentationData, NoError>) = (presentationData, .single(presentationData))
-    let controller = AttachmentController(context: context, updatedPresentationData: updatedPresentationData, chatLocation: nil, buttons: [.standalone], initialButton: .standalone, fromMenu: false, hasTextInput: false)
+    let controller = AttachmentController(context: context, updatedPresentationData: updatedPresentationData, style: .glass, chatLocation: nil, buttons: [.standalone], initialButton: .standalone, fromMenu: false, hasTextInput: false)
     controller.requestController = { _, present in
-        let locationPickerController = LocationPickerController(context: context, updatedPresentationData: updatedPresentationData, mode: .share(peer: nil, selfPeer: nil, hasLiveLocation: false), source: .story, initialLocation: location, completion: { location, queryId, resultId, address, countryCode in
+        let locationPickerController = LocationPickerController(context: context, style: .glass, updatedPresentationData: updatedPresentationData, mode: .share(peer: nil, selfPeer: nil, hasLiveLocation: false), source: .story, initialLocation: location, completion: { location, queryId, resultId, address, countryCode in
             completion(location, queryId, resultId, address, countryCode)
         })
         present(locationPickerController, locationPickerController.mediaPickerContext)

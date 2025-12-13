@@ -212,6 +212,7 @@ public func loginEmailSetupController(context: AccountContext, blocking: Bool, e
     }
     
     dismissEmailControllerImpl = { [weak emailController] in
+        dismiss()
         emailController?.dismiss()
     }
     return emailController

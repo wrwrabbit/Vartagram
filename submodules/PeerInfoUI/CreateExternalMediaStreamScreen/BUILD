@@ -26,6 +26,9 @@ swift_library(
         "//submodules/Components/ActivityIndicatorComponent",
         "//submodules/TelegramUI/Components/ButtonComponent",
         "//submodules/TelegramUI/Components/GlassBarButtonComponent",
+        "//submodules/TelegramUI/Components/ListSectionComponent",
+        "//submodules/TelegramUI/Components/ListActionItemComponent",
+        "//submodules/TelegramUI/Components/PlainButtonComponent",
     ],
     visibility = [
         "//visibility:public",

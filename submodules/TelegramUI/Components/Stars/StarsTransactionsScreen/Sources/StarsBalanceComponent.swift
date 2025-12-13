@@ -220,7 +220,7 @@ final class StarsBalanceComponent: Component {
         
             let subtitleText: String
             if let rate = component.rate {
-                subtitleText = "≈\(formatTonUsdValue(component.count.value, divide: false, rate: rate, dateTimeFormat: component.dateTimeFormat))"
+                subtitleText = "~\(formatTonUsdValue(component.count.value, divide: false, rate: rate, dateTimeFormat: component.dateTimeFormat))"
             } else {
                 subtitleText = component.strings.Stars_Intro_YourBalance
             }

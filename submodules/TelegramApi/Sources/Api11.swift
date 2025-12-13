@@ -869,6 +869,128 @@ public extension Api {
     }
 }
 public extension Api {
+    enum InputPasskeyCredential: TypeConstructorDescription {
+        case inputPasskeyCredentialPublicKey(id: String, rawId: String, response: Api.InputPasskeyResponse)
+    
+    public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+    switch self {
+                case .inputPasskeyCredentialPublicKey(let id, let rawId, let response):
+                    if boxed {
+                        buffer.appendInt32(1009235855)
+                    }
+                    serializeString(id, buffer: buffer, boxed: false)
+                    serializeString(rawId, buffer: buffer, boxed: false)
+                    response.serialize(buffer, true)
+                    break
+    }
+    }
+    
+    public func descriptionFields() -> (String, [(String, Any)]) {
+        switch self {
+                case .inputPasskeyCredentialPublicKey(let id, let rawId, let response):
+                return ("inputPasskeyCredentialPublicKey", [("id", id as Any), ("rawId", rawId as Any), ("response", response as Any)])
+    }
+    }
+    
+        public static func parse_inputPasskeyCredentialPublicKey(_ reader: BufferReader) -> InputPasskeyCredential? {
+            var _1: String?
+            _1 = parseString(reader)
+            var _2: String?
+            _2 = parseString(reader)
+            var _3: Api.InputPasskeyResponse?
+            if let signature = reader.readInt32() {
+                _3 = Api.parse(reader, signature: signature) as? Api.InputPasskeyResponse
+            }
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            let _c3 = _3 != nil
+            if _c1 && _c2 && _c3 {
+                return Api.InputPasskeyCredential.inputPasskeyCredentialPublicKey(id: _1!, rawId: _2!, response: _3!)
+            }
+            else {
+                return nil
+            }
+        }
+    
+    }
+}
+public extension Api {
+    enum InputPasskeyResponse: TypeConstructorDescription {
+        case inputPasskeyResponseLogin(clientData: Api.DataJSON, authenticatorData: Buffer, signature: Buffer, userHandle: String)
+        case inputPasskeyResponseRegister(clientData: Api.DataJSON, attestationData: Buffer)
+    
+    public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+    switch self {
+                case .inputPasskeyResponseLogin(let clientData, let authenticatorData, let signature, let userHandle):
+                    if boxed {
+                        buffer.appendInt32(-1021329078)
+                    }
+                    clientData.serialize(buffer, true)
+                    serializeBytes(authenticatorData, buffer: buffer, boxed: false)
+                    serializeBytes(signature, buffer: buffer, boxed: false)
+                    serializeString(userHandle, buffer: buffer, boxed: false)
+                    break
+                case .inputPasskeyResponseRegister(let clientData, let attestationData):
+                    if boxed {
+                        buffer.appendInt32(1046713180)
+                    }
+                    clientData.serialize(buffer, true)
+                    serializeBytes(attestationData, buffer: buffer, boxed: false)
+                    break
+    }
+    }
+    
+    public func descriptionFields() -> (String, [(String, Any)]) {
+        switch self {
+                case .inputPasskeyResponseLogin(let clientData, let authenticatorData, let signature, let userHandle):
+                return ("inputPasskeyResponseLogin", [("clientData", clientData as Any), ("authenticatorData", authenticatorData as Any), ("signature", signature as Any), ("userHandle", userHandle as Any)])
+                case .inputPasskeyResponseRegister(let clientData, let attestationData):
+                return ("inputPasskeyResponseRegister", [("clientData", clientData as Any), ("attestationData", attestationData as Any)])
+    }
+    }
+    
+        public static func parse_inputPasskeyResponseLogin(_ reader: BufferReader) -> InputPasskeyResponse? {
+            var _1: Api.DataJSON?
+            if let signature = reader.readInt32() {
+                _1 = Api.parse(reader, signature: signature) as? Api.DataJSON
+            }
+            var _2: Buffer?
+            _2 = parseBytes(reader)
+            var _3: Buffer?
+            _3 = parseBytes(reader)
+            var _4: String?
+            _4 = parseString(reader)
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            let _c3 = _3 != nil
+            let _c4 = _4 != nil
+            if _c1 && _c2 && _c3 && _c4 {
+                return Api.InputPasskeyResponse.inputPasskeyResponseLogin(clientData: _1!, authenticatorData: _2!, signature: _3!, userHandle: _4!)
+            }
+            else {
+                return nil
+            }
+        }
+        public static func parse_inputPasskeyResponseRegister(_ reader: BufferReader) -> InputPasskeyResponse? {
+            var _1: Api.DataJSON?
+            if let signature = reader.readInt32() {
+                _1 = Api.parse(reader, signature: signature) as? Api.DataJSON
+            }
+            var _2: Buffer?
+            _2 = parseBytes(reader)
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            if _c1 && _c2 {
+                return Api.InputPasskeyResponse.inputPasskeyResponseRegister(clientData: _1!, attestationData: _2!)
+            }
+            else {
+                return nil
+            }
+        }
+    
+    }
+}
+public extension Api {
     enum InputPaymentCredentials: TypeConstructorDescription {
         case inputPaymentCredentials(flags: Int32, data: Api.DataJSON)
         case inputPaymentCredentialsApplePay(paymentData: Api.DataJSON)

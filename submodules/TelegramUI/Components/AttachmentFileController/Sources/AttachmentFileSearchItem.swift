@@ -21,6 +21,7 @@ import SearchInputPanelComponent
 
 final class AttachmentFileSearchItem: ItemListControllerSearch {
     let context: AccountContext
+    let mode: AttachmentFileControllerMode
     let presentationData: PresentationData
     let focus: () -> Void
     let cancel: () -> Void
@@ -31,8 +32,9 @@ final class AttachmentFileSearchItem: ItemListControllerSearch {
     private var activity: ValuePromise<Bool> = ValuePromise(ignoreRepeated: false)
     private let activityDisposable = MetaDisposable()
     
-    init(context: AccountContext, presentationData: PresentationData, focus: @escaping () -> Void, cancel: @escaping () -> Void, send: @escaping (Message) -> Void, dismissInput: @escaping () -> Void) {
+    init(context: AccountContext, mode: AttachmentFileControllerMode, presentationData: PresentationData, focus: @escaping () -> Void, cancel: @escaping () -> Void, send: @escaping (Message) -> Void, dismissInput: @escaping () -> Void) {
         self.context = context
+        self.mode = mode
         self.presentationData = presentationData
         self.focus = focus
         self.cancel = cancel
@@ -69,7 +71,7 @@ final class AttachmentFileSearchItem: ItemListControllerSearch {
     }
     
     func node(current: ItemListControllerSearchNode?, titleContentNode: (NavigationBarContentNode & ItemListControllerSearchNavigationContentNode)?) -> ItemListControllerSearchNode {
-        return AttachmentFileSearchItemNode(context: self.context, theme: self.presentationData.theme, strings: self.presentationData.strings, focus: self.focus, send: self.send, cancel: self.cancel, updateActivity: { [weak self] value in
+        return AttachmentFileSearchItemNode(context: self.context, mode: self.mode, presentationData: self.presentationData, focus: self.focus, send: self.send, cancel: self.cancel, updateActivity: { [weak self] value in
             self?.activity.set(value)
         }, dismissInput: self.dismissInput)
     }
@@ -77,8 +79,8 @@ final class AttachmentFileSearchItem: ItemListControllerSearch {
 
 private final class AttachmentFileSearchItemNode: ItemListControllerSearchNode {
     private let context: AccountContext
-    private let theme: PresentationTheme
-    private let strings: PresentationStrings
+    private let mode: AttachmentFileControllerMode
+    private let presentationData: PresentationData
     private let focus: () -> Void
     private let cancel: () -> Void
     
@@ -88,14 +90,14 @@ private final class AttachmentFileSearchItemNode: ItemListControllerSearchNode {
     
     private var validLayout: ContainerViewLayout?
     
-    init(context: AccountContext, theme: PresentationTheme, strings: PresentationStrings, focus: @escaping () -> Void, send: @escaping (Message) -> Void, cancel: @escaping () -> Void, updateActivity: @escaping(Bool) -> Void, dismissInput: @escaping () -> Void) {
+    init(context: AccountContext, mode: AttachmentFileControllerMode, presentationData: PresentationData, focus: @escaping () -> Void, send: @escaping (Message) -> Void, cancel: @escaping () -> Void, updateActivity: @escaping(Bool) -> Void, dismissInput: @escaping () -> Void) {
         self.context = context
-        self.theme = theme
-        self.strings = strings
+        self.mode = mode
+        self.presentationData = presentationData
         self.focus = focus
         self.cancel = cancel
                 
-        self.containerNode = AttachmentFileSearchContainerNode(context: context, forceTheme: nil, send: { message in
+        self.containerNode = AttachmentFileSearchContainerNode(context: context, mode: mode, presentationData: presentationData, send: { message in
             send(message)
         }, updateActivity: updateActivity)
 
@@ -140,11 +142,11 @@ private final class AttachmentFileSearchItemNode: ItemListControllerSearchNode {
             transition: .immediate,
             component: AnyComponent(
                 SearchInputPanelComponent(
-                    theme: self.theme,
-                    strings: self.strings,
+                    theme: self.presentationData.theme,
+                    strings: self.presentationData.strings,
                     metrics: layout.metrics,
                     safeInsets: layout.safeInsets,
-                    placeholder: self.strings.Attachment_FilesSearchPlaceholder,
+                    placeholder: self.mode == .audio ? self.presentationData.strings.Attachment_FilesSearchPlaceholder : self.presentationData.strings.Attachment_FilesSearchPlaceholder,
                     updated: { [weak self] query in
                         guard let self else {
                             return
@@ -251,7 +253,7 @@ private final class AttachmentFileSearchEntry: Comparable, Identifiable {
             interaction.send(message)
             return false
         }, openMessageContextMenu: { _, _, _, _, _ in }, toggleMessagesSelection: { _, _ in }, openUrl: { _, _, _, _ in }, openInstantPage: { _, _ in }, longTap: { _, _ in }, getHiddenMedia: { return [:] })
-        return ListMessageItem(presentationData: ChatPresentationData(presentationData: interaction.context.sharedContext.currentPresentationData.with({$0})), systemStyle: .glass, context: interaction.context, chatLocation: .peer(id: PeerId(0)), interaction: itemInteraction, message: message, selection: .none, displayHeader: true, displayFileInfo: false, displayBackground: true, style: .plain)
+        return ListMessageItem(presentationData: ChatPresentationData(presentationData: presentationData), systemStyle: .glass, context: interaction.context, chatLocation: .peer(id: PeerId(0)), interaction: itemInteraction, message: message, selection: .none, displayHeader: true, displayFileInfo: false, displayBackground: true, style: .plain)
     }
 }
 
@@ -292,11 +294,9 @@ public final class AttachmentFileSearchContainerNode: SearchDisplayControllerCon
     private let searchQuery = Promise<String?>()
     private let emptyQueryDisposable = MetaDisposable()
     private let searchDisposable = MetaDisposable()
-    
-    private let forceTheme: PresentationTheme?
+
     private var presentationData: PresentationData
     private var presentationDataDisposable: Disposable?
-        
     private let presentationDataPromise: Promise<PresentationData>
         
     private var _hasDim: Bool = false
@@ -304,17 +304,12 @@ public final class AttachmentFileSearchContainerNode: SearchDisplayControllerCon
         return _hasDim
     }
         
-    public init(context: AccountContext, forceTheme: PresentationTheme?, send: @escaping (Message) -> Void, updateActivity: @escaping (Bool) -> Void) {
+    public init(context: AccountContext, mode: AttachmentFileControllerMode, presentationData: PresentationData, send: @escaping (Message) -> Void, updateActivity: @escaping (Bool) -> Void) {
         self.context = context
         self.send = send
-        
-        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+
         self.presentationData = presentationData
-        
-        self.forceTheme = forceTheme
-        if let forceTheme = self.forceTheme {
-            self.presentationData = self.presentationData.withUpdated(theme: forceTheme)
-        }
+
         self.presentationDataPromise = Promise(self.presentationData)
         
         self.dimNode = ASDisplayNode()
@@ -380,13 +375,26 @@ public final class AttachmentFileSearchContainerNode: SearchDisplayControllerCon
                 return .single(nil)
             }
             
-            let signal: Signal<[Message]?, NoError> = .single(nil)
-            |> then(
-                context.engine.messages.searchMessages(location: .sentMedia(tags: [.file]), query: query, state: nil, inactiveSecretChatPeerIds: context.currentInactiveSecretChatPeerIds.with { $0 })
-                |> map { result -> [Message]? in
-                    return result.0.messages
-                }
-            )
+            let signal: Signal<[Message]?, NoError>
+            switch mode {
+            case .recent:
+                signal = .single(nil)
+                |> then(
+                    context.engine.messages.searchMessages(location: .sentMedia(tags: [.file]), query: query, state: nil, inactiveSecretChatPeerIds: context.currentInactiveSecretChatPeerIds.with { $0 })
+                    |> map { result -> [Message]? in
+                        return result.0.messages
+                    }
+                )
+            case .audio:
+                signal = .single(nil)
+                |> then(
+                    context.engine.messages.searchMessages(location: .general(scope: .everywhere, tags: [.music], minDate: nil, maxDate: nil), query: query, state: nil, inactiveSecretChatPeerIds: context.currentInactiveSecretChatPeerIds.with { $0 })
+                    |> map { result -> [Message]? in
+                        return result.0.messages
+                    }
+                )
+            }
+
             updateActivity(true)
 
             return combineLatest(signal, presentationDataPromise.get())
@@ -420,25 +428,19 @@ public final class AttachmentFileSearchContainerNode: SearchDisplayControllerCon
             }
         }))
         
-        self.presentationDataDisposable = (context.sharedContext.presentationData
-        |> deliverOnMainQueue).startStrict(next: { [weak self] presentationData in
-            if let strongSelf = self {
-                var presentationData = presentationData
-                
-                let previousTheme = strongSelf.presentationData.theme
-                let previousStrings = strongSelf.presentationData.strings
-                
-                if let forceTheme = strongSelf.forceTheme {
-                    presentationData = presentationData.withUpdated(theme: forceTheme)
-                }
-                
-                strongSelf.presentationData = presentationData
-                
-                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
-                    strongSelf.updateThemeAndStrings(theme: presentationData.theme, strings: presentationData.strings)
-                }
-            }
-        })
+//        self.presentationDataDisposable = (context.sharedContext.presentationData
+//        |> deliverOnMainQueue).startStrict(next: { [weak self] presentationData in
+//            if let strongSelf = self {
+//                let previousTheme = strongSelf.presentationData.theme
+//                let previousStrings = strongSelf.presentationData.strings
+//
+//                strongSelf.presentationData = presentationData
+//
+//                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
+//                    strongSelf.updateThemeAndStrings(theme: presentationData.theme, strings: presentationData.strings)
+//                }
+//            }
+//        })
         
         self.listNode.beganInteractiveDragging = { [weak self] _ in
             self?.dismissInput?()

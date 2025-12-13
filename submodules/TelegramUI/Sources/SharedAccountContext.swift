@@ -99,6 +99,8 @@ import ForumCreateTopicScreen
 import GlassBackgroundComponent
 import AttachmentFileController
 import NewContactScreen
+import PasskeysScreen
+import GiftDemoScreen
 
 private final class AccountUserInterfaceInUseContext {
     let subscribers = Bag<(Bool) -> Void>()
@@ -4598,6 +4600,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             mode = .suggestedPost(mode: .sender(channel: channel, isFromAdmin: isFromAdmin), price: current, timestamp: timestamp, completion: completion)
         case let .postSuggestionModification(current, timestamp, completion):
             mode = .suggestedPost(mode: .admin, price: current, timestamp: timestamp, completion: completion)
+        case let .starGiftOffer(peer, gift, completion):
+            mode = .starGiftOffer(peer: peer, gift: gift, completion: completion)
         }
         return StarsWithdrawScreen(context: context, mode: mode)
     }
@@ -4630,24 +4634,43 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         return controller
     }
     
-    public func makeGiftWearPreviewScreen(context: AccountContext, gift: StarGift.UniqueGift) -> ViewController {
-        let controller = GiftViewScreen(context: context, subject: .wearPreview(gift))
-        return controller
+    public func makeGiftWearPreviewScreen(context: AccountContext, gift: StarGift, attributes: [StarGift.UniqueGift.Attribute]?) -> ViewController {
+        return GiftViewScreen(context: context, subject: .wearPreview(gift, attributes))
+    }
+    
+    public func makeGiftUpgradePreviewScreen(context: AccountContext, attributes: [StarGift.UniqueGift.Attribute], peerName: String) -> ViewController {
+        return GiftViewScreen(context: context, subject: .upgradePreview(attributes, peerName))
     }
 public func makeGiftAuctionInfoScreen(context: AccountContext, auctionContext: GiftAuctionContext, completion: (() -> Void)?) -> ViewController {
         return GiftAuctionInfoScreen(context: context, auctionContext: auctionContext, completion: completion)
     }
     
-    public func makeGiftAuctionBidScreen(context: AccountContext, toPeerId: EnginePeer.Id, text: String?, entities: [MessageTextEntity]?, hideName: Bool, auctionContext: GiftAuctionContext) -> ViewController {
-        return GiftAuctionBidScreen(context: context, toPeerId: toPeerId, text: text, entities: entities, hideName: hideName, auctionContext: auctionContext)
+    public func makeGiftAuctionBidScreen(context: AccountContext, toPeerId: EnginePeer.Id, text: String?, entities: [MessageTextEntity]?, hideName: Bool, auctionContext: GiftAuctionContext, acquiredGifts: Signal<[GiftAuctionAcquiredGift], NoError>?) -> ViewController {
+        return GiftAuctionBidScreen(context: context, toPeerId: toPeerId, text: text, entities: entities, hideName: hideName, auctionContext: auctionContext, acquiredGifts: acquiredGifts)
     }
     
-    public func makeGiftAuctionViewScreen(context: AccountContext, auctionContext: GiftAuctionContext, completion: @escaping () -> Void) -> ViewController {
+    public func makeGiftAuctionViewScreen(context: AccountContext, auctionContext: GiftAuctionContext, completion: @escaping (Signal<[GiftAuctionAcquiredGift], NoError>, [StarGift.UniqueGift.Attribute]?) -> Void) -> ViewController {
         return GiftAuctionViewScreen(context: context, auctionContext: auctionContext, completion: completion)
     }
     
     public func makeGiftAuctionActiveBidsScreen(context: AccountContext) -> ViewController {
         return GiftAuctionActiveBidsScreen(context: context)
+    }
+    
+    public func makeGiftOfferScreen(context: AccountContext, gift: StarGift.UniqueGift, peer: EnginePeer, amount: CurrencyAmount, commit: @escaping () -> Void) -> ViewController {
+        return giftOfferAlertController(context: context, gift: gift, peer: peer, amount: amount, commit: commit)
+    }
+    
+    public func makeGiftUpgradeVariantsPreviewScreen(context: AccountContext, gift: StarGift, attributes: [StarGift.UniqueGift.Attribute]) -> ViewController {
+        return GiftUpgradePreviewScreen(context: context, gift: gift, attributes: attributes)
+    }
+    
+    public func makeGiftAuctionWearPreviewScreen(context: AccountContext, auctionContext: GiftAuctionContext, acquiredGifts: Signal<[GiftAuctionAcquiredGift], NoError>?, attributes: [StarGift.UniqueGift.Attribute], completion: @escaping () -> Void) -> ViewController {
+        return GiftAuctionWearPreviewScreen(context: context, auctionContext: auctionContext, attributes: attributes, completion: completion)
+    }
+    
+    public func makeGiftDemoScreen(context: AccountContext) -> ViewController {
+        return GiftDemoScreen(context: context)
     }
     
     public func makeStorySharingScreen(context: AccountContext, subject: StorySharingSubject, parentController: ViewController) -> ViewController {
@@ -4841,6 +4864,10 @@ public func makeGiftAuctionInfoScreen(context: AccountContext, auctionContext: G
     
     public func makeLoginEmailSetupController(context: AccountContext, blocking: Bool, emailPattern: String?, canAutoDismissIfNeeded: Bool, navigationController: NavigationController?, completion: @escaping () -> Void, dismiss: @escaping () -> Void) -> ViewController {
         return loginEmailSetupController(context: context, blocking: blocking, emailPattern: emailPattern, canAutoDismissIfNeeded: canAutoDismissIfNeeded, navigationController: navigationController, completion: completion, dismiss: dismiss)
+    }
+    
+    public func makePasskeySetupController(context: AccountContext, displaySkip: Bool, navigationController: NavigationController?, completion: @escaping () -> Void, dismiss: @escaping () -> Void) -> ViewController {
+        return PasskeysScreen(context: context, displaySkip: displaySkip, initialPasskeysData: nil, passkeysDataUpdated: { _ in }, completion: completion, cancel: dismiss)
     }
 }
 

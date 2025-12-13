@@ -732,7 +732,7 @@ private func channelPermissionsControllerEntries(context: AccountContext, presen
                 var price: String = ""
                 let usdRate = Double(configuration.usdWithdrawRate) / 1000.0 / 100.0
                 
-                price = "≈\(formatTonUsdValue(sendPaidMessageStars, divide: false, rate: usdRate, dateTimeFormat: presentationData.dateTimeFormat))"
+                price = "~\(formatTonUsdValue(sendPaidMessageStars, divide: false, rate: usdRate, dateTimeFormat: presentationData.dateTimeFormat))"
                 
                 entries.append(.messagePriceHeader(presentationData.theme, presentationData.strings.GroupInfo_Permissions_MessagePrice))
                 entries.append(.messagePrice(presentationData.theme, sendPaidMessageStars, configuration.paidMessageMaxAmount, price))

@@ -108,6 +108,7 @@ final class AdminUserActionsPeerComponent: Component {
         private weak var state: EmptyComponentState?
         
         public var customUpdateIsHighlighted: ((Bool) -> Void)?
+        public var enumerateSiblings: (((UIView) -> Void) -> Void)?
         public var separatorInset: CGFloat = 0.0
         
         override init(frame: CGRect) {

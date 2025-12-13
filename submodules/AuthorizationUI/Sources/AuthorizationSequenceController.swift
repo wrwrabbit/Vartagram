@@ -170,7 +170,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         if let currentController = currentController {
             controller = currentController
         } else {
-            controller = AuthorizationSequencePhoneEntryController(sharedContext: self.sharedContext, account: self.account, isTestingEnvironment: self.account.testingEnvironment, otherAccountPhoneNumbers: self.otherAccountPhoneNumbers, network: self.account.network, presentationData: self.presentationData, openUrl: { [weak self] url in
+            controller = AuthorizationSequencePhoneEntryController(sharedContext: self.sharedContext, account: self.account, apiId: self.apiId, apiHash: self.apiHash, isTestingEnvironment: self.account.testingEnvironment, otherAccountPhoneNumbers: self.otherAccountPhoneNumbers, network: self.account.network, presentationData: self.presentationData, openUrl: { [weak self] url in
                 self?.openUrl(url)
             }, back: { [weak self] in
                 guard let strongSelf = self else {
@@ -314,6 +314,48 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                         }))
                     }
                 })
+            }
+            controller.loginWithPasskey = { [weak self, weak controller] passkey, syncContacts in
+                guard let self else {
+                    return
+                }
+                
+                self.actionDisposable.set((authorizeWithPasskey(
+                    accountManager: self.sharedContext.accountManager,
+                    account: self.account,
+                    passkey: passkey,
+                    foreignDatacenter: nil,
+                    forcedPasswordSetupNotice: { value in
+                        guard let entry = CodableEntry(ApplicationSpecificCounterNotice(value: value)) else {
+                            return nil
+                        }
+                        return (ApplicationSpecificNotice.forcedPasswordSetupKey(), entry)
+                    },
+                    syncContacts: syncContacts
+                )
+                |> deliverOnMainQueue).startStrict(next: { [weak self] result in
+                    guard let self else {
+                        return
+                    }
+                    if result.updatedAccount !== self.account {
+                        self.account = result.updatedAccount
+                        self.inAppPurchaseManager = InAppPurchaseManager(engine: .unauthorized(self.engine))
+                    }
+                }, error: { [weak self, weak controller] error in
+                    Queue.mainQueue().async {
+                        if let strongSelf = self, let controller {
+                            let text: String
+                            switch error {
+                            case .limitExceeded:
+                                text = strongSelf.presentationData.strings.Login_CodeFloodError
+                            case .generic, .invalidEmailAddress, .codeExpired, .invalidEmailToken, .invalidCode:
+                                text = strongSelf.presentationData.strings.Login_UnknownError
+                            }
+                            
+                            controller.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                        }
+                    }
+                }))
             }
         }
         controller.updateData(countryCode: countryCode, countryName: nil, number: number)

@@ -202,6 +202,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
         }
         
         public var customUpdateIsHighlighted: ((Bool) -> Void)?
+        public var enumerateSiblings: (((UIView) -> Void) -> Void)?
         public private(set) var separatorInset: CGFloat = 0.0
         
         public override init(frame: CGRect) {

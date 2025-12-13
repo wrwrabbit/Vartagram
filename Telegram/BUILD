@@ -307,7 +307,7 @@ alternate_icon_folders = [
     "BlueIcon",
 ]
 
-composer_icon_folders = ["Telegram"]
+#composer_icon_folders = ["Telegram"]
 
 [
     filegroup(
@@ -318,14 +318,14 @@ composer_icon_folders = ["Telegram"]
     ) for name in alternate_icon_folders
 ]
 
-[
-    filegroup(
-        name = "{}_icon".format(name),
-        srcs = glob([
-            "Telegram-iOS/{}.icon/**/*".format(name),
-        ]),
-    ) for name in composer_icon_folders
-]
+#[
+#    filegroup(
+#        name = "{}_icon".format(name),
+#        srcs = glob([
+#            "Telegram-iOS/{}.icon/**/*".format(name),
+#        ]),
+#    ) for name in composer_icon_folders
+#]
 
 filegroup(
     name = "LaunchScreen",
@@ -493,6 +493,8 @@ associated_domains_fragment = "" if telegram_bundle_id not in official_bundle_id
     <string>applinks:telegram.me</string>
     <string>applinks:t.me</string>
     <string>applinks:*.t.me</string>
+    <string>webcredentials:t.me</string>
+    <string>webcredentials:telegram.org</string>
 </array>
 """
 
@@ -1839,13 +1841,13 @@ ios_application(
         ":UrlTypesInfoPlist",
         ":PTVersionInfoPlist",
     ],
-    app_icons = [ ":{}_icon".format(name) for name in composer_icon_folders ],
+    #app_icons = [ ":{}_icon".format(name) for name in composer_icon_folders ],
     alternate_icons = [
         ":{}".format(name) for name in alternate_icon_folders
     ],
     resources = [
         ":LaunchScreen",
-        #":DefaultAppIcon",
+        ":DefaultAppIcon",
     ],
     frameworks = [
         ":MtProtoKitFramework",

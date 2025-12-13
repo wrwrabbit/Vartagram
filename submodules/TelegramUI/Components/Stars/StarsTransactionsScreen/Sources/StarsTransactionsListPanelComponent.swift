@@ -472,43 +472,30 @@ final class StarsTransactionsListPanelComponent: Component {
                         )))
                     )
                     if let itemSubtitle {
-                        let subtitleComponent: AnyComponent<Empty>
+                        var items: [AnyComponentWithIdentity<Empty>] = []
                         if let itemFile {
-                            subtitleComponent = AnyComponent(
-                                HStack([
-                                    AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(
-                                        GiftAnimationComponent(
-                                            context: component.context,
-                                            theme: environment.theme,
-                                            file: itemFile,
-                                            still: true,
-                                            size: CGSize(width: 20.0, height: 20.0)
-                                        )
-                                    )),
-                                    AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(
-                                        MultilineTextComponent(
-                                            text: .plain(NSAttributedString(
-                                                string: itemSubtitle,
-                                                font: Font.regular(fontBaseDisplaySize * 16.0 / 17.0),
-                                                textColor: environment.theme.list.itemPrimaryTextColor
-                                            )
-                                        )
-                                    )))
-                                ], spacing: 2.0)
-                            )
-                        } else {
-                            subtitleComponent = AnyComponent(MultilineTextComponent(
+                            items.append(AnyComponentWithIdentity(id: "icon", component: AnyComponent(
+                                GiftAnimationComponent(
+                                    context: component.context,
+                                    theme: environment.theme,
+                                    file: itemFile,
+                                    still: true,
+                                    size: CGSize(width: 20.0, height: 20.0)
+                                )
+                            )))
+                        }
+                        items.append(AnyComponentWithIdentity(id: "title", component: AnyComponent(
+                            MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: itemSubtitle,
                                     font: Font.regular(fontBaseDisplaySize * 16.0 / 17.0),
                                     textColor: environment.theme.list.itemPrimaryTextColor
                                 )),
                                 maximumNumberOfLines: 1
-                            ))
-                        }
-                        
+                            )
+                        )))
                         titleComponents.append(
-                            AnyComponentWithIdentity(id: AnyHashable(1), component: subtitleComponent)
+                            AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(HStack(items, spacing: 2.0)))
                         )
                     }
                     titleComponents.append(

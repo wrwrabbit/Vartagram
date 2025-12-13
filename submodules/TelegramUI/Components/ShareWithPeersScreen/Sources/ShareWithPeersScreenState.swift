@@ -101,6 +101,13 @@ public extension ShareWithPeersScreen {
              
             switch subject {
             case let .peers(peers, _):
+                let peers = peers.filter { peer in
+                    if liveStream, case let .channel(channel) = peer, case .group = channel.info {
+                        return false
+                    } else {
+                        return true
+                    }
+                }
                 self.stateDisposable = (.single(peers)
                 |> mapToSignal { peers -> Signal<([EnginePeer], [EnginePeer.Id: Optional<Int>]), NoError> in
                     return context.engine.data.subscribe(

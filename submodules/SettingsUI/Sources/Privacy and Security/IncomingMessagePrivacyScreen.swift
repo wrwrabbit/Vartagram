@@ -194,7 +194,7 @@ private func incomingMessagePrivacyScreenEntries(presentationData: PresentationD
         
         let usdRate = Double(configuration.usdWithdrawRate) / 1000.0 / 100.0
         
-        let price = "≈\(formatTonUsdValue(amount.value, divide: false, rate: usdRate, dateTimeFormat: presentationData.dateTimeFormat))"
+        let price = "~\(formatTonUsdValue(amount.value, divide: false, rate: usdRate, dateTimeFormat: presentationData.dateTimeFormat))"
         
         entries.append(.price(value: amount.value, maxValue: configuration.paidMessageMaxAmount, price: price, isEnabled: isPremium))
         entries.append(.priceInfo(commission: configuration.paidMessageCommissionPermille / 10, value: price))

@@ -27,6 +27,7 @@ import TabSelectorComponent
 import PresentationDataUtils
 import BalanceNeededScreen
 import GlassBarButtonComponent
+import GlassBackgroundComponent
 
 private let amountTag = GenericComponentViewTag()
 
@@ -56,18 +57,16 @@ private final class SheetContent: CombinedComponent {
     
     static var body: (CombinedComponentContext<SheetContent>) -> CGSize {
         let closeButton = Child(GlassBarButtonComponent.self)
-        let cancelButton = Child(Button.self)
         let balance = Child(BalanceComponent.self)
         let title = Child(Text.self)
         let currencyToggle = Child(TabSelectorComponent.self)
         let amountSection = Child(ListSectionComponent.self)
         let amountAdditionalLabel = Child(MultilineTextComponent.self)
+        let periodSection = Child(ListSectionComponent.self)
         let timestampSection = Child(ListSectionComponent.self)
         let onlyTonSection = Child(ListSectionComponent.self)
         let button = Child(ButtonComponent.self)
-        let balanceTitle = Child(MultilineTextComponent.self)
-        let balanceValue = Child(MultilineTextComponent.self)
-        let balanceIcon = Child(BundleIconComponent.self)
+        let durationPicker = Child(MenuComponent.self)
         
         let body: (CombinedComponentContext<SheetContent>) -> CGSize = { (context: CombinedComponentContext<SheetContent>) -> CGSize in
             let environment = context.environment[EnvironmentType.self]
@@ -86,74 +85,29 @@ private final class SheetContent: CombinedComponent {
             var contentSize = CGSize(width: context.availableSize.width, height: 18.0)
             
             let constrainedTitleWidth = context.availableSize.width - 16.0 * 2.0
-            
-            if case let .suggestedPost(mode, _, _, _) = component.mode {
-                var displayBalance = false
-                switch mode {
-                case let .sender(_, isFromAdmin):
-                    displayBalance = !isFromAdmin
-                case .admin:
-                    break
-                }
-                
-                if displayBalance {
-                    let balance = balance.update(
-                        component: BalanceComponent(
-                            context: component.context,
-                            theme: environment.theme,
-                            strings: environment.strings,
-                            currency: state.currency,
-                            balance: state.currency == .stars ? state.starsBalance : state.tonBalance,
-                            alignment: .right
-                        ),
-                        availableSize: CGSize(width: 200.0, height: 200.0),
-                        transition: .immediate
-                    )
-                    let balanceFrame = CGRect(origin: CGPoint(x: context.availableSize.width - balance.size.width - 15.0, y: floor((56.0 - balance.size.height) * 0.5)), size: balance.size)
-                    context.add(balance
-                        .anchorPoint(CGPoint(x: 1.0, y: 0.0))
-                        .position(CGPoint(x: balanceFrame.maxX, y: balanceFrame.minY))
-                    )
-                }
-                
-                let cancelButton = cancelButton.update(
-                    component: Button(
-                        content: AnyComponent(Text(text: environment.strings.Common_Cancel, font: Font.regular(17.0), color: environment.theme.list.itemAccentColor)),
-                        action: {
-                            component.dismiss()
-                        }
-                    ).minSize(CGSize(width: 8.0, height: 44.0)),
-                    availableSize: CGSize(width: 200.0, height: 100.0),
-                    transition: .immediate
-                )
-                let closeFrame = CGRect(origin: CGPoint(x: 16.0, y: floor((56.0 - cancelButton.size.height) * 0.5)), size: cancelButton.size)
-                context.add(cancelButton
-                    .position(closeFrame.center)
-                )
-            } else {
-                let closeButton = closeButton.update(
-                    component: GlassBarButtonComponent(
-                        size: CGSize(width: 40.0, height: 40.0),
-                        backgroundColor: theme.rootController.navigationBar.glassBarButtonBackgroundColor,
-                        isDark: theme.overallDarkAppearance,
-                        state: .generic,
-                        component: AnyComponentWithIdentity(id: "close", component: AnyComponent(
-                            BundleIconComponent(
-                                name: "Navigation/Close",
-                                tintColor: theme.rootController.navigationBar.glassBarButtonForegroundColor
-                            )
-                        )),
-                        action: { _ in
-                            component.dismiss()
-                        }
-                    ),
-                    availableSize: CGSize(width: 40.0, height: 40.0),
-                    transition: .immediate
-                )
-                context.add(closeButton
-                    .position(CGPoint(x: 16.0 + closeButton.size.width / 2.0, y: 16.0 + closeButton.size.height / 2.0))
-                )
-            }
+                        
+            let closeButton = closeButton.update(
+                component: GlassBarButtonComponent(
+                    size: CGSize(width: 40.0, height: 40.0),
+                    backgroundColor: theme.rootController.navigationBar.glassBarButtonBackgroundColor,
+                    isDark: theme.overallDarkAppearance,
+                    state: .generic,
+                    component: AnyComponentWithIdentity(id: "close", component: AnyComponent(
+                        BundleIconComponent(
+                            name: "Navigation/Close",
+                            tintColor: theme.rootController.navigationBar.glassBarButtonForegroundColor
+                        )
+                    )),
+                    action: { _ in
+                        component.dismiss()
+                    }
+                ),
+                availableSize: CGSize(width: 40.0, height: 40.0),
+                transition: .immediate
+            )
+            context.add(closeButton
+                .position(CGPoint(x: 16.0 + closeButton.size.width / 2.0, y: 16.0 + closeButton.size.height / 2.0))
+            )
             
             let titleString: String
             let amountTitle: String
@@ -193,7 +147,7 @@ private final class SheetContent: CombinedComponent {
                 
                 if let usdWithdrawRate = withdrawConfiguration.usdWithdrawRate, let amount = state.amount, amount > StarsAmount.zero {
                     let usdRate = Double(usdWithdrawRate) / 1000.0 / 100.0
-                    amountLabel = "≈\(formatTonUsdValue(amount.value, divide: false, rate: usdRate, dateTimeFormat: environment.dateTimeFormat))"
+                    amountLabel = "~\(formatTonUsdValue(amount.value, divide: false, rate: usdRate, dateTimeFormat: environment.dateTimeFormat))"
                 }
             case .reaction:
                 titleString = environment.strings.Stars_SendStars_Title
@@ -247,10 +201,35 @@ private final class SheetContent: CombinedComponent {
                     switch state.currency {
                     case .stars:
                         let usdRate = Double(usdWithdrawRate) / 1000.0 / 100.0
-                        amountLabel = "≈\(formatTonUsdValue(amount.value, divide: false, rate: usdRate, dateTimeFormat: environment.dateTimeFormat))"
+                        amountLabel = "~\(formatTonUsdValue(amount.value, divide: false, rate: usdRate, dateTimeFormat: environment.dateTimeFormat))"
                     case .ton:
                         let usdRate = Double(tonUsdRate) / 1000.0 / 1000000.0
-                        amountLabel = "≈\(formatTonUsdValue(amount.value, divide: false, rate: usdRate, dateTimeFormat: environment.dateTimeFormat))"
+                        amountLabel = "~\(formatTonUsdValue(amount.value, divide: false, rate: usdRate, dateTimeFormat: environment.dateTimeFormat))"
+                    }
+                }
+            case let .starGiftOffer(_, gift, _):
+                titleString = environment.strings.Gift_Offer_Title
+                switch state.currency {
+                case .stars:
+                    amountTitle = environment.strings.Gift_Offer_PriceSectionStars
+                    minAmount = StarsAmount(value: gift.minOfferStars ?? resaleConfiguration.starGiftResaleMinStarsAmount, nanos: 0)
+                    maxAmount = StarsAmount(value: resaleConfiguration.starGiftResaleMaxStarsAmount, nanos: 0)
+                case .ton:
+                    amountTitle = environment.strings.Gift_Offer_PriceSectionTon
+                    minAmount = StarsAmount(value: resaleConfiguration.starGiftResaleMinTonAmount, nanos: 0)
+                    maxAmount = StarsAmount(value: resaleConfiguration.starGiftResaleMaxTonAmount, nanos: 0)
+                }
+                
+                amountPlaceholder = environment.strings.Gift_Offer_PricePlaceholder
+                
+                if let usdWithdrawRate = withdrawConfiguration.usdWithdrawRate, let tonUsdRate = withdrawConfiguration.tonUsdRate, let amount = state.amount, amount > StarsAmount.zero {
+                    switch state.currency {
+                    case .stars:
+                        let usdRate = Double(usdWithdrawRate) / 1000.0 / 100.0
+                        amountLabel = "~\(formatTonUsdValue(amount.value, divide: false, rate: usdRate, dateTimeFormat: environment.dateTimeFormat))"
+                    case .ton:
+                        let usdRate = Double(tonUsdRate) / 1000.0 / 1000000.0
+                        amountLabel = "~\(formatTonUsdValue(amount.value, divide: false, rate: usdRate, dateTimeFormat: environment.dateTimeFormat))"
                     }
                 }
             }
@@ -264,69 +243,58 @@ private final class SheetContent: CombinedComponent {
                 .position(CGPoint(x: context.availableSize.width / 2.0, y: 36.0))
             )
             contentSize.height += title.size.height
-            contentSize.height += 40.0
+            contentSize.height += 56.0
             
-            let balance: StarsAmount?
-            if case .accountWithdraw = component.mode {
-                balance = state.starsBalance
-            } else if case .reaction = component.mode {
-                balance = state.starsBalance
-            } else if case let .withdraw(starsState, _) = component.mode {
-                balance = starsState.balances.availableBalance.amount
-            } else {
-                balance = nil
+            var displayBalance = false
+            var currentBalance = state.currency == .stars ? state.starsBalance : state.tonBalance
+            switch component.mode {
+            case .accountWithdraw, .reaction:
+                displayBalance = true
+            case let .suggestedPost(mode, _, _, _):
+                switch mode {
+                case let .sender(_, isFromAdmin):
+                    displayBalance = !isFromAdmin
+                case .admin:
+                    break
+                }
+            case let .withdraw(starsState, _):
+                currentBalance = starsState.balances.availableBalance.amount
+                displayBalance = true
+            default:
+                break
             }
-            
-            if let balance {
-                let balanceTitle = balanceTitle.update(
-                    component: MultilineTextComponent(
-                        text: .plain(NSAttributedString(
-                            string: environment.strings.Stars_Transfer_Balance,
-                            font: Font.regular(14.0),
-                            textColor: theme.list.itemPrimaryTextColor
-                        )),
-                        maximumNumberOfLines: 1
+          
+            if displayBalance {
+                let balance = balance.update(
+                    component: BalanceComponent(
+                        context: component.context,
+                        theme: environment.theme,
+                        strings: environment.strings,
+                        currency: state.currency,
+                        balance: currentBalance,
+                        alignment: .right
                     ),
-                    availableSize: context.availableSize,
+                    availableSize: CGSize(width: 200.0, height: 200.0),
                     transition: .immediate
                 )
-                let balanceValue = balanceValue.update(
-                    component: MultilineTextComponent(
-                        text: .plain(NSAttributedString(
-                            string: presentationStringsFormattedNumber(balance, environment.dateTimeFormat.groupingSeparator),
-                            font: Font.semibold(16.0),
-                            textColor: theme.list.itemPrimaryTextColor
-                        )),
-                        maximumNumberOfLines: 1
-                    ),
-                    availableSize: context.availableSize,
-                    transition: .immediate
+                let balanceFrame = CGRect(origin: CGPoint(x: context.availableSize.width - balance.size.width - 20.0, y: floor((66.0 - balance.size.height) * 0.5)), size: balance.size)
+                context.add(balance
+                    .anchorPoint(CGPoint(x: 1.0, y: 0.0))
+                    .position(CGPoint(x: balanceFrame.maxX, y: balanceFrame.minY))
                 )
-                let balanceIcon = balanceIcon.update(
-                    component: BundleIconComponent(name: "Premium/Stars/StarSmall", tintColor: nil),
-                    availableSize: context.availableSize,
-                    transition: .immediate
-                )
+            }
                 
-                let topBalanceOriginY = 11.0
-                context.add(balanceTitle
-                    .position(CGPoint(x: 16.0 + environment.safeInsets.left + balanceTitle.size.width / 2.0, y: topBalanceOriginY + balanceTitle.size.height / 2.0))
-                )
-                context.add(balanceIcon
-                    .position(CGPoint(x: 16.0 + environment.safeInsets.left + balanceIcon.size.width / 2.0, y: topBalanceOriginY + balanceTitle.size.height + balanceValue.size.height / 2.0 + 1.0 + UIScreenPixel))
-                )
-                context.add(balanceValue
-                    .position(CGPoint(x: 16.0 + environment.safeInsets.left + balanceIcon.size.width + 3.0 + balanceValue.size.width / 2.0, y: topBalanceOriginY + balanceTitle.size.height + balanceValue.size.height / 2.0 + 2.0 - UIScreenPixel))
-                )
-            }
-            
             var tonBalanceValue: StarsAmount = .zero
             if let tonBalance = state.tonBalance {
                 tonBalanceValue = tonBalance
             }
             
-            if case let .suggestedPost(mode, _, _, _) = component.mode {
-                var displayCurrencySelector = false
+            let selectedId: AnyHashable = state.currency == .stars ? AnyHashable(0 as Int) : AnyHashable(1 as Int)
+            let starsTitle: String
+            let tonTitle: String
+            var displayCurrencySelector = false
+            switch component.mode {
+            case let .suggestedPost(mode, _, _, _):
                 switch mode {
                 case let .sender(_, isFromAdmin):
                     if isFromAdmin {
@@ -336,74 +304,74 @@ private final class SheetContent: CombinedComponent {
                             displayCurrencySelector = true
                         }
                     }
+                    starsTitle = environment.strings.Chat_PostSuggestion_Suggest_OfferStars
+                    tonTitle = environment.strings.Chat_PostSuggestion_Suggest_OfferTon
                 case .admin:
                     displayCurrencySelector = true
+                    starsTitle = environment.strings.Chat_PostSuggestion_Suggest_RequestStars
+                    tonTitle = environment.strings.Chat_PostSuggestion_Suggest_RequestTon
                 }
-                
-                if displayCurrencySelector {
-                    let selectedId: AnyHashable = state.currency == .stars ? AnyHashable(0 as Int) : AnyHashable(1 as Int)
-                    let starsTitle: String
-                    let tonTitle: String
-                    switch mode {
-                    case .sender:
-                        starsTitle = environment.strings.Chat_PostSuggestion_Suggest_OfferStars
-                        tonTitle = environment.strings.Chat_PostSuggestion_Suggest_OfferTon
-                    case .admin:
-                        starsTitle = environment.strings.Chat_PostSuggestion_Suggest_RequestStars
-                        tonTitle = environment.strings.Chat_PostSuggestion_Suggest_RequestTon
-                    }
-                    
-                    let currencyToggle = currencyToggle.update(
-                        component: TabSelectorComponent(
-                            colors: TabSelectorComponent.Colors(
-                                foreground: theme.list.itemSecondaryTextColor,
-                                selection: theme.list.itemSecondaryTextColor.withMultipliedAlpha(0.15),
-                                simple: true
-                            ),
-                            theme: theme,
-                            customLayout: TabSelectorComponent.CustomLayout(
-                                font: Font.medium(14.0),
-                                spacing: 10.0
-                            ),
-                            items: [
-                                TabSelectorComponent.Item(
-                                    id: AnyHashable(0),
-                                    content: .component(AnyComponent(CurrencyTabItemComponent(icon: .stars, title: starsTitle, theme: theme)))
-                                ),
-                                TabSelectorComponent.Item(
-                                    id: AnyHashable(1),
-                                    content: .component(AnyComponent(CurrencyTabItemComponent(icon: .ton, title: tonTitle, theme: theme)))
-                                )
-                            ],
-                            selectedId: selectedId,
-                            setSelectedId: { [weak state] id in
-                                guard let state else {
-                                    return
-                                }
-                                
-                                let currency: CurrencyAmount.Currency
-                                if id == AnyHashable(0) {
-                                    currency = .stars
-                                } else {
-                                    currency = .ton
-                                }
-                                if state.currency != currency {
-                                    state.currency = currency
-                                    state.amount = nil
-                                }
-                                state.updated(transition: .spring(duration: 0.4))
-                            }
+            case .starGiftOffer:
+                displayCurrencySelector = true
+                starsTitle = environment.strings.Gift_Offer_OfferStars
+                tonTitle = environment.strings.Gift_Offer_OfferTon
+            default:
+                starsTitle = ""
+                tonTitle = ""
+            }
+
+            if displayCurrencySelector {
+                let currencyToggle = currencyToggle.update(
+                    component: TabSelectorComponent(
+                        colors: TabSelectorComponent.Colors(
+                            foreground: theme.list.itemSecondaryTextColor,
+                            selection: theme.list.itemSecondaryTextColor.withMultipliedAlpha(0.15),
+                            simple: true
                         ),
-                        availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0, height: 100.0),
-                        transition: context.transition
-                    )
-                    contentSize.height -= 17.0
-                    let currencyToggleFrame = CGRect(origin: CGPoint(x: floor((context.availableSize.width - currencyToggle.size.width) * 0.5), y: contentSize.height), size: currencyToggle.size)
-                    context.add(currencyToggle
-                        .position(currencyToggle.size.centered(in: currencyToggleFrame).center))
-                    
-                    contentSize.height += currencyToggle.size.height + 29.0
-                }
+                        theme: theme,
+                        style: .glass,
+                        customLayout: TabSelectorComponent.CustomLayout(
+                            font: Font.medium(14.0),
+                            spacing: 10.0
+                        ),
+                        items: [
+                            TabSelectorComponent.Item(
+                                id: AnyHashable(0),
+                                content: .component(AnyComponent(CurrencyTabItemComponent(icon: .stars, title: starsTitle, theme: theme)))
+                            ),
+                            TabSelectorComponent.Item(
+                                id: AnyHashable(1),
+                                content: .component(AnyComponent(CurrencyTabItemComponent(icon: .ton, title: tonTitle, theme: theme)))
+                            )
+                        ],
+                        selectedId: selectedId,
+                        setSelectedId: { [weak state] id in
+                            guard let state else {
+                                return
+                            }
+                            
+                            let currency: CurrencyAmount.Currency
+                            if id == AnyHashable(0) {
+                                currency = .stars
+                            } else {
+                                currency = .ton
+                            }
+                            if state.currency != currency {
+                                state.currency = currency
+                                state.amount = nil
+                            }
+                            state.updated(transition: .spring(duration: 0.4))
+                        }
+                    ),
+                    availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0, height: 100.0),
+                    transition: context.transition
+                )
+                contentSize.height -= 17.0
+                let currencyToggleFrame = CGRect(origin: CGPoint(x: floor((context.availableSize.width - currencyToggle.size.width) * 0.5), y: contentSize.height), size: currencyToggle.size)
+                context.add(currencyToggle
+                    .position(currencyToggle.size.centered(in: currencyToggleFrame).center))
+                
+                contentSize.height += currencyToggle.size.height + 29.0
             }
             
             let amountFont = Font.regular(13.0)
@@ -462,7 +430,7 @@ private final class SheetContent: CombinedComponent {
                         
                         if let usdWithdrawRate = withdrawConfiguration.usdWithdrawRate {
                             let usdRate = Double(usdWithdrawRate) / 1000.0 / 100.0
-                            amountRightLabel = "≈\(formatTonUsdValue(Int64(starsValue), divide: false, rate: usdRate, dateTimeFormat: environment.dateTimeFormat))"
+                            amountRightLabel = "~\(formatTonUsdValue(Int64(starsValue), divide: false, rate: usdRate, dateTimeFormat: environment.dateTimeFormat))"
                         }
                     } else {
                         amountInfoString = NSAttributedString(attributedString: parseMarkdownIntoAttributedString(environment.strings.Stars_SellGift_AmountInfo("\(resaleConfiguration.starGiftCommissionStarsPermille / 10)%").string, attributes: amountMarkdownAttributes, textAlignment: .natural))
@@ -474,7 +442,7 @@ private final class SheetContent: CombinedComponent {
                         amountInfoString = NSAttributedString(attributedString: parseMarkdownIntoAttributedString(environment.strings.Stars_SellGift_AmountInfo(tonString).string, attributes: amountMarkdownAttributes, textAlignment: .natural))
                         
                         if let tonUsdRate = withdrawConfiguration.tonUsdRate {
-                            amountRightLabel = "≈\(formatTonUsdValue(tonValue, divide: true, rate: tonUsdRate, dateTimeFormat: environment.dateTimeFormat))"
+                            amountRightLabel = "~\(formatTonUsdValue(tonValue, divide: true, rate: tonUsdRate, dateTimeFormat: environment.dateTimeFormat))"
                         }
                     } else {
                         amountInfoString = NSAttributedString(attributedString: parseMarkdownIntoAttributedString(environment.strings.Stars_SellGift_AmountInfo("\(resaleConfiguration.starGiftCommissionTonPermille / 10)%").string, attributes: amountMarkdownAttributes, textAlignment: .natural))
@@ -535,6 +503,20 @@ private final class SheetContent: CombinedComponent {
                         maximumNumberOfLines: 0
                     ))
                 }
+            case let .starGiftOffer(_, uniqueGift, _):
+                let giftTitle = "\(uniqueGift.title) #\(formatCollectibleNumber(uniqueGift.number, dateTimeFormat: environment.dateTimeFormat))"
+                let string: String
+                switch state.currency {
+                case .stars:
+                    string = environment.strings.Gift_Offer_PriceDescriptionStars(giftTitle).string
+                case .ton:
+                    string = environment.strings.Gift_Offer_PriceDescriptionTon(giftTitle).string
+                }
+                let amountInfoString = NSAttributedString(attributedString: parseMarkdownIntoAttributedString(string, attributes: amountMarkdownAttributes, textAlignment: .natural))
+                amountFooter = AnyComponent(MultilineTextComponent(
+                    text: .plain(amountInfoString),
+                    maximumNumberOfLines: 0
+                ))
             default:
                 amountFooter = nil
             }
@@ -599,6 +581,7 @@ private final class SheetContent: CombinedComponent {
                     .position(CGPoint(x: context.availableSize.width - amountAdditionalLabel.size.width / 2.0 - sideInset - 16.0, y: contentSize.height - amountAdditionalLabel.size.height / 2.0)))
             }
             
+            var durationFrame = CGRect()
             if case .starGiftResell = component.mode {
                 contentSize.height += 24.0
                 
@@ -611,12 +594,14 @@ private final class SheetContent: CombinedComponent {
                 let onlyTonSection = onlyTonSection.update(
                     component: ListSectionComponent(
                         theme: theme,
+                        style: .glass,
                         header: nil,
                         footer: onlyTonFooter,
                         items: [AnyComponentWithIdentity(
                             id: "switch",
                             component: AnyComponent(ListActionItemComponent(
                                 theme: theme,
+                                style: .glass,
                                 title: AnyComponent(VStack([
                                     AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                                         text: .plain(NSAttributedString(
@@ -702,12 +687,14 @@ private final class SheetContent: CombinedComponent {
                 let timestampSection = timestampSection.update(
                     component: ListSectionComponent(
                         theme: theme,
+                        style: .glass,
                         header: nil,
                         footer: timestampFooter,
                         items: [AnyComponentWithIdentity(
                             id: "timestamp",
                             component: AnyComponent(ListActionItemComponent(
                                 theme: theme,
+                                style: .glass,
                                 title: AnyComponent(VStack([
                                     AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                                         text: .plain(NSAttributedString(
@@ -759,6 +746,80 @@ private final class SheetContent: CombinedComponent {
                     .cornerRadius(10.0)
                 )
                 contentSize.height += timestampSection.size.height
+            } else if case let .starGiftOffer(peer, _, _) = component.mode {
+                contentSize.height += 24.0
+                
+                let peerName = peer.compactDisplayTitle
+                
+                let footerString: String
+                switch state.currency {
+                case .stars:
+                    footerString = environment.strings.Gift_Offer_DurationDescriptionStars(peerName).string
+                case .ton:
+                    footerString = environment.strings.Gift_Offer_DurationDescriptionTon(peerName).string
+                }
+                
+                let periodFooterString = NSAttributedString(attributedString: parseMarkdownIntoAttributedString(footerString, attributes: amountMarkdownAttributes, textAlignment: .natural))
+                let periodFooter = AnyComponent(MultilineTextComponent(
+                    text: .plain(periodFooterString),
+                    maximumNumberOfLines: 0
+                ))
+                
+                let hours = state.duration / 3600
+                let durationString = environment.strings.Gift_Offer_Duration_Hours(hours)
+                
+                let periodSection = periodSection.update(
+                    component: ListSectionComponent(
+                        theme: theme,
+                        style: .glass,
+                        header: nil,
+                        footer: periodFooter,
+                        items: [AnyComponentWithIdentity(
+                            id: "timestamp",
+                            component: AnyComponent(ListActionItemComponent(
+                                theme: theme,
+                                style: .glass,
+                                title: AnyComponent(VStack([
+                                    AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
+                                        text: .plain(NSAttributedString(
+                                            string: environment.strings.Gift_Offer_Duration,
+                                            font: Font.regular(presentationData.listsFontSize.baseDisplaySize),
+                                            textColor: environment.theme.list.itemPrimaryTextColor
+                                        )),
+                                        maximumNumberOfLines: 1
+                                    ))),
+                                ], alignment: .left, spacing: 2.0)),
+                                icon: ListActionItemComponent.Icon(component: AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
+                                    text: .plain(NSAttributedString(
+                                        string: durationString,
+                                        font: Font.regular(presentationData.listsFontSize.baseDisplaySize),
+                                        textColor: environment.theme.list.itemSecondaryTextColor
+                                    )),
+                                    maximumNumberOfLines: 1
+                                )))),
+                                accessory: .expandArrows,
+                                action: { [weak state] _ in
+                                    guard let state else {
+                                        return
+                                    }
+                                    state.isPickingDuration = true
+                                    state.updated(transition: .easeInOut(duration: 0.25))
+                                }
+                            ))
+                        )]
+                    ),
+                    environment: {},
+                    availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0, height: .greatestFiniteMagnitude),
+                    transition: context.transition
+                )
+                context.add(periodSection
+                    .position(CGPoint(x: context.availableSize.width / 2.0, y: contentSize.height + periodSection.size.height / 2.0))
+                    .clipsToBounds(true)
+                    .cornerRadius(10.0)
+                )
+                durationFrame = CGRect(origin: CGPoint(x: context.availableSize.width / 2.0 - periodSection.size.width / 2.0, y: contentSize.height), size: periodSection.size)
+
+                contentSize.height += periodSection.size.height
             }
             
             contentSize.height += 32.0
@@ -804,6 +865,22 @@ private final class SheetContent: CombinedComponent {
                     }
                 case .admin:
                     buttonString = environment.strings.Chat_PostSuggestion_Suggest_UpdateButton
+                }
+            } else if case  .starGiftOffer = component.mode {
+                if let amount = state.amount {
+                    let currencySymbol: String
+                    let currencyAmount: String
+                    switch state.currency {
+                    case .stars:
+                        currencySymbol = "#"
+                        currencyAmount = presentationStringsFormattedNumber(amount, environment.dateTimeFormat.groupingSeparator)
+                    case .ton:
+                        currencySymbol = "$"
+                        currencyAmount = formatTonAmountText(amount.value, dateTimeFormat: environment.dateTimeFormat, maxDecimalPositions: nil)
+                    }
+                    buttonString = "\(environment.strings.Gift_Offer_Offer)  \(currencySymbol) \(currencyAmount)"
+                } else {
+                    buttonString = environment.strings.Gift_Offer_Offer
                 }
             } else if let amount = state.amount {
                 buttonString = "\(environment.strings.Stars_Withdraw_Withdraw)  # \(presentationStringsFormattedNumber(amount, environment.dateTimeFormat.groupingSeparator))"
@@ -929,8 +1006,9 @@ private final class SheetContent: CombinedComponent {
                                             }
                                         }
                                     }
-                                    
                                     completion(CurrencyAmount(amount: amount, currency: state.currency), state.timestamp)
+                                case let .starGiftOffer(_, _, completion):
+                                    completion(CurrencyAmount(amount: amount, currency: state.currency), state.duration)
                                 }
                                 
                                 controller.dismissAnimated()
@@ -953,6 +1031,59 @@ private final class SheetContent: CombinedComponent {
                 contentSize.height += buttonInsets.bottom
             }
             
+            
+            if state.isPickingDuration {
+                let sourceFrame = CGRect(origin: CGPoint(x: durationFrame.maxX - 52.0, y: durationFrame.minY + 120.0), size: CGSize(width: 52.0, height: 52.0))
+                let durationPicker = durationPicker.update(
+                    component: MenuComponent(
+                        theme: theme,
+                        sourceFrame: sourceFrame,
+                        component: AnyComponent(DurationMenuComponent(
+                            theme: theme,
+                            strings: environment.strings,
+                            value: state.duration,
+                            valueUpdated: { [weak state] value in
+                                guard let state else {
+                                    return
+                                }
+                                state.isPickingDuration = false
+                                state.duration = value
+                                
+                                state.updated(transition: .easeInOut(duration: 0.25))
+                            }
+                        )),
+                        dismiss: { [weak state] in
+                            guard let state else {
+                                return
+                            }
+                            state.isPickingDuration = false
+                            state.updated(transition: .easeInOut(duration: 0.25))
+                        }
+                    ),
+                    availableSize: contentSize,
+                    transition: context.transition
+                )
+                context.add(durationPicker
+                    .position(CGPoint(x: contentSize.width / 2.0, y: contentSize.height / 2.0))
+                    .appear(ComponentTransition.Appear({ _, view, transition in
+                        if !transition.animation.isImmediate {
+                            if let view = view as? MenuComponent.View {
+                                view.animateIn()
+                            }
+                        }
+                    }))
+                    .disappear(ComponentTransition.Disappear({ view, transition, completion in
+                        if !transition.animation.isImmediate {
+                            if let view = view as? MenuComponent.View {
+                                view.animateOut(completion: completion)
+                            }
+                        } else {
+                            completion()
+                        }
+                    }))
+                )
+            }
+        
             return contentSize
         }
         
@@ -965,9 +1096,11 @@ private final class SheetContent: CombinedComponent {
         
         fileprivate var component: SheetContent
         
+        fileprivate var forceUpdateAmount = false
         fileprivate var amount: StarsAmount?
         fileprivate var currency: CurrencyAmount.Currency = .stars
         fileprivate var timestamp: Int32?
+        fileprivate var duration: Int32 = 172800
         
         fileprivate var starsBalance: StarsAmount?
         private var starsStateDisposable: Disposable?
@@ -977,6 +1110,8 @@ private final class SheetContent: CombinedComponent {
         var cachedStarImage: (UIImage, PresentationTheme)?
         var cachedTonImage: (UIImage, PresentationTheme)?
         var cachedChevronImage: (UIImage, PresentationTheme)?
+        
+        var isPickingDuration = false
         
         init(component: SheetContent) {
             self.context = component.context
@@ -1002,6 +1137,8 @@ private final class SheetContent: CombinedComponent {
                 currency = initialValue.currency
                 amount = initialValue.amount
                 self.timestamp = initialTimestamp
+            case .starGiftOffer:
+                amount = nil
             }
             
             self.currency = currency
@@ -1059,7 +1196,7 @@ private final class SheetContent: CombinedComponent {
                         self.currency = .stars
                     }
                 } else {
-                    let _ = (context.engine.payments.cachedStarGifts()
+                    let _ = (self.context.engine.payments.cachedStarGifts()
                      |> filter { $0 != nil }
                      |> take(1)
                      |> deliverOnMainQueue).start(next: { [weak self] gifts in
@@ -1077,6 +1214,7 @@ private final class SheetContent: CombinedComponent {
                         }
                         if case let .generic(genericGift) = matchingGift, let minResaleStars = genericGift.availability?.minResaleStars {
                             self.amount = StarsAmount(value: max(minResaleStars, resaleConfiguration.starGiftResaleMinStarsAmount), nanos: 0)
+                            self.forceUpdateAmount = true
                             self.updated()
                         }
                     })
@@ -1194,6 +1332,7 @@ public final class StarsWithdrawScreen: ViewControllerComponentContainer {
         case starGiftResell(StarGift.UniqueGift, Bool, completion: (CurrencyAmount) -> Void)
         case paidMessages(current: Int64, minValue: Int64, fractionAfterCommission: Int, kind: StarsWithdrawalScreenSubject.PaidMessageKind, completion: (Int64) -> Void)
         case suggestedPost(mode: SuggestedPostMode, price: CurrencyAmount, timestamp: Int32?, completion: (CurrencyAmount, Int32?) -> Void)
+        case starGiftOffer(peer: EnginePeer, gift: StarGift.UniqueGift, completion: (CurrencyAmount, Int32) -> Void)
     }
     
     private let context: AccountContext
@@ -1229,6 +1368,7 @@ public final class StarsWithdrawScreen: ViewControllerComponentContainer {
         
         if let view = self.node.hostView.findTaggedView(tag: amountTag) as? AmountFieldComponent.View {
             Queue.mainQueue().after(0.01) {
+                view.resetValue()
                 view.activateInput()
                 view.selectAll()
             }
@@ -1262,6 +1402,14 @@ public final class StarsWithdrawScreen: ViewControllerComponentContainer {
                 }
             case .ton:
                 break
+            }
+        } else if case .starGiftOffer = self.mode {
+            switch currency {
+            case .stars:
+                text = presentationData.strings.Gift_Offer_GiftMinAmountToast_Text("\(presentationData.strings.Stars_Withdraw_Withdraw_ErrorMinimum_Stars(Int32(clamping: minAmount)))").string
+            case .ton:
+                let amountString = formatTonAmountText(minAmount, dateTimeFormat: presentationData.dateTimeFormat) + " TON"
+                text = presentationData.strings.Gift_Offer_GiftMinAmountToast_Text(amountString).string
             }
         }
         
@@ -1622,6 +1770,7 @@ public final class AmountFieldComponent: Component {
                 return
             }
             self.textField.text = "\(value)"
+            self.placeholderView.view?.isHidden = self.textField.text?.isEmpty ?? false
         }
         
         func update(component: AmountFieldComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
@@ -1641,10 +1790,11 @@ public final class AmountFieldComponent: Component {
                         text = "\(formatTonAmountText(value, dateTimeFormat: PresentationDateTimeFormat(timeFormat: component.dateTimeFormat.timeFormat, dateFormat: component.dateTimeFormat.dateFormat, dateSeparator: "", dateSuffix: "", requiresFullYear: false, decimalSeparator: ".", groupingSeparator: ""), maxDecimalPositions: nil))"
                     }
                     self.textField.text = text
-                    self.didSetValueOnce = true
+                    self.placeholderView.view?.isHidden = text.isEmpty
                 } else {
                     self.textField.text = ""
                 }
+                self.didSetValueOnce = true
             }
             self.textField.font = Font.regular(17.0)
             
@@ -2132,6 +2282,420 @@ private final class CurrencyTabItemComponent: Component {
     }
     
     func update(view: View, availableSize: CGSize, state: State, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+        return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
+    }
+}
+
+
+private final class MenuComponent: Component {
+    let theme: PresentationTheme
+    let sourceFrame: CGRect
+    let component: AnyComponent<Empty>
+    let dismiss: () -> Void
+
+    init(
+        theme: PresentationTheme,
+        sourceFrame: CGRect,
+        component: AnyComponent<Empty>,
+        dismiss: @escaping () -> Void
+    ) {
+        self.theme = theme
+        self.sourceFrame = sourceFrame
+        self.component = component
+        self.dismiss = dismiss
+    }
+
+    public static func ==(lhs: MenuComponent, rhs: MenuComponent) -> Bool {
+        if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.sourceFrame != rhs.sourceFrame {
+            return false
+        }
+        if lhs.component != rhs.component {
+            return false
+        }
+        return true
+    }
+
+    public final class View: UIView {
+        private let buttonView: UIButton
+        private let containerView: GlassBackgroundContainerView
+        private let backgroundView: GlassBackgroundView
+        private var componentView: ComponentView<Empty>?
+        
+        private var component: MenuComponent?
+        
+        public override init(frame: CGRect) {
+            self.buttonView = UIButton()
+            self.containerView = GlassBackgroundContainerView()
+            self.backgroundView = GlassBackgroundView()
+            
+            super.init(frame: frame)
+            
+            self.addSubview(self.buttonView)
+            self.addSubview(self.containerView)
+            self.containerView.contentView.addSubview(self.backgroundView)
+            
+            self.buttonView.addTarget(self, action: #selector(self.tapped), for: .touchUpInside)
+        }
+        
+        public required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+        
+        @objc func tapped() {
+            if let component = self.component {
+                component.dismiss()
+            }
+        }
+        
+        func animateIn() {
+            guard let component = self.component else {
+                return
+            }
+            let transition = ComponentTransition.spring(duration: 0.3)
+            transition.animatePosition(view: self.backgroundView, from: component.sourceFrame.center, to: self.backgroundView.center)
+            transition.animateScale(view: self.backgroundView, from: 0.2, to: 1.0)
+            self.containerView.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.1)
+        }
+        
+        public func animateOut(completion: (() -> Void)? = nil) {
+            guard let component = self.component else {
+                return
+            }
+            
+            let transition = ComponentTransition.spring(duration: 0.3)
+            transition.setPosition(view: self.backgroundView, position: component.sourceFrame.center)
+            transition.setScale(view: self.backgroundView, scale: 0.2)
+            self.containerView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15, removeOnCompletion: false, completion: { _ in
+                completion?()
+            })
+        }
+                
+        public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+            if !self.backgroundView.frame.contains(point) && self.buttonView.frame.contains(point) {
+                return self.buttonView
+            }
+            return super.hitTest(point, with: event)
+        }
+        
+        func update(component: MenuComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            self.component = component
+            
+            var componentView: ComponentView<Empty>
+            var componentTransition = transition
+            if let current = self.componentView {
+                componentView = current
+            } else {
+                componentTransition = .immediate
+                componentView = ComponentView()
+                self.componentView = componentView
+            }
+            
+            let componentSize = componentView.update(
+                transition: componentTransition,
+                component: component.component,
+                environment: {},
+                containerSize: availableSize
+            )
+            let backgroundFrame = CGRect(origin: CGPoint(x: component.sourceFrame.maxX - componentSize.width, y: component.sourceFrame.minY - componentSize.height - 20.0), size: componentSize)
+            if let view = componentView.view {
+                if view.superview == nil {
+                    self.backgroundView.contentView.addSubview(view)
+                }
+                componentTransition.setFrame(view: view, frame: CGRect(origin: .zero, size: componentSize))
+            }
+            
+            self.backgroundView.update(size: backgroundFrame.size, cornerRadius: 30.0, isDark: component.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: component.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), transition: transition)
+            self.backgroundView.frame = backgroundFrame
+            
+            self.containerView.frame = CGRect(origin: .zero, size: availableSize)
+            self.containerView.update(size: availableSize, isDark: component.theme.overallDarkAppearance, transition: transition)
+            
+            self.buttonView.frame = CGRect(origin: .zero, size: availableSize)
+            
+            return availableSize
+        }
+    }
+
+    public func makeView() -> View {
+        return View(frame: CGRect())
+    }
+
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+        return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
+    }
+}
+
+private final class MenuButtonComponent: Component {
+    let theme: PresentationTheme
+    let text: String
+    let isSelected: Bool
+    let width: CGFloat?
+    let action: () -> Void
+    
+    init(
+        theme: PresentationTheme,
+        text: String,
+        isSelected: Bool,
+        width: CGFloat?,
+        action: @escaping () -> Void
+    ) {
+        self.theme = theme
+        self.text = text
+        self.isSelected = isSelected
+        self.width = width
+        self.action = action
+    }
+
+    static func ==(lhs: MenuButtonComponent, rhs: MenuButtonComponent) -> Bool {
+        if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.text != rhs.text {
+            return false
+        }
+        if lhs.isSelected != rhs.isSelected {
+            return false
+        }
+        if lhs.width != rhs.width {
+            return false
+        }
+        return true
+    }
+
+    final class View: UIView {
+        private var component: MenuButtonComponent?
+        private weak var componentState: EmptyComponentState?
+        
+        private let selectionLayer = SimpleLayer()
+        private let title = ComponentView<Empty>()
+        private let icon = ComponentView<Empty>()
+        private let button = HighlightTrackingButton()
+                
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+                        
+            self.layer.addSublayer(self.selectionLayer)
+            self.selectionLayer.masksToBounds = true
+            self.selectionLayer.opacity = 0.0
+            
+            self.button.addTarget(self, action: #selector(self.buttonPressed), for: .touchUpInside)
+            
+            self.button.highligthedChanged = { [weak self] highlighted in
+                if let self {
+                    if highlighted {
+                        self.selectionLayer.opacity = 1.0
+                        self.selectionLayer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
+                    } else {
+                        self.selectionLayer.opacity = 0.0
+                        self.selectionLayer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2)
+                    }
+                }
+            }
+        }
+        
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+        
+        @objc private func buttonPressed() {
+            if let component = self.component {
+                component.action()
+            }
+        }
+                
+        func update(component: MenuButtonComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            self.component = component
+            self.componentState = state
+            
+            let leftInset: CGFloat = 60.0
+            let rightInset: CGFloat = 40.0
+                        
+            let titleSize = self.title.update(
+                transition: transition,
+                component: AnyComponent(
+                    Text(text: component.text, font: Font.regular(17.0), color: component.theme.contextMenu.primaryColor)
+                ),
+                environment: {},
+                containerSize: availableSize
+            )
+            let titleFrame = CGRect(origin: CGPoint(x: 60.0, y: floorToScreenPixels((availableSize.height - titleSize.height) / 2.0)), size: titleSize)
+            if let titleView = self.title.view {
+                if titleView.superview == nil {
+                    self.addSubview(titleView)
+                }
+                titleView.frame = titleFrame
+            }
+            
+            let size = CGSize(width: component.width ?? (leftInset + rightInset + titleSize.width), height: availableSize.height)
+            
+            if component.isSelected {
+                let iconSize = self.icon.update(
+                    transition: .immediate,
+                    component: AnyComponent(
+                        BundleIconComponent(
+                            name: "Media Gallery/Check",
+                            tintColor: component.theme.contextMenu.primaryColor
+                        )
+                    ),
+                    environment: {},
+                    containerSize: CGSize(width: 44.0, height: 44.0)
+                )
+                let iconFrame = CGRect(origin: CGPoint(x: 25.0, y: floorToScreenPixels((size.height - iconSize.height) / 2.0)), size: iconSize)
+                if let iconView = self.icon.view {
+                    if iconView.superview == nil {
+                        self.addSubview(iconView)
+                    }
+                    iconView.frame = iconFrame
+                }
+            }
+            
+            self.selectionLayer.backgroundColor = component.theme.contextMenu.itemHighlightedBackgroundColor.withMultipliedAlpha(0.5).cgColor
+            transition.setFrame(layer: self.selectionLayer, frame: CGRect(origin: .zero, size: size).insetBy(dx: 10.0, dy: 0.0))
+            self.selectionLayer.cornerRadius = size.height / 2.0
+                       
+            if self.button.superview == nil {
+                self.addSubview(self.button)
+            }
+            self.button.frame = CGRect(origin: .zero, size: size)
+            
+            return size
+        }
+    }
+
+    func makeView() -> View {
+        return View(frame: CGRect())
+    }
+
+    func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+        return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
+    }
+}
+
+private final class DurationMenuComponent: Component {
+    let theme: PresentationTheme
+    let strings: PresentationStrings
+    let value: Int32
+    let valueUpdated: (Int32) -> Void
+    
+    init(
+        theme: PresentationTheme,
+        strings: PresentationStrings,
+        value: Int32,
+        valueUpdated: @escaping (Int32) -> Void
+    ) {
+        self.theme = theme
+        self.strings = strings
+        self.value = value
+        self.valueUpdated = valueUpdated
+    }
+
+    public static func ==(lhs: DurationMenuComponent, rhs: DurationMenuComponent) -> Bool {
+        if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.value != rhs.value {
+            return false
+        }
+        return true
+    }
+
+    public final class View: UIView {
+        private let backgroundView: GlassBackgroundView
+        private var itemViews: [Int32: ComponentView<Empty>] = [:]
+        
+        private var component: DurationMenuComponent?
+        
+        private let values: [Int32] = [
+            21600, 43200, 86400, 129600, 172800, 259200
+        ]
+        
+        private var width: CGFloat?
+        
+        public override init(frame: CGRect) {
+            self.backgroundView = GlassBackgroundView()
+            
+            super.init(frame: frame)
+            
+            self.addSubview(self.backgroundView)
+        }
+        
+        public required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+                
+        func update(component: DurationMenuComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            self.component = component
+            
+            let itemHeight: CGFloat = 40.0
+            
+            var maxWidth: CGFloat = 0.0
+            var originY: CGFloat = 12.0
+            for value in self.values {
+                let itemView: ComponentView<Empty>
+                if let current = self.itemViews[value] {
+                    itemView = current
+                } else {
+                    itemView = ComponentView()
+                    self.itemViews[value] = itemView
+                }
+                
+                let hours = value / 3600
+                let repeatString: String = component.strings.Gift_Offer_Duration_Hours(Int32(hours))
+            
+                let itemSize = itemView.update(
+                    transition: transition,
+                    component: AnyComponent(
+                        MenuButtonComponent(
+                            theme: component.theme,
+                            text: repeatString,
+                            isSelected: component.value == value,
+                            width: self.width,
+                            action: { [weak self] in
+                                guard let self else {
+                                    return
+                                }
+                                self.component?.valueUpdated(value)
+                            }
+                        )
+                    ),
+                    environment: {},
+                    containerSize: CGSize(width: availableSize.width, height: itemHeight)
+                )
+                maxWidth = max(maxWidth, itemSize.width)
+                let itemFrame = CGRect(origin: CGPoint(x: 0.0, y: originY), size: itemSize)
+                if let itemView = itemView.view {
+                    if itemView.superview == nil {
+                        self.addSubview(itemView)
+                    }
+                    transition.setFrame(view: itemView, frame: itemFrame)
+                }
+                originY += 40.0
+            }
+            
+            let size = CGSize(width: maxWidth, height: originY + 8.0)
+            
+            if self.width == nil {
+                self.width = maxWidth
+                Queue.mainQueue().justDispatch {
+                    state.updated()
+                }
+            }
+                        
+            return size
+        }
+    }
+
+    public func makeView() -> View {
+        return View(frame: CGRect())
+    }
+
+    public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
 }

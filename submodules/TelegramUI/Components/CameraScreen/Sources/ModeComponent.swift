@@ -115,7 +115,7 @@ final class ModeComponent: Component {
         private var backgroundView = UIView()
         private var glassContainerView = GlassBackgroundContainerView()
         private var selectionView = GlassBackgroundView()
-        private var itemViews: [ItemView] = []
+        private var itemViews: [Int32: ItemView] = [:]
         
         public func matches(tag: Any) -> Bool {
             if let component = self.component, let componentTag = component.tag {
@@ -179,14 +179,19 @@ final class ModeComponent: Component {
             var itemFrame = CGRect(origin: isTablet ? .zero : CGPoint(x: inset, y: 0.0), size: buttonSize)
             var selectedCenter = itemFrame.minX
             var selectedFrame = itemFrame
+            
+            var validKeys: Set<Int32> = Set()
             for mode in component.availableModes.reversed() {
+                let id = mode.rawValue
+                validKeys.insert(id)
+                
                 let itemView: ItemView
-                if self.itemViews.count == i {
+                if let current = self.itemViews[id] {
+                    itemView = current
+                } else {
                     itemView = ItemView()
                     self.backgroundView.addSubview(itemView)
-                    self.itemViews.append(itemView)
-                } else {
-                    itemView = self.itemViews[i]
+                    self.itemViews[id] = itemView
                 }
                 itemView.pressed = {
                     updatedMode(mode)
@@ -214,6 +219,20 @@ final class ModeComponent: Component {
                     itemFrame = itemFrame.offsetBy(dx: itemFrame.width + spacing, dy: 0.0)
                 }
                 i += 1
+            }
+            
+            var removeKeys: [Int32] = []
+            for (id, itemView) in self.itemViews {
+                if !validKeys.contains(id) {
+                    removeKeys.append(id)
+                    
+                    transition.setAlpha(view: itemView, alpha: 0.0, completion: { _ in
+                        itemView.removeFromSuperview()
+                    })
+                }
+            }
+            for id in removeKeys {
+                self.itemViews.removeValue(forKey: id)
             }
             
             let totalSize: CGSize

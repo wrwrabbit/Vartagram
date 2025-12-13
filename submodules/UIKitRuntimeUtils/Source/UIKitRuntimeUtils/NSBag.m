@@ -39,7 +39,9 @@
 {
     if (block)
     {
-        for (id item in _items)
+        // A workaround to prevent modifications while iterating
+        NSMutableArray *itemsCopy = [_items mutableCopy];
+        for (id item in itemsCopy)
         {
             block(item);
         }
