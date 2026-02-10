@@ -133,7 +133,9 @@ private var closeButtonNode: BarComponentHostNode?
             self.presentationData = self.presentationData.withUpdated(theme: self.presentationData.theme.withModalBlocksBackground())
         }
         
-        super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBackground: glass, hideSeparator: glass), strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
+        super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBackground: glass, hideSeparator: glass, style: .glass), strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
+        
+        self._hasGlassStyle = true
         
         self.blocksBackgroundWhenInOverlay = true
         self.acceptsFocusWhenInOverlay = true
@@ -176,10 +178,8 @@ private var closeButtonNode: BarComponentHostNode?
         self.title = self.titleProducer(self.presentationData.strings)
         
         if glass {
-
         } else {
             self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
-            self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Cancel, style: .plain, target: self, action: #selector(self.cancelPressed))
         }
         
         if self.multipleSelection == .always {
@@ -235,18 +235,19 @@ self.updateNavigationButtons()
         guard case .glass = self.style else {
             return
         }
-        let barButtonSize = CGSize(width: 40.0, height: 40.0)
+        let barButtonSize = CGSize(width: 44.0, height: 44.0)
         let closeComponent: AnyComponentWithIdentity<Empty> = AnyComponentWithIdentity(
             id: "close",
             component: AnyComponent(GlassBarButtonComponent(
                 size: barButtonSize,
-                backgroundColor: self.presentationData.theme.rootController.navigationBar.glassBarButtonBackgroundColor,
+                backgroundColor: nil,
                 isDark: self.presentationData.theme.overallDarkAppearance,
                 state: .generic,
+                animateScale: false,
                 component: AnyComponentWithIdentity(id: "close", component: AnyComponent(
                     BundleIconComponent(
                         name: "Navigation/Close",
-                        tintColor: self.presentationData.theme.rootController.navigationBar.glassBarButtonForegroundColor
+                        tintColor: self.presentationData.theme.chat.inputPanel.panelControlColor
                     )
                 )),
                 action: { [weak self] _ in
@@ -261,13 +262,14 @@ self.updateNavigationButtons()
                 id: "search",
                 component: AnyComponent(GlassBarButtonComponent(
                     size: barButtonSize,
-                    backgroundColor: self.presentationData.theme.rootController.navigationBar.glassBarButtonBackgroundColor,
+                    backgroundColor: nil,
                     isDark: self.presentationData.theme.overallDarkAppearance,
                     state: .generic,
+                    animateScale: false,
                     component: AnyComponentWithIdentity(id: "search", component: AnyComponent(
                         BundleIconComponent(
                             name: "Navigation/Search",
-                            tintColor: self.presentationData.theme.rootController.navigationBar.glassBarButtonForegroundColor
+                            tintColor: self.presentationData.theme.chat.inputPanel.panelControlColor
                         )
                     )),
                     action: { [weak self] _ in
@@ -288,15 +290,19 @@ self.updateNavigationButtons()
             self.closeButtonNode = closeButtonNode
             self.navigationItem.leftBarButtonItem = UIBarButtonItem(customDisplayNode: closeButtonNode)
         }
-                
-        let searchButtonNode: BarComponentHostNode
-        if let current = self.searchButtonNode {
-            searchButtonNode = current
-            searchButtonNode.component = searchComponent
+        
+        if searchComponent != nil {
+            let searchButtonNode: BarComponentHostNode
+            if let current = self.searchButtonNode {
+                searchButtonNode = current
+                searchButtonNode.component = searchComponent
+            } else {
+                searchButtonNode = BarComponentHostNode(component: searchComponent, size: barButtonSize)
+                self.searchButtonNode = searchButtonNode
+                self.navigationItem.rightBarButtonItem = UIBarButtonItem(customDisplayNode: searchButtonNode)
+            }
         } else {
-            searchButtonNode = BarComponentHostNode(component: searchComponent, size: barButtonSize)
-            self.searchButtonNode = searchButtonNode
-            self.navigationItem.rightBarButtonItem = UIBarButtonItem(customDisplayNode: searchButtonNode)
+            self.navigationItem.rightBarButtonItem = nil
         }
     }
     
@@ -306,7 +312,7 @@ self.updateNavigationButtons()
         if case .glass = self.style {
             glass = true
         }
-        self.navigationBar?.updatePresentationData(NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBackground: glass, hideSeparator: glass), strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
+        self.navigationBar?.updatePresentationData(NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBackground: glass, hideSeparator: glass, style: .glass), strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)), transition: .immediate)
         (self.searchContentNode as? NavigationBarSearchContentNode)?.updateThemeAndPlaceholder(theme: self.presentationData.theme, placeholder: self.presentationData.strings.Common_Search)
         self.title = self.titleProducer(self.presentationData.strings)
         self.tabBarItem.title = self.presentationData.strings.Contacts_Title
@@ -407,15 +413,6 @@ self.updateNavigationButtons()
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
-        if let presentationArguments = self.presentationArguments as? ViewControllerPresentationArguments {
-            switch presentationArguments.presentationAnimation {
-                case .modalSheet:
-                    self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Cancel, style: .plain, target: self, action: #selector(cancelPressed))
-                case .none:
-                    break
-            }
-        }
         
         self.contactsNode.contactListNode.enableUpdates = true
     }
@@ -538,7 +535,7 @@ self.updateNavigationButtons()
                 }
             })))
             
-            let contextController = ContextController(presentationData: presentationData, source: .reference(ContactContextReferenceContentSource(controller: self, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+            let contextController = makeContextController(presentationData: presentationData, source: .reference(ContactContextReferenceContentSource(controller: self, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
             self.present(contextController, in: .window(.root))
             return
         }
@@ -581,7 +578,7 @@ final class ContactsSearchNavigationContentNode: NavigationBarContentNode {
     init(presentationData: PresentationData, dismissSearch: @escaping () -> Void, updateSearchQuery: @escaping (String) -> Void) {
         self.presentationData = presentationData
         
-        self.searchBar = SearchBarNode(theme: SearchBarNodeTheme(theme: presentationData.theme, hasSeparator: false), strings: presentationData.strings, fieldStyle: .modern)
+        self.searchBar = SearchBarNode(theme: SearchBarNodeTheme(theme: presentationData.theme, hasSeparator: false), presentationTheme: presentationData.theme, strings: presentationData.strings, fieldStyle: .modern)
         self.searchBar.placeholderString = NSAttributedString(string: presentationData.strings.Common_Search, font: searchBarFont, textColor: presentationData.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
         
         super.init()
@@ -601,10 +598,12 @@ final class ContactsSearchNavigationContentNode: NavigationBarContentNode {
         return 56.0
     }
     
-    override func updateLayout(size: CGSize, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) {
+    override func updateLayout(size: CGSize, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGSize {
         let searchBarFrame = CGRect(origin: CGPoint(x: 0.0, y: size.height - self.nominalHeight), size: CGSize(width: size.width, height: 56.0))
         self.searchBar.frame = searchBarFrame
         self.searchBar.updateLayout(boundingSize: searchBarFrame.size, leftInset: leftInset, rightInset: rightInset, transition: transition)
+        
+        return size
     }
     
     func activate() {
@@ -625,7 +624,7 @@ final class ContactsSearchNavigationContentNode: NavigationBarContentNode {
     
     func updatePresentationData(_ presentationData: PresentationData) {
         self.presentationData = presentationData
-        self.searchBar.updateThemeAndStrings(theme: SearchBarNodeTheme(theme: presentationData.theme, hasSeparator: false), strings: presentationData.strings)
+        self.searchBar.updateThemeAndStrings(theme: SearchBarNodeTheme(theme: presentationData.theme, hasSeparator: false), presentationTheme: presentationData.theme, strings: presentationData.strings)
     }
 }
 

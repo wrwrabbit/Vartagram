@@ -28,23 +28,27 @@ import ButtonComponent
 import UndoUI
 import LottieComponent
 import AnimatedTextComponent
+import TableComponent
 
 private final class GiftAuctionViewSheetContent: CombinedComponent {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
     
     let context: AccountContext
     let auctionContext: GiftAuctionContext
+    let peerId: EnginePeer.Id?
     let animateOut: ActionSlot<Action<()>>
     let getController: () -> ViewController?
     
     init(
         context: AccountContext,
         auctionContext: GiftAuctionContext,
+        peerId: EnginePeer.Id?,
         animateOut: ActionSlot<Action<()>>,
         getController: @escaping () -> ViewController?
     ) {
         self.context = context
         self.auctionContext = auctionContext
+        self.peerId = peerId
         self.animateOut = animateOut
         self.getController = getController
     }
@@ -61,6 +65,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
         
         private let context: AccountContext
         private let auctionContext: GiftAuctionContext
+        private let peerId: EnginePeer.Id?
         private let animateOut: ActionSlot<Action<()>>
         private let getController: () -> ViewController?
         
@@ -92,11 +97,13 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
         init(
             context: AccountContext,
             auctionContext: GiftAuctionContext,
+            peerId: EnginePeer.Id?,
             animateOut: ActionSlot<Action<()>>,
             getController: @escaping () -> ViewController?
         ) {
             self.context = context
             self.auctionContext = auctionContext
+            self.peerId = peerId
             self.animateOut = animateOut
             self.getController = getController
             
@@ -157,7 +164,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                         }).shuffled().prefix(5))
                         self.previewSymbols = randomSymbols
                                 
-                        for case let .model(_, file, _) in self.previewModels where !self.fetchedFiles.contains(file.fileId.id) {
+                        for case let .model(_, file, _, _) in self.previewModels where !self.fetchedFiles.contains(file.fileId.id) {
                             self.disposables.add(freeMediaFileResourceInteractiveFetched(account: context.account, userLocation: .other, fileReference: .standalone(media: file), resource: file.resource).start())
                             self.fetchedFiles.insert(file.fileId.id)
                         }
@@ -398,7 +405,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             }
             let storeController = self.context.sharedContext.makeGiftStoreController(
                 context: self.context,
-                peerId: self.context.account.peerId,
+                peerId: self.peerId ?? self.context.account.peerId,
                 gift: gift
             )
             controller.push(storeController)
@@ -452,7 +459,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                 self?.share()
             })))
 
-            let contextController = ContextController(presentationData: presentationData, source: .reference(GiftViewContextReferenceContentSource(controller: controller, sourceView: view)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+            let contextController = makeContextController(presentationData: presentationData, source: .reference(GiftViewContextReferenceContentSource(controller: controller, sourceView: view)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
             controller.presentInGlobalOverlay(contextController)
         }
         
@@ -472,7 +479,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
     }
     
     func makeState() -> State {
-        return State(context: self.context, auctionContext: self.auctionContext, animateOut: self.animateOut, getController: self.getController)
+        return State(context: self.context, auctionContext: self.auctionContext, peerId: self.peerId, animateOut: self.animateOut, getController: self.getController)
     }
     
     static var body: Body {
@@ -537,6 +544,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             var isUpcoming = false
             var isEnded = false
             var tableItems: [TableComponent.Item] = []
+            
             if let auctionState = state.giftAuctionState, case let .generic(gift) = component.auctionContext.gift {
                 startTime = auctionState.startDate
                 endTime = auctionState.endDate
@@ -718,9 +726,9 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             if let genericGift {
                 var attributes: [StarGift.UniqueGift.Attribute] = []
                 if state.previewModelIndex == -1 {
-                    attributes.append(.model(name: "", file: genericGift.file, rarity: 0))
+                    attributes.append(.model(name: "", file: genericGift.file, rarity: .rare, crafted: false))
                     if let background = genericGift.background {
-                        attributes.append(.backdrop(name: "", id: 0, innerColor: background.centerColor, outerColor: background.edgeColor, patternColor: 0, textColor: 0, rarity: 0))
+                        attributes.append(.backdrop(name: "", id: 0, innerColor: background.centerColor, outerColor: background.edgeColor, patternColor: 0, textColor: 0, rarity: .rare))
                     }
                 } else if !state.previewModels.isEmpty {
                     attributes.append(state.previewModels[state.previewModelIndex])
@@ -738,8 +746,8 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                     } else {
                         return false
                     }
-                }), case let .backdrop(_, _, innerColor, _, _, _, _) = backdropAttribute {
-                    buttonColor = UIColor(rgb: UInt32(bitPattern: innerColor)).withMultipliedBrightnessBy(1.05)
+                }), case let .backdrop(_, _, innerColor, outerColor, _, _, _) = backdropAttribute {
+                    buttonColor = UIColor(rgb: UInt32(bitPattern: outerColor)).mixedWith(.white, alpha: 0.2)
                     secondaryTextColor = UIColor(rgb: UInt32(bitPattern: innerColor)).withMultiplied(hue: 1.0, saturation: 1.02, brightness: 1.25).mixedWith(UIColor.white, alpha: 0.3)
                 }
                 
@@ -1012,13 +1020,13 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                 var variant3: GiftItemComponent.Subject = .starGift(gift: gift, price: "")
                 if !state.previewModels.isEmpty {
                     if state.previewModels.count > 0 {
-                        variant1 = .preview(attributes: [state.previewModels[0]], rarity: 0)
+                        variant1 = .preview(attributes: [state.previewModels[0]], rarity: nil)
                     }
                     if state.previewModels.count > 1 {
-                        variant2 = .preview(attributes: [state.previewModels[1]], rarity: 0)
+                        variant2 = .preview(attributes: [state.previewModels[1]], rarity: nil)
                     }
                     if state.previewModels.count > 2 {
-                        variant3 = .preview(attributes: [state.previewModels[2]], rarity: 0)
+                        variant3 = .preview(attributes: [state.previewModels[2]], rarity: nil)
                     }
                 }
                 
@@ -1075,7 +1083,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                         guard let state, let attributes = state.giftUpgradeAttributes else {
                             return
                         }
-                        let variantsController = component.context.sharedContext.makeGiftUpgradeVariantsPreviewScreen(context: component.context, gift: .generic(gift), attributes: attributes)
+                        let variantsController = component.context.sharedContext.makeGiftUpgradeVariantsScreen(context: component.context, gift: .generic(gift), crafted: false, attributes: attributes, selectedAttributes: nil, focusedAttribute: nil)
                         environment.controller()?.push(variantsController)
                     }, animateScale: false),
                     availableSize: CGSize(width: context.availableSize.width - 64.0, height: context.availableSize.height),
@@ -1211,7 +1219,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             
             let closeButton = closeButton.update(
                 component: GlassBarButtonComponent(
-                    size: CGSize(width: 40.0, height: 40.0),
+                    size: CGSize(width: 44.0, height: 44.0),
                     backgroundColor: buttonColor,
                     isDark: false,
                     state: .tintedGlass,
@@ -1228,7 +1236,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                         state.dismiss(animated: true)
                     }
                 ),
-                availableSize: CGSize(width: 40.0, height: 40.0),
+                availableSize: CGSize(width: 44.0, height: 44.0),
                 transition: context.transition
             )
             context.add(closeButton
@@ -1237,7 +1245,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             
             let moreButton = moreButton.update(
                 component: GlassBarButtonComponent(
-                    size: CGSize(width: 40.0, height: 40.0),
+                    size: CGSize(width: 44.0, height: 44.0),
                     backgroundColor: buttonColor,
                     isDark: false,
                     state: .tintedGlass,
@@ -1259,7 +1267,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                         moreButtonPlayOnce.invoke(Void())
                     }
                 ),
-                availableSize: CGSize(width: 40.0, height: 40.0),
+                availableSize: CGSize(width: 44.0, height: 44.0),
                 transition: context.transition
             )
             context.add(moreButton
@@ -1276,13 +1284,16 @@ final class GiftAuctionViewSheetComponent: CombinedComponent {
     
     let context: AccountContext
     let auctionContext: GiftAuctionContext
+    let peerId: EnginePeer.Id?
     
     init(
         context: AccountContext,
-        auctionContext: GiftAuctionContext
+        auctionContext: GiftAuctionContext,
+        peerId: EnginePeer.Id?
     ) {
         self.context = context
         self.auctionContext = auctionContext
+        self.peerId = peerId
     }
     
     static func ==(lhs: GiftAuctionViewSheetComponent, rhs: GiftAuctionViewSheetComponent) -> Bool {
@@ -1307,6 +1318,7 @@ final class GiftAuctionViewSheetComponent: CombinedComponent {
                     content: AnyComponent<EnvironmentType>(GiftAuctionViewSheetContent(
                         context: context.component.context,
                         auctionContext: context.component.auctionContext,
+                        peerId: context.component.peerId,
                         animateOut: animateOut,
                         getController: controller
                     )),
@@ -1328,6 +1340,8 @@ final class GiftAuctionViewSheetComponent: CombinedComponent {
                 environment: {
                     environment
                     SheetComponentEnvironment(
+                        metrics: environment.metrics,
+                        deviceMetrics: environment.deviceMetrics,
                         isDisplaying: environment.value.isVisible,
                         isCentered: environment.metrics.widthClass == .regular,
                         hasInputHeight: !environment.inputHeight.isZero,
@@ -1391,6 +1405,7 @@ public final class GiftAuctionViewScreen: ViewControllerComponentContainer {
     public init(
         context: AccountContext,
         auctionContext: GiftAuctionContext,
+        peerId: EnginePeer.Id?,
         completion: @escaping (Signal<[GiftAuctionAcquiredGift], NoError>, [StarGift.UniqueGift.Attribute]?) -> Void
     ) {
         self.completion = completion
@@ -1399,7 +1414,8 @@ public final class GiftAuctionViewScreen: ViewControllerComponentContainer {
             context: context,
             component: GiftAuctionViewSheetComponent(
                 context: context,
-                auctionContext: auctionContext
+                auctionContext: auctionContext,
+                peerId: peerId
             ),
             navigationBarAppearance: .none,
             statusBarStyle: .ignore,

@@ -114,7 +114,7 @@ final class HashtagChatInputContextPanelNode: ChatInputContextPanelNode {
         self.addSubnode(self.listView)
         
         self.backgroundView.isHidden = true
-        self.listView.visibleContentOffsetChanged = { [weak self] offset in
+        self.listView.visibleContentOffsetChanged = { [weak self] offset, _ in
             guard let self else {
                 return
             }
@@ -176,7 +176,7 @@ final class HashtagChatInputContextPanelNode: ChatInputContextPanelNode {
                     peer: peer,
                     title: self.strings.Chat_HashtagSuggestion_UseLocal_Title("#\(query)@\(addressName)").string,
                     text: isGroup ? self.strings.Chat_HashtagSuggestion_UseLocal_Group_Text : self.strings.Chat_HashtagSuggestion_UseLocal_Channel_Text,
-                    badge: self.strings.ChatList_ContextMenuBadgeNew,
+                    badge: nil,
                     hashtag: "\(query)@\(addressName)",
                     revealed: false,
                     isAdditionalRecent: false
@@ -328,7 +328,7 @@ final class HashtagChatInputContextPanelNode: ChatInputContextPanelNode {
             size: self.backgroundView.bounds.size,
             cornerRadius: 20.0,
             isDark: interfaceState.theme.overallDarkAppearance,
-            tintColor: .init(kind: .panel, color: interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)),
+            tintColor: .init(kind: .panel),
             transition: ComponentTransition(transition)
         )
         

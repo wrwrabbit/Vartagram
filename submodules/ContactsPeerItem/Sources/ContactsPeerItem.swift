@@ -199,6 +199,7 @@ public class ContactsPeerItem: ItemListItem, ListViewItemWithHeader {
     let searchQuery: String?
     let isAd: Bool
     let alwaysShowLastSeparator: Bool
+    let hideBackground: Bool
     let action: ((ContactsPeerItemPeer) -> Void)?
     let disabledAction: ((ContactsPeerItemPeer) -> Void)?
     let setPeerIdWithRevealedOptions: ((EnginePeer.Id?, EnginePeer.Id?) -> Void)?
@@ -249,6 +250,7 @@ public class ContactsPeerItem: ItemListItem, ListViewItemWithHeader {
         searchQuery: String? = nil,
         isAd: Bool = false,
         alwaysShowLastSeparator: Bool = false,
+        hideBackground: Bool = false,
         action: ((ContactsPeerItemPeer) -> Void)?,
         disabledAction: ((ContactsPeerItemPeer) -> Void)? = nil,
         setPeerIdWithRevealedOptions: ((EnginePeer.Id?, EnginePeer.Id?) -> Void)? = nil,
@@ -288,6 +290,7 @@ public class ContactsPeerItem: ItemListItem, ListViewItemWithHeader {
         self.searchQuery = searchQuery
         self.isAd = isAd
         self.alwaysShowLastSeparator = alwaysShowLastSeparator
+        self.hideBackground = hideBackground
         self.action = action
         self.disabledAction = disabledAction
         self.setPeerIdWithRevealedOptions = setPeerIdWithRevealedOptions
@@ -593,7 +596,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
         self.titleNode = TextNode()
         self.statusNode = TextNodeWithEntities()
         
-        super.init(layerBacked: false, dynamicBounce: false, rotated: false, seeThrough: false)
+        super.init(layerBacked: false, rotated: false, seeThrough: false)
         
         self.isAccessibilityElement = true
         
@@ -1336,9 +1339,13 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                 case .plain:
                                     strongSelf.topSeparatorNode.backgroundColor = item.presentationData.theme.list.itemPlainSeparatorColor
                                     strongSelf.separatorNode.backgroundColor = item.presentationData.theme.list.itemPlainSeparatorColor
-                                    strongSelf.backgroundNode.backgroundColor = item.presentationData.theme.list.plainBackgroundColor
+                                    if !item.hideBackground {
+                                        strongSelf.backgroundNode.backgroundColor = item.presentationData.theme.list.plainBackgroundColor
+                                    }
                                 case .blocks:
-                                    strongSelf.topSeparatorNode.backgroundColor = item.presentationData.theme.list.itemBlocksSeparatorColor
+                                    if !item.hideBackground {
+                                        strongSelf.topSeparatorNode.backgroundColor = item.presentationData.theme.list.itemBlocksSeparatorColor
+                                    }
                                     strongSelf.separatorNode.backgroundColor = item.presentationData.theme.list.itemBlocksSeparatorColor
                                     strongSelf.backgroundNode.backgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
                                 }
@@ -1868,7 +1875,8 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                             
                             strongSelf.maskNode.image = hasCorners ? PresentationResourcesItemList.cornersImage(item.presentationData.theme, top: hasTopCorners, bottom: hasBottomCorners, glass: item.systemStyle == .glass) : nil
                             
-                            let topHighlightInset: CGFloat = (first || !nodeLayout.insets.top.isZero) ? 0.0 : separatorHeight
+                            var topHighlightInset: CGFloat = (first || !nodeLayout.insets.top.isZero) ? 0.0 : separatorHeight
+                            topHighlightInset -= nodeLayout.insets.top
                             strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: nodeLayout.contentSize.width, height: nodeLayout.contentSize.height))
                             strongSelf.maskNode.frame = strongSelf.backgroundNode.frame.insetBy(dx: params.leftInset, dy: 0.0)
                             strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width, height: nodeLayout.size.height + topHighlightInset))

@@ -15,6 +15,9 @@ import AnimatedStickerNode
 import TelegramAnimatedStickerNode
 import AppBundle
 import ItemListPeerActionItem
+import EdgeEffect
+import ComponentFlow
+import ComponentDisplayAdapters
 
 private struct CallListNodeListViewTransition {
     let callListView: CallListNodeView
@@ -122,7 +125,7 @@ private func mappedInsertEntries(context: AccountContext, presentationData: Item
             case let .displayTab(_, text, value):
                 return ListViewInsertItem(index: entry.index, previousIndex: entry.previousIndex, item: ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, enabled: true, noCorners: false, sectionId: 0, style: .blocks, updated: { value in
                     nodeInteraction.updateShowCallsTab(value)
-                }), directionHint: entry.directionHint)
+                }, tag: CallListEntryTag.showTab), directionHint: entry.directionHint)
             case let .displayTabInfo(_, text):
                 return ListViewInsertItem(index: entry.index, previousIndex: entry.previousIndex, item: ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: 0), directionHint: entry.directionHint)
             case .openNewCall:
@@ -146,7 +149,7 @@ private func mappedUpdateEntries(context: AccountContext, presentationData: Item
             case let .displayTab(_, text, value):
                 return ListViewUpdateItem(index: entry.index, previousIndex: entry.previousIndex, item: ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, enabled: true, noCorners: false, sectionId: 0, style: .blocks, updated: { value in
                     nodeInteraction.updateShowCallsTab(value)
-                }), directionHint: entry.directionHint)
+                }, tag: CallListEntryTag.showTab), directionHint: entry.directionHint)
             case let .displayTabInfo(_, text):
                 return ListViewUpdateItem(index: entry.index, previousIndex: entry.previousIndex, item: ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: 0), directionHint: entry.directionHint)
             case .openNewCall:
@@ -181,11 +184,12 @@ final class CallListControllerNode: ASDisplayNode {
     private let context: AccountContext
     private let mode: CallListControllerMode
     private var presentationData: PresentationData
+    private var focusOnItemTag: CallListEntryTag?
     
     private var containerLayout: (ContainerViewLayout, CGFloat)?
     
     private let _ready = ValuePromise<Bool>()
-    private var didSetReady = false
+    private(set) var didSetReady = false
     var ready: Signal<Bool, NoError> {
         return _ready.get()
     }
@@ -220,6 +224,8 @@ final class CallListControllerNode: ASDisplayNode {
     private let emptyButtonIconNode: ASImageNode
     private let emptyButtonTextNode: ImmediateTextNode
     
+    private let edgeEffectView: EdgeEffectView
+    
     private let call: (EngineMessage) -> Void
     private let joinGroupCall: (EnginePeer.Id, EngineGroupCallDescription) -> Void
     private let openNewCall: () -> Void
@@ -230,9 +236,13 @@ final class CallListControllerNode: ASDisplayNode {
     
     private let openGroupCallDisposable = MetaDisposable()
     
+    var navigationEdgeEffectExtension: CGFloat {
+        return max(0.0, self.listNode.edgeEffectExtension)
+    }
+    
     private var previousContentOffset: ListViewVisibleContentOffset?
     
-    init(controller: CallListController, context: AccountContext, mode: CallListControllerMode, presentationData: PresentationData, call: @escaping (EngineMessage) -> Void, joinGroupCall: @escaping (EnginePeer.Id, EngineGroupCallDescription) -> Void, openInfo: @escaping (EnginePeer.Id, [EngineMessage]) -> Void, emptyStateUpdated: @escaping (Bool) -> Void, openNewCall: @escaping () -> Void) {
+    init(controller: CallListController, context: AccountContext, mode: CallListControllerMode, presentationData: PresentationData, call: @escaping (EngineMessage) -> Void, joinGroupCall: @escaping (EnginePeer.Id, EngineGroupCallDescription) -> Void, openInfo: @escaping (EnginePeer.Id, [EngineMessage]) -> Void, emptyStateUpdated: @escaping (Bool) -> Void, openNewCall: @escaping () -> Void, focusOnItemTag: CallListEntryTag?) {
         self.controller = controller
         self.context = context
         self.mode = mode
@@ -244,6 +254,7 @@ final class CallListControllerNode: ASDisplayNode {
         self.openNewCall = openNewCall
         self.currentState = CallListNodeState(presentationData: ItemListPresentationData(presentationData), dateTimeFormat: presentationData.dateTimeFormat, disableAnimations: true, editing: false, messageIdWithRevealedOptions: nil)
         self.statePromise = ValuePromise(self.currentState, ignoreRepeated: true)
+        self.focusOnItemTag = focusOnItemTag
         
         self.listNode = ListView()
         self.listNode.verticalScrollIndicatorColor = self.presentationData.theme.list.scrollIndicatorColor
@@ -277,6 +288,8 @@ final class CallListControllerNode: ASDisplayNode {
         self.emptyButtonIconNode.displaysAsynchronously = false
         self.emptyButtonIconNode.isUserInteractionEnabled = false
         
+        self.edgeEffectView = EdgeEffectView()
+        
         super.init()
         
         self.setViewBlock({
@@ -289,6 +302,8 @@ final class CallListControllerNode: ASDisplayNode {
         self.addSubnode(self.emptyButtonTextNode)
         self.addSubnode(self.emptyButtonIconNode)
         self.addSubnode(self.emptyButtonNode)
+        
+        self.view.addSubview(self.edgeEffectView)
                 
         switch self.mode {
             case .tab:
@@ -650,7 +665,7 @@ final class CallListControllerNode: ASDisplayNode {
                 }
             }
             
-            self.listNode.visibleContentOffsetChanged = { [weak self] offset in
+            self.listNode.visibleContentOffsetChanged = { [weak self] offset, _ in
                 if let strongSelf = self {
                     var previousContentOffsetValue: CGFloat?
                     if let previousContentOffset = strongSelf.previousContentOffset, case let .known(value) = previousContentOffset {
@@ -672,6 +687,13 @@ final class CallListControllerNode: ASDisplayNode {
                     strongSelf.previousContentOffset = offset
                 }
             }
+        }
+        
+        self.listNode.onEdgeEffectExtensionUpdated = { [weak self] transition in
+            guard let self else {
+                return
+            }
+            self.controller?.updateNavigationEdgeEffectExtension(transition: transition)
         }
     }
     
@@ -841,6 +863,16 @@ final class CallListControllerNode: ASDisplayNode {
                         strongSelf._ready.set(true)
                     }
                     
+                    if let focusOnItemTag = strongSelf.focusOnItemTag {
+                        strongSelf.focusOnItemTag = nil
+                        
+                        strongSelf.listNode.forEachItemNode { itemNode in
+                            if let itemNode = itemNode as? ItemListItemNode, let tag = itemNode.tag, tag.isEqual(to: focusOnItemTag) {
+                                itemNode.displayHighlight()
+                            }
+                        }
+                    }
+                    
                     completion()
                 }
             }
@@ -945,5 +977,12 @@ final class CallListControllerNode: ASDisplayNode {
             self.dequeuedInitialTransitionOnLayout = true
             self.dequeueTransition()
         }
+        
+        let edgeEffectHeight: CGFloat = layout.intrinsicInsets.bottom
+        let edgeEffectFrame = CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - edgeEffectHeight), size: CGSize(width: layout.size.width, height: edgeEffectHeight))
+        transition.updateFrame(view: self.edgeEffectView, frame: edgeEffectFrame)
+        self.edgeEffectView.update(content: self.presentationData.theme.list.plainBackgroundColor, rect: edgeEffectFrame, edge: .bottom, edgeSize: edgeEffectFrame.height, transition: ComponentTransition(transition))
+        
+        self.controller?.updateNavigationEdgeEffectExtension(transition: transition)
     }
 }

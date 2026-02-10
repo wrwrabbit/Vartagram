@@ -10,6 +10,7 @@ import TelegramVoip
 import TelegramAudio
 import TelegramUIPreferences
 import TelegramPresentationData
+import PresentationDataUtils
 import DeviceAccess
 import UniversalMediaPlayer
 import AccountContext
@@ -2131,12 +2132,12 @@ if isStream {
                     }
                     if case .anonymousNotAllowed = error {
                         let presentationData = self.accountContext.sharedContext.currentPresentationData.with { $0 }
-                        self.accountContext.sharedContext.mainWindow?.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: nil, text: self.isChannel ? presentationData.strings.LiveStream_AnonymousDisabledAlertText : presentationData.strings.VoiceChat_AnonymousDisabledAlertText, actions: [
+                        self.accountContext.sharedContext.mainWindow?.present(textAlertController(context: self.accountContext, title: nil, text: self.isChannel ? presentationData.strings.LiveStream_AnonymousDisabledAlertText : presentationData.strings.VoiceChat_AnonymousDisabledAlertText, actions: [
                             TextAlertAction(type: .genericAction, title: presentationData.strings.Common_OK, action: {})
                         ]), on: .root, blockInteraction: false, completion: {})
                     } else if case .tooManyParticipants = error {
                         let presentationData = self.accountContext.sharedContext.currentPresentationData.with { $0 }
-                        self.accountContext.sharedContext.mainWindow?.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: nil, text: self.isChannel ? presentationData.strings.LiveStream_ChatFullAlertText : presentationData.strings.VoiceChat_ChatFullAlertText, actions: [
+                        self.accountContext.sharedContext.mainWindow?.present(textAlertController(context: self.accountContext, title: nil, text: self.isChannel ? presentationData.strings.LiveStream_ChatFullAlertText : presentationData.strings.VoiceChat_ChatFullAlertText, actions: [
                             TextAlertAction(type: .genericAction, title: presentationData.strings.Common_OK, action: {})
                         ]), on: .root, blockInteraction: false, completion: {})
                     } else if case .invalidJoinAsPeer = error {
@@ -3801,7 +3802,7 @@ self.isFailedEventDisposable?.dispose()
                         break
                     }
                     
-                    self.accountContext.sharedContext.mainWindow?.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: nil, text: errorText, actions: [
+                    self.accountContext.sharedContext.mainWindow?.present(textAlertController(context: self.accountContext, title: nil, text: errorText, actions: [
                         TextAlertAction(type: .genericAction, title: presentationData.strings.Common_OK, action: {})
                     ]), on: .root, blockInteraction: false, completion: {})
                 }

@@ -6,6 +6,7 @@ import ChatPresentationInterfaceState
 import ChatControllerInteraction
 import ComponentFlow
 import ChatSideTopicsPanel
+import LegacyChatHeaderPanelComponent
 
 func titlePanelForChatPresentationInterfaceState(_ chatPresentationInterfaceState: ChatPresentationInterfaceState, context: AccountContext, currentPanel: ChatTitleAccessoryPanelNode?, controllerInteraction: ChatControllerInteraction?, interfaceInteraction: ChatPanelInterfaceInteraction?, force: Bool) -> ChatTitleAccessoryPanelNode? {
     if !force, case .standard(.embedded) = chatPresentationInterfaceState.mode {
@@ -255,6 +256,7 @@ func floatingTopicsPanelForChatPresentationInterfaceState(_ chatPresentationInte
         return ChatFloatingTopicsPanel(
             context: context,
             theme: chatPresentationInterfaceState.theme,
+            preferClearGlass: chatPresentationInterfaceState.preferredGlassType == .clear,
             strings: chatPresentationInterfaceState.strings,
             location: topicListDisplayModeOnTheSide ? .side : .top,
             peerId: peerId,
@@ -281,6 +283,7 @@ func floatingTopicsPanelForChatPresentationInterfaceState(_ chatPresentationInte
         return ChatFloatingTopicsPanel(
             context: context,
             theme: chatPresentationInterfaceState.theme,
+            preferClearGlass: chatPresentationInterfaceState.preferredGlassType == .clear,
             strings: chatPresentationInterfaceState.strings,
             location: topicListDisplayModeOnTheSide ? .side : .top,
             peerId: peerId,
@@ -302,15 +305,16 @@ func floatingTopicsPanelForChatPresentationInterfaceState(_ chatPresentationInte
                 controller.openDeleteMonoforumPeer(peerId: EnginePeer.Id(threadId))
             }
         )
-    } else if let user = chatPresentationInterfaceState.renderedPeer?.peer as? TelegramUser, user.isForum, chatPresentationInterfaceState.search == nil {
+    } else if let user = chatPresentationInterfaceState.renderedPeer?.peer as? TelegramUser, let botInfo = user.botInfo, botInfo.flags.contains(.hasForum), chatPresentationInterfaceState.search == nil {
         let topicListDisplayModeOnTheSide = chatPresentationInterfaceState.persistentData.topicListPanelLocation
         return ChatFloatingTopicsPanel(
             context: context,
             theme: chatPresentationInterfaceState.theme,
+            preferClearGlass: chatPresentationInterfaceState.preferredGlassType == .clear,
             strings: chatPresentationInterfaceState.strings,
             location: topicListDisplayModeOnTheSide ? .side : .top,
             peerId: peerId,
-            kind: .botForum,
+            kind: .botForum(forumManagedByUser: botInfo.flags.contains(.forumManagedByUser)),
             topicId: chatPresentationInterfaceState.chatLocation.threadId,
             controller: { [weak interfaceInteraction] in
                 return interfaceInteraction?.chatController()

@@ -20,21 +20,21 @@ enum ChatHistoryNavigationButtonType {
 
 class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
     let containerNode: ContextExtractedContentContainingNode
-    let buttonNode: HighlightTrackingButtonNode
     private let backgroundView: GlassBackgroundView
     let imageView: GlassBackgroundView.ContentImageView
     private let badgeBackgroundView: GlassBackgroundView
     private let badgeTextNode: ImmediateAnimatedCountLabelNode
+    private var tapRecognizer: UITapGestureRecognizer?
     
     var tapped: (() -> Void)? {
         didSet {
-            if (oldValue != nil) != (self.tapped != nil) {
-                if self.tapped != nil {
-                    self.buttonNode.addTarget(self, action: #selector(self.onTap), forControlEvents: .touchUpInside)
-                } else {
-                    self.buttonNode.removeTarget(self, action: #selector(self.onTap), forControlEvents: .touchUpInside)
-                }
-            }
+            self.tapRecognizer?.isEnabled = self.tapped != nil && self.isEnabled
+        }
+    }
+    
+    var isEnabled: Bool = true {
+        didSet {
+            self.tapRecognizer?.isEnabled = self.tapped != nil && self.isEnabled
         }
     }
     
@@ -47,14 +47,15 @@ class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
     }
     
     private var theme: PresentationTheme
+    private var preferClearGlass: Bool
     private let type: ChatHistoryNavigationButtonType
     
-    init(theme: PresentationTheme, backgroundNode: WallpaperBackgroundNode, type: ChatHistoryNavigationButtonType) {
+    init(theme: PresentationTheme, preferClearGlass: Bool, backgroundNode: WallpaperBackgroundNode, type: ChatHistoryNavigationButtonType) {
         self.theme = theme
+        self.preferClearGlass = preferClearGlass
         self.type = type
         
         self.containerNode = ContextExtractedContentContainingNode()
-        self.buttonNode = HighlightTrackingButtonNode()
 
         self.backgroundView = GlassBackgroundView()
         
@@ -71,6 +72,7 @@ class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
         }
         
         self.badgeBackgroundView = GlassBackgroundView()
+        self.badgeBackgroundView.isUserInteractionEnabled = false
         self.badgeBackgroundView.alpha = 0.0
         
         self.badgeTextNode = ImmediateAnimatedCountLabelNode()
@@ -80,7 +82,10 @@ class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
         
         super.init()
         
-        self.targetNodeForActivationProgress = self.buttonNode
+        let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(self.onTapGesture(_:)))
+        self.tapRecognizer = tapRecognizer
+        self.backgroundView.contentView.addGestureRecognizer(tapRecognizer)
+        tapRecognizer.isEnabled = false
         
         self.addSubnode(self.containerNode)
         
@@ -89,28 +94,27 @@ class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
         self.containerNode.contentNode.frame = CGRect(origin: CGPoint(), size: size)
         self.containerNode.contentRect = CGRect(origin: CGPoint(), size: size)
         
-        self.buttonNode.frame = CGRect(origin: CGPoint(), size: size)
-        self.containerNode.contentNode.addSubnode(self.buttonNode)
+        self.containerNode.contentNode.view.addSubview(self.backgroundView)
 
-        self.buttonNode.view.addSubview(self.backgroundView)
         self.backgroundView.frame = CGRect(origin: CGPoint(), size: size)
-        self.backgroundView.update(size: size, cornerRadius: size.height * 0.5, isDark: theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), transition: .immediate)
+        self.backgroundView.update(size: size, cornerRadius: size.height * 0.5, isDark: theme.overallDarkAppearance, tintColor: .init(kind: self.preferClearGlass ? .clear : .panel), isInteractive: true, transition: .immediate)
         self.imageView.tintColor = theme.chat.inputPanel.panelControlColor
 
         self.backgroundView.contentView.addSubview(self.imageView)
         self.imageView.frame = CGRect(origin: CGPoint(), size: size)
         
-        self.buttonNode.view.addSubview(self.badgeBackgroundView)
+        self.containerNode.contentNode.view.addSubview(self.badgeBackgroundView)
         self.badgeBackgroundView.contentView.addSubview(self.badgeTextNode.view)
         
         self.frame = CGRect(origin: CGPoint(), size: size)
     }
     
-    func updateTheme(theme: PresentationTheme, backgroundNode: WallpaperBackgroundNode) {
-        if self.theme !== theme {
+    func updateTheme(theme: PresentationTheme, preferClearGlass: Bool, backgroundNode: WallpaperBackgroundNode) {
+        if self.theme !== theme || self.preferClearGlass != preferClearGlass {
             self.theme = theme
+            self.preferClearGlass = preferClearGlass
 
-            self.backgroundView.update(size: self.backgroundView.bounds.size, cornerRadius: self.backgroundView.bounds.size.height * 0.5, isDark: theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), transition: .immediate)
+            self.backgroundView.update(size: self.backgroundView.bounds.size, cornerRadius: self.backgroundView.bounds.size.height * 0.5, isDark: theme.overallDarkAppearance, tintColor: .init(kind: self.preferClearGlass ? .clear : .panel), transition: .immediate)
             self.imageView.tintColor = theme.chat.inputPanel.panelControlColor
             
             switch self.type {
@@ -124,7 +128,7 @@ class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
                 self.imageView.image = PresentationResourcesChat.chatHistoryReactionsButtonImage(theme)
             }
             
-            self.badgeBackgroundView.update(size: self.badgeBackgroundView.bounds.size, cornerRadius: self.badgeBackgroundView.bounds.height * 0.5, isDark: theme.overallDarkAppearance, tintColor: .init(kind: .custom, color: theme.chat.inputPanel.actionControlFillColor), transition: .immediate)
+            self.badgeBackgroundView.update(size: self.badgeBackgroundView.bounds.size, cornerRadius: self.badgeBackgroundView.bounds.height * 0.5, isDark: theme.overallDarkAppearance, tintColor: .init(kind: .custom(style: .default, color: theme.chat.inputPanel.actionControlFillColor)), transition: .immediate)
             
             var segments: [AnimatedCountLabelNode.Segment] = []
             if let value = Int(self.badge) {
@@ -143,9 +147,11 @@ class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
         self.absoluteRect = (rect, containerSize)
     }
     
-    @objc func onTap() {
-        if let tapped = self.tapped {
-            tapped()
+    @objc private func onTapGesture(_ recognizer: UITapGestureRecognizer) {
+        if case .ended = recognizer.state {
+            if let tapped = self.tapped {
+                tapped()
+            }
         }
     }
     
@@ -174,7 +180,7 @@ class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
             }
             
             let transition: ContainedViewLayoutTransition = .animated(duration: 0.2, curve: .easeInOut)
-            self.badgeBackgroundView.update(size: backgroundFrame.size, cornerRadius: backgroundFrame.height * 0.5, isDark: theme.overallDarkAppearance, tintColor: .init(kind: .custom, color: self.theme.chat.inputPanel.actionControlFillColor), transition: ComponentTransition(transition))
+            self.badgeBackgroundView.update(size: backgroundFrame.size, cornerRadius: backgroundFrame.height * 0.5, isDark: theme.overallDarkAppearance, tintColor: .init(kind: .custom(style: .default, color: self.theme.chat.inputPanel.actionControlFillColor)), transition: ComponentTransition(transition))
             
             self.badgeTextNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((backgroundFrame.width - badgeSize.width) / 2.0), y: 2.0), size: badgeSize)
             

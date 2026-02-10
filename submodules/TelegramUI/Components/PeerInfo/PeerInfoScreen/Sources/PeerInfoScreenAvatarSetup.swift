@@ -103,9 +103,14 @@ extension PeerInfoScreenImpl {
             let parentController = (self.context.sharedContext.mainWindow?.viewController as? NavigationController)?.topViewController as? ViewController
             
             var dismissImpl: (() -> Void)?
-            let mainController = self.context.sharedContext.makeAvatarMediaPickerScreen(context: self.context, getSourceRect: { return nil }, canDelete: hasDeleteButton, performDelete: { [weak self] in
+            let (mainController, pickerHolder) = self.context.sharedContext.makeAvatarMediaPickerScreen(context: self.context, getSourceRect: { return nil }, canDelete: hasDeleteButton, performDelete: { [weak self] in
                 self?.openAvatarRemoval(mode: mode, peer: peer, item: item)
-            }, completion: { result, transitionView, transitionRect, transitionImage, fromCamera, transitionOut, cancelled in
+            }, completion: { [weak self] result, transitionView, transitionRect, transitionImage, fromCamera, transitionOut, cancelled in
+                guard let self else {
+                    return
+                }
+                self.avatarPickerHolder = nil
+                
                 var resultImage: UIImage?
                 let uploadStatusPromise = Promise<PeerInfoAvatarUploadStatus>(.progress(0.0))
                 
@@ -155,7 +160,6 @@ extension PeerInfoScreenImpl {
                         commit()
                     }
                     parentController?.push(controller)
-                    //isFromEditor = true
                     return
                 }
                 
@@ -232,31 +236,37 @@ extension PeerInfoScreenImpl {
                     self.parentController?.pushViewController(editorController)
                 }
             }, dismissed: {
-                
             })
-            dismissImpl = { [weak self, weak mainController] in
-                if let mainController, let navigationController = mainController.navigationController {
-                    var viewControllers = navigationController.viewControllers
-                    viewControllers = viewControllers.filter { c in
-                        return !(c is CameraScreen) && c !== mainController
+            self.avatarPickerHolder = pickerHolder
+            if let mainController {
+                dismissImpl = { [weak self, weak mainController] in
+                    if let mainController, let navigationController = mainController.navigationController {
+                        var viewControllers = navigationController.viewControllers
+                        viewControllers = viewControllers.filter { c in
+                            return !(c is CameraScreen) && c !== mainController
+                        }
+                        navigationController.setViewControllers(viewControllers, animated: false)
                     }
-                    navigationController.setViewControllers(viewControllers, animated: false)
-                }
-                if let self, let navigationController = self.parentController, let mainController {
-                    var viewControllers = navigationController.viewControllers
-                    viewControllers = viewControllers.filter { c in
-                        return !(c is CameraScreen) && c !== mainController
+                    if let self, let navigationController = self.parentController, let mainController {
+                        var viewControllers = navigationController.viewControllers
+                        viewControllers = viewControllers.filter { c in
+                            return !(c is CameraScreen) && c !== mainController
+                        }
+                        navigationController.setViewControllers(viewControllers, animated: false)
                     }
-                    navigationController.setViewControllers(viewControllers, animated: false)
+                    
                 }
-
-            }
-            mainController.navigationPresentation = .flatModal
-            mainController.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .all, compactSize: .portrait)
-            if self.navigationController != nil {
-                self.push(mainController)
-            } else {
-                self.parentController?.pushViewController(mainController)
+                if mainController is ActionSheetController {
+                    self.present(mainController, in: .window(.root))
+                } else {
+                    mainController.navigationPresentation = .flatModal
+                    mainController.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .all, compactSize: .portrait)
+                    if self.navigationController != nil {
+                        self.push(mainController)
+                    } else {
+                        self.parentController?.pushViewController(mainController)
+                    }
+                }
             }
         })
     }
@@ -365,6 +375,10 @@ extension PeerInfoScreenImpl {
         return resource
     }
     
+    public func updateProfilePhoto(_ image: UIImage) {
+        self.updateProfilePhoto(image, mode: .generic, uploadStatus: nil)
+    }
+    
     public func updateProfilePhoto(_ image: UIImage, mode: PeerInfoAvatarEditingMode, uploadStatus: Promise<PeerInfoAvatarUploadStatus>?) {
         guard let resource = setupProfilePhotoUpload(image: image, mode: mode, indefiniteProgress: false) else {
             uploadStatus?.set(.single(.done))
@@ -453,7 +467,7 @@ extension PeerInfoScreenImpl {
                         case .accept:
                             (strongSelf.parentController?.topViewController as? ViewController)?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .image(image: image, title: strongSelf.presentationData.strings.Conversation_SuggestedPhotoSuccess, text: strongSelf.presentationData.strings.Conversation_SuggestedPhotoSuccessText, round: true, undoText: nil), elevatedLayout: false, animateInAsReplacement: true, action: { [weak self] action in
                                 if case .info = action {
-                                    self?.parentController?.openSettings()
+                                    self?.parentController?.openSettings(edit: false)
                                 }
                                 return false
                             }), in: .current)
@@ -464,6 +478,10 @@ extension PeerInfoScreenImpl {
                 })
             }
         }))
+    }
+    
+    public func updateProfileVideo(_ image: UIImage, video: Any?, values: Any?, markup: UploadPeerPhotoMarkup?) {
+        self.updateProfileVideo(image, video: video as? MediaEditorScreenImpl.MediaResult.VideoResult, values: values as? MediaEditorValues, markup: markup, mode: .generic, uploadStatus: nil)
     }
         
     public func updateProfileVideo(_ image: UIImage, video: MediaEditorScreenImpl.MediaResult.VideoResult?, values: MediaEditorValues?, markup: UploadPeerPhotoMarkup?, mode: PeerInfoAvatarEditingMode, uploadStatus: Promise<PeerInfoAvatarUploadStatus>?) {
@@ -652,7 +670,7 @@ extension PeerInfoScreenImpl {
                         case .accept:
                             (strongSelf.parentController?.topViewController as? ViewController)?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .image(image: image, title: strongSelf.presentationData.strings.Conversation_SuggestedVideoSuccess, text: strongSelf.presentationData.strings.Conversation_SuggestedVideoSuccessText, round: true, undoText: nil), elevatedLayout: false, animateInAsReplacement: true, action: { [weak self] action in
                                 if case .info = action {
-                                    self?.parentController?.openSettings()
+                                    self?.parentController?.openSettings(edit: false)
                                 }
                                 return false
                             }), in: .current)
@@ -864,7 +882,7 @@ extension PeerInfoScreenImpl {
                         case .accept:
                             (strongSelf.parentController?.topViewController as? ViewController)?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .image(image: image, title: strongSelf.presentationData.strings.Conversation_SuggestedVideoSuccess, text: strongSelf.presentationData.strings.Conversation_SuggestedVideoSuccessText, round: true, undoText: nil), elevatedLayout: false, animateInAsReplacement: true, action: { [weak self] action in
                                 if case .info = action {
-                                    self?.parentController?.openSettings()
+                                    self?.parentController?.openSettings(edit: false)
                                 }
                                 return false
                             }), in: .current)

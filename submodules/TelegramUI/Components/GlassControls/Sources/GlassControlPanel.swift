@@ -9,10 +9,12 @@ public final class GlassControlPanelComponent: Component {
     public final class Item: Equatable {
         public let items: [GlassControlGroupComponent.Item]
         public let background: GlassControlGroupComponent.Background
+        public let keepWide: Bool
 
-        public init(items: [GlassControlGroupComponent.Item], background: GlassControlGroupComponent.Background) {
+        public init(items: [GlassControlGroupComponent.Item], background: GlassControlGroupComponent.Background, keepWide: Bool = false) {
             self.items = items
             self.background = background
+            self.keepWide = keepWide
         }
         
         public static func ==(lhs: Item, rhs: Item) -> Bool {
@@ -22,29 +24,47 @@ public final class GlassControlPanelComponent: Component {
             if lhs.background != rhs.background {
                 return false
             }
+            if lhs.keepWide != rhs.keepWide {
+                return false
+            }
             return true
         }
     }
 
     public let theme: PresentationTheme
+    public let preferClearGlass: Bool
     public let leftItem: Item?
     public let rightItem: Item?
     public let centralItem: Item?
+    public let centerAlignmentIfPossible: Bool
+    public let isDark: Bool?
+    public let tag: AnyObject?
 
     public init(
         theme: PresentationTheme,
+        preferClearGlass: Bool = false,
         leftItem: Item?,
         centralItem: Item?,
-        rightItem: Item?
+        rightItem: Item?,
+        centerAlignmentIfPossible: Bool = false,
+        isDark: Bool? = nil,
+        tag: AnyObject? = nil
     ) {
         self.theme = theme
+        self.preferClearGlass = preferClearGlass
         self.leftItem = leftItem
         self.centralItem = centralItem
         self.rightItem = rightItem
+        self.centerAlignmentIfPossible = centerAlignmentIfPossible
+        self.isDark = isDark
+        self.tag = tag
     }
 
     public static func ==(lhs: GlassControlPanelComponent, rhs: GlassControlPanelComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.preferClearGlass != rhs.preferClearGlass {
             return false
         }
         if lhs.leftItem != rhs.leftItem {
@@ -56,10 +76,29 @@ public final class GlassControlPanelComponent: Component {
         if lhs.rightItem != rhs.rightItem {
             return false
         }
+        if lhs.centerAlignmentIfPossible != rhs.centerAlignmentIfPossible {
+            return false
+        }
+        if lhs.isDark != rhs.isDark {
+            return false
+        }
+        if lhs.tag !== rhs.tag {
+            return false
+        }
         return true
     }
 
-    public final class View: UIView {
+    public final class View: UIView, ComponentTaggedView {
+        public func matches(tag: Any) -> Bool {
+            if let component = self.component, let componentTag = component.tag {
+                let tag = tag as AnyObject
+                if componentTag === tag {
+                    return true
+                }
+            }
+            return false
+        }
+        
         private let glassContainerView: GlassBackgroundContainerView
         
         private var leftItemComponent: ComponentView<Empty>?
@@ -116,9 +155,10 @@ public final class GlassControlPanelComponent: Component {
                     transition: leftItemTransition,
                     component: AnyComponent(GlassControlGroupComponent(
                         theme: component.theme,
+                        preferClearGlass: component.preferClearGlass,
                         background: leftItem.background,
                         items: leftItem.items,
-                        minWidth: 40.0
+                        minWidth: availableSize.height
                     )),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width, height: availableSize.height)
@@ -165,9 +205,10 @@ public final class GlassControlPanelComponent: Component {
                     transition: rightItemTransition,
                     component: AnyComponent(GlassControlGroupComponent(
                         theme: component.theme,
+                        preferClearGlass: component.preferClearGlass,
                         background: rightItem.background,
                         items: rightItem.items,
-                        minWidth: 40.0
+                        minWidth: availableSize.height
                     )),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width, height: availableSize.height)
@@ -231,14 +272,22 @@ public final class GlassControlPanelComponent: Component {
                     transition: centralItemTransition,
                     component: AnyComponent(GlassControlGroupComponent(
                         theme: component.theme,
+                        preferClearGlass: component.preferClearGlass,
                         background: centralItem.background,
                         items: centralItem.items,
-                        minWidth: 165.0
+                        minWidth: centralItem.keepWide ? 165.0 : availableSize.height
                     )),
                     environment: {},
                     containerSize: maxCentralItemSize
                 )
-                let centralItemFrameValue = CGRect(origin: CGPoint(x: centralLeftInset + floor((availableSize.width - centralLeftInset - centralRightInset - centralItemSize.width) * 0.5), y: 0.0), size: centralItemSize)
+                var centralItemFrameValue = CGRect(origin: CGPoint(x: centralLeftInset + floor((availableSize.width - centralLeftInset - centralRightInset - centralItemSize.width) * 0.5), y: 0.0), size: centralItemSize)
+                if component.centerAlignmentIfPossible {
+                    let maxInset = max(centralLeftInset, centralRightInset)
+                    if availableSize.width - maxInset * 2.0 > centralItemSize.width {
+                        centralItemFrameValue.origin.x = maxInset + floor((availableSize.width - maxInset * 2.0 - centralItemSize.width) * 0.5)
+                    }
+                }
+                
                 if let centralItemComponentView = centralItemComponent.view {
                     var animateIn = false
                     if centralItemComponentView.superview == nil {
@@ -264,7 +313,7 @@ public final class GlassControlPanelComponent: Component {
             }
             
             transition.setFrame(view: self.glassContainerView, frame: CGRect(origin: CGPoint(), size: availableSize))
-            self.glassContainerView.update(size: availableSize, isDark: component.theme.overallDarkAppearance, transition: transition)
+            self.glassContainerView.update(size: availableSize, isDark: component.isDark ?? component.theme.overallDarkAppearance, transition: transition)
             
             return availableSize
         }

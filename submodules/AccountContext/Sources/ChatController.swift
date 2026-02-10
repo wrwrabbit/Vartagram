@@ -978,13 +978,19 @@ public enum PeerInfoAvatarUploadStatus {
 public protocol PeerInfoScreen: ViewController {
     var peerId: PeerId { get }
     var privacySettings: Promise<AccountPrivacySettings?> { get }
+    var twoStepAuthData: Promise<TwoStepAuthData?> { get }
     
+    func activateEdit()
+    func openEmojiStatusSetup()
     func openBirthdaySetup()
     func toggleStorySelection(ids: [Int32], isSelected: Bool)
     func togglePaneIsReordering(isReordering: Bool)
     func cancelItemSelection()
     func openAvatarSetup(completedWithUploadingImage: @escaping (UIImage, Signal<PeerInfoAvatarUploadStatus, NoError>) -> UIView?)
     func openAvatars()
+    
+    func updateProfilePhoto(_ image: UIImage)
+    func updateProfileVideo(_ image: UIImage, video: Any?, values: Any?, markup: UploadPeerPhotoMarkup?)
 }
 
 public extension Peer {
@@ -1218,7 +1224,7 @@ public enum ChatHistoryListDisplayHeaders {
 
 public enum ChatHistoryListMode: Equatable {
     case bubbles
-    case list(search: Bool, reversed: Bool, reverseGroups: Bool, displayHeaders: ChatHistoryListDisplayHeaders, hintLinks: Bool, isGlobalSearch: Bool)
+    case list(reversed: Bool, reverseGroups: Bool, displayHeaders: ChatHistoryListDisplayHeaders, hintLinks: Bool, isGlobalSearch: Bool)
 }
 
 public protocol ChatControllerInteractionProtocol: AnyObject {

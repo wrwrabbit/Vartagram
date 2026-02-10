@@ -118,6 +118,8 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
     private var appliedExpandedBlockIds: Set<Int>?
     private var displayContentsUnderSpoilers: (value: Bool, location: CGPoint?) = (false, nil)
     
+    private var isSummaryApplied = false
+    
     private final class TextRevealAnimationState {
         let fromCount: Int
         let toCount: Int
@@ -408,6 +410,7 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                     }
                 }
                 
+                var isSummaryApplied = false
                 var isTranslating = false
                 if let invoice {
                     rawText = invoice.description
@@ -451,15 +454,29 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                         messageEntities = updatingMedia.entities?.entities ?? []
                     }
                     
+                    let translateToLanguage = item.associatedData.translateToLanguage
+                    var isSummarized = false
+                    if item.controllerInteraction.summarizedMessageIds.contains(item.message.id) {
+                        isSummarized = true
+                    }
+                    
                     if let subject = item.associatedData.subject, case .messageOptions = subject {
-                    } else if let translateToLanguage = item.associatedData.translateToLanguage, !item.message.text.isEmpty && incoming {
-                        isTranslating = true
-                        for attribute in item.message.attributes {
-                            if let attribute = attribute as? TranslationMessageAttribute, !attribute.text.isEmpty, attribute.toLang == translateToLanguage {
+                    } else if !item.message.text.isEmpty && incoming {
+                        if translateToLanguage != nil || isSummarized {
+                            isTranslating = true
+                        }
+                        if isTranslating {
+                            if isSummarized, let attribute = item.message.attributes.first(where: { $0 is SummarizationMessageAttribute }) as? SummarizationMessageAttribute, let summary = attribute.summaryForLang(translateToLanguage) {
+                                rawText = summary.text
+                                messageEntities = summary.entities
+                                isTranslating = false
+                                isSummaryApplied = true
+                            } else if let attribute = item.message.attributes.first(where: { $0 is TranslationMessageAttribute }) as? TranslationMessageAttribute, !attribute.text.isEmpty, attribute.toLang == translateToLanguage {
                                 rawText = attribute.text
                                 messageEntities = attribute.entities
-                                isTranslating = false
-                                break
+                                if !isSummarized {
+                                    isTranslating = false
+                                }
                             }
                         }
                     }
@@ -799,6 +816,20 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                             strongSelf.textNode.textNode.displaysAsynchronously = !item.presentationData.isPreview
                             animation.animator.updateFrame(layer: strongSelf.containerNode.layer, frame: CGRect(origin: CGPoint(), size: boundingSize), completion: nil)
                             
+                            
+                            if strongSelf.isSummaryApplied != isSummaryApplied {
+                                strongSelf.isSummaryApplied = isSummaryApplied
+                                itemApply?.setInvertOffsetDirection()
+                                
+                                if let snapshotView = strongSelf.textNode.textNode.view.snapshotContentTree() {
+                                    strongSelf.view.addSubview(snapshotView)
+                                    
+                                    snapshotView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25, removeOnCompletion: false, completion: { _ in
+                                        snapshotView.removeFromSuperview()
+                                    })
+                                    strongSelf.textNode.textNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25)
+                                }
+                            }
                             if strongSelf.appliedExpandedBlockIds != nil && strongSelf.appliedExpandedBlockIds != strongSelf.expandedBlockIds {
                                 itemApply?.setInvertOffsetDirection()
                             }
@@ -1237,7 +1268,14 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
             if let current = self.shimmeringNode {
                 shimmeringNode = current
             } else {
-                shimmeringNode = ShimmeringLinkNode(color: item.message.effectivelyIncoming(item.context.account.peerId) ? item.presentationData.theme.theme.chat.message.incoming.secondaryTextColor.withAlphaComponent(0.1) : item.presentationData.theme.theme.chat.message.outgoing.secondaryTextColor.withAlphaComponent(0.1))
+                let color: UIColor
+                let isIncoming = item.message.effectivelyIncoming(item.context.account.peerId)
+                if item.presentationData.theme.theme.overallDarkAppearance {
+                    color = isIncoming ? item.presentationData.theme.theme.chat.message.incoming.primaryTextColor.withAlphaComponent(0.1) : item.presentationData.theme.theme.chat.message.outgoing.primaryTextColor.withAlphaComponent(0.1)
+                } else {
+                    color = isIncoming ? item.presentationData.theme.theme.chat.message.incoming.accentTextColor.withAlphaComponent(0.1) : item.presentationData.theme.theme.chat.message.outgoing.secondaryTextColor.withAlphaComponent(0.1)
+                }
+                shimmeringNode = ShimmeringLinkNode(color: color)
                 shimmeringNode.updateRects(rects)
                 shimmeringNode.frame = self.textNode.textNode.frame
                 shimmeringNode.updateLayout(self.textNode.textNode.frame.size)

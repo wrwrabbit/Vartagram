@@ -23,6 +23,7 @@ import SaveProgressScreen
 import DeviceModel
 import LegacyMediaPickerUI
 import PassKit
+import AlertComponent
 
 private final class TonSchemeHandler: NSObject, WKURLSchemeHandler {
     private final class PendingTask {
@@ -778,7 +779,7 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
             self.ignoreUpdatesUntilScrollingStopped = true
         }
     }
-    
+        
     @available(iOS 13.0, *)
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
         if #available(iOS 14.5, *), navigationAction.shouldPerformDownload {
@@ -795,13 +796,18 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
             }
         } else {
             if let url = navigationAction.request.url?.absoluteString {
-                if (navigationAction.targetFrame == nil || navigationAction.targetFrame?.isMainFrame == true) && (isTelegramMeLink(url) || isTelegraPhLink(url) || url.hasPrefix("tg://")) && !url.contains("/auth/push?") && !self._state.url.contains("/auth/push?") {
+                if (navigationAction.targetFrame == nil || navigationAction.targetFrame?.isMainFrame == true) && (isTelegramMeLink(url) || url.hasPrefix("tg://")) && !url.contains("/auth/push?") && !self._state.url.contains("/auth/push?") {
                     decisionHandler(.cancel, preferences)
-                    self.minimize()
+                    if !url.contains("domain=oauth") {
+                        self.minimize()
+                    }
                     self.openAppUrl(url)
                 } else {
-                    if let scheme = navigationAction.request.url?.scheme, !["http", "https", "tonsite", "about"].contains(scheme.lowercased()) {
+                    if let scheme = navigationAction.request.url?.scheme?.lowercased(), !["http", "https", "tonsite", "about"].contains(scheme) {
                         decisionHandler(.cancel, preferences)
+                        if ["facetime"].contains(scheme) {
+                            return
+                        }
                         self.context.sharedContext.openExternalUrl(context: self.context, urlContext: .generic, url: url, forceExternal: true, presentationData: self.presentationData, navigationController: nil, dismissInput: {})
                     } else {
                         decisionHandler(.allow, preferences)
@@ -1258,12 +1264,20 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
         var completed = false
-        let alertController = textAlertController(context: self.context, updatedPresentationData: nil, title: nil, text: message, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {
-            if !completed {
-                completed = true
-                completionHandler()
-            }
-        })])
+        
+        let alertController = AlertScreen(
+            context: self.context,
+            title: nil,
+            text: message,
+            actions: [
+                .init(title: presentationData.strings.Common_OK, type: .default, action: {
+                    if !completed {
+                        completed = true
+                        completionHandler()
+                    }
+                })
+            ]
+        )
         alertController.dismissed = { byOutsideTap in
             if byOutsideTap {
                 if !completed {
@@ -1278,17 +1292,26 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
     func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
         var completed = false
-        let alertController = textAlertController(context: self.context, updatedPresentationData: nil, title: nil, text: message, actions: [TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {
-            if !completed {
-                completed = true
-                completionHandler(false)
-            }
-        }), TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {
-            if !completed {
-                completed = true
-                completionHandler(true)
-            }
-        })])
+        
+        let alertController = AlertScreen(
+            context: self.context,
+            title: nil,
+            text: message,
+            actions: [
+                .init(title: presentationData.strings.Common_Cancel, action: {
+                    if !completed {
+                        completed = true
+                        completionHandler(false)
+                    }
+                }),
+                .init(title: presentationData.strings.Common_OK, type: .default, action: {
+                    if !completed {
+                        completed = true
+                        completionHandler(true)
+                    }
+                })
+            ]
+        )
         alertController.dismissed = { byOutsideTap in
             if byOutsideTap {
                 if !completed {
@@ -1302,24 +1325,28 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
 
     func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (String?) -> Void) {
         var completed = false
-        let promptController = promptController(sharedContext: self.context.sharedContext, updatedPresentationData: nil, text: prompt, value: defaultText, apply: { value in
-            if !completed {
-                completed = true
-                if let value = value {
-                    completionHandler(value)
-                } else {
-                    completionHandler(nil)
+        let promptController = promptController(
+            context: self.context,
+            updatedPresentationData: nil,
+            text: prompt,
+            value: defaultText,
+            apply: { value in
+                if !completed {
+                    completed = true
+                    if let value = value {
+                        completionHandler(value)
+                    } else {
+                        completionHandler(nil)
+                    }
                 }
-            }
-        })
-        promptController.dismissed = { byOutsideTap in
-            if byOutsideTap {
+            },
+            dismissed: {
                 if !completed {
                     completed = true
                     completionHandler(nil)
                 }
             }
-        }
+        )
         self.present(promptController, nil)
     }
     
@@ -1356,17 +1383,25 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
     private func presentDownloadConfirmation(fileName: String, proceed: @escaping (Bool) -> Void) {
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
         var completed = false
-        let alertController = textAlertController(context: self.context, updatedPresentationData: nil, title: nil, text: presentationData.strings.WebBrowser_Download_Confirmation(fileName).string, actions: [TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {
-            if !completed {
-                completed = true
-                proceed(false)
-            }
-        }), TextAlertAction(type: .defaultAction, title: presentationData.strings.WebBrowser_Download_Download, action: {
-            if !completed {
-                completed = true
-                proceed(true)
-            }
-        })])
+        let alertController = AlertScreen(
+            context: self.context,
+            title: nil,
+            text: presentationData.strings.WebBrowser_Download_Confirmation(fileName).string,
+            actions: [
+                .init(title: presentationData.strings.Common_Cancel, action: {
+                    if !completed {
+                        completed = true
+                        proceed(false)
+                    }
+                }),
+                .init(title: presentationData.strings.WebBrowser_Download_Download, type: .default, action: {
+                    if !completed {
+                        completed = true
+                        proceed(true)
+                    }
+                })
+            ]
+        )
         alertController.dismissed = { byOutsideTap in
             if byOutsideTap {
                 if !completed {

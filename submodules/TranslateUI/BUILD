@@ -31,8 +31,9 @@ swift_library(
         "//submodules/Components/BundleIconComponent:BundleIconComponent",
         "//submodules/UndoUI:UndoUI",
         "//submodules/ActivityIndicator:ActivityIndicator",
-        "//submodules/ChatListSearchItemNode:ChatListSearchItemNode",
         "//submodules/ShimmerEffect:ShimmerEffect",
+        "//submodules/Components/ResizableSheetComponent",
+        "//submodules/TelegramUI/Components/GlassBarButtonComponent",
     ],
     visibility = [
         "//visibility:public",

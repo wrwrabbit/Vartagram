@@ -126,7 +126,7 @@ public final class EntityKeyboardAnimationData: Equatable {
         var file: TelegramMediaFile?
         var color: UIColor?
         for attribute in gift.attributes {
-            if case let .model(_, fileValue, _) = attribute {
+            if case let .model(_, fileValue, _, _) = attribute {
                 file = fileValue
             } else if case let .backdrop(_, _, innerColor, outerColor, _, _, _) = attribute {
                 color = UIColor(rgb: UInt32(bitPattern: innerColor))
@@ -4026,7 +4026,7 @@ public final class EmojiPagerContentComponent: Component {
         private func updateTopPanelSeparator(transition: ComponentTransition) {
             if let topPanelSeparator = self.topPanelSeparator {
                 var offset = self.scrollView.contentOffset.y
-                let startOffset: CGFloat = 40.0 - self.topPanelHeight
+                let startOffset: CGFloat = 46.0 - self.topPanelHeight
                 let endOffset: CGFloat = startOffset + 10.0
                 
                 offset = min(max(offset, startOffset), endOffset)

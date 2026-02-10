@@ -224,7 +224,7 @@ public func logoutOptionsController(context: AccountContext, navigationControlle
                 
                 context.sharedContext.openResolvedUrl(resolvedUrl, context: context, urlContext: .generic, navigationController: navigationController, forceExternal: false, forceUpdate: false, openPeer: { peer, navigation in
                 }, sendFile: nil, sendSticker: nil, sendEmoji: nil, requestMessageActionUrlAuth: nil, joinVoiceChat: nil, present: { controller, arguments in
-                    pushControllerImpl?(controller)
+                    presentControllerImpl?(controller, nil)
                 }, dismissInput: {}, contentContext: nil, progress: nil, completion: nil)
             })
         }
@@ -272,10 +272,6 @@ public func logoutOptionsController(context: AccountContext, navigationControlle
         context.sharedContext.accountManager.accessChallengeData()
     )
     |> map { presentationData, accessChallengeData -> (ItemListControllerState, (ItemListNodeState, Any)) in
-        let leftNavigationButton = ItemListNavigationButton(content: .text(presentationData.strings.Common_Cancel), style: .regular, enabled: true, action: {
-            dismissImpl?()
-        })
-        
         var hasPasscode = false
         switch accessChallengeData.data {
             case .numericalPassword, .plaintextPassword:
@@ -284,7 +280,7 @@ public func logoutOptionsController(context: AccountContext, navigationControlle
                 break
         }
         
-        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.LogoutOptions_Title), leftNavigationButton: leftNavigationButton, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
+        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.LogoutOptions_Title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: logoutOptionsEntries(presentationData: presentationData, canAddAccounts: canAddAccounts, hasPasscode: hasPasscode), style: .blocks)
         
         return (controllerState, (listState, arguments))

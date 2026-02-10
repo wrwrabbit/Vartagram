@@ -33,6 +33,7 @@ import ComponentFlow
 import BundleIconComponent
 import LottieComponent
 import GlassBarButtonComponent
+import AlertComponent
 
 final class MediaPickerInteraction {
     let downloadManager: AssetDownloadManager
@@ -290,7 +291,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
         fileprivate var avatarEditorPreviewView: AvatarEditorPreviewView?
         
         private var cameraActivateAreaNode: AccessibilityAreaNode
-        private var placeholderNode: MediaPickerPlaceholderNode?
+        fileprivate var placeholderNode: MediaPickerPlaceholderNode?
         private var manageNode: MediaPickerManageNode?
         private var scrollingArea: SparseItemGridScrollingArea
         private var isFastScrolling = false
@@ -316,6 +317,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
         private var fastScrollContentOffset = ValuePromise<CGPoint>(ignoreRepeated: true)
         private var fastScrollDisposable: Disposable?
                 
+        fileprivate var currentContentOffset: GridNodeVisibleContentOffset?
         fileprivate var scrolledToTop = true
         fileprivate var scrolledExactlyToTop = true
         fileprivate var isSwitchingAssetGroup = false
@@ -452,33 +454,9 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 guard let self else {
                     return
                 }
+                self.currentContentOffset = offset
                 self.updateNavigation(transition: .immediate)
-                
-                var scrolledToTop = false
-                var scrolledExactlyToTop = false
-                if case let .known(contentOffset) = offset {
-                    if contentOffset < 30.0 {
-                        scrolledToTop = true
-                    }
-                    if contentOffset < 5.0 {
-                        scrolledExactlyToTop = true
-                    }
-                }
-                
-                var updated = false
-                var transition: ContainedViewLayoutTransition = .animated(duration: 0.5, curve: .easeInOut)
-                if self.scrolledToTop != scrolledToTop {
-                    self.scrolledToTop = scrolledToTop
-                    updated = true
-                }
-                if self.scrolledExactlyToTop != scrolledExactlyToTop {
-                    self.scrolledExactlyToTop = scrolledExactlyToTop
-                    updated = true
-                    transition = .animated(duration: 0.25, curve: .easeInOut)
-                }
-                if updated {
-                    self.controller?.updateNavigationButtons(transition: transition)
-                }
+                self.updateTopEdgeEffect()
             }
             
             self.hiddenMediaDisposable = (self.hiddenMediaId.get()
@@ -767,6 +745,41 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 #endif
             } else {
                 self.containerNode.clipsToBounds = true
+            }
+        }
+        
+        func updateTopEdgeEffect() {
+            guard let offset = self.currentContentOffset else {
+                return
+            }
+            var scrolledToTop = false
+            var scrolledExactlyToTop = false
+            if case let .known(contentOffset) = offset {
+                if contentOffset < 30.0 {
+                    scrolledToTop = true
+                }
+                if contentOffset < 5.0 {
+                    scrolledExactlyToTop = true
+                }
+            }
+            if self.placeholderNode != nil {
+                scrolledToTop = true
+                scrolledExactlyToTop = true
+            }
+            
+            var updated = false
+            var transition: ContainedViewLayoutTransition = .animated(duration: 0.5, curve: .easeInOut)
+            if self.scrolledToTop != scrolledToTop {
+                self.scrolledToTop = scrolledToTop
+                updated = true
+            }
+            if self.scrolledExactlyToTop != scrolledExactlyToTop {
+                self.scrolledExactlyToTop = scrolledExactlyToTop
+                updated = true
+                transition = .animated(duration: 0.25, curve: .easeInOut)
+            }
+            if updated {
+                self.controller?.updateNavigationButtons(transition: transition)
             }
         }
         
@@ -1436,7 +1449,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             }
             
             if asFile && hasHeic {
-                controller.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: nil, text: self.presentationData.strings.MediaPicker_JpegConversionText, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.MediaPicker_KeepHeic, action: {
+                controller.present(textAlertController(context: controller.context, updatedPresentationData: self.controller?.updatedPresentationData, title: nil, text: self.presentationData.strings.MediaPicker_JpegConversionText, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.MediaPicker_KeepHeic, action: {
                     proceed(false)
                 }), TextAlertAction(type: .genericAction, title: self.presentationData.strings.MediaPicker_ConvertToJpeg, action: {
                     proceed(true)
@@ -1684,6 +1697,8 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                         self.placeholderNode = placeholderNode
                         
                         placeholderTransition = .immediate
+                        
+                        self.updateTopEdgeEffect()
                     }
                     placeholderNode.update(layout: layout, theme: self.presentationData.theme, strings: self.presentationData.strings, hasCamera: false, transition: placeholderTransition)
                     placeholderTransition.updateFrame(node: placeholderNode, frame: innerBounds)
@@ -1738,7 +1753,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             self.scrollingArea.frame = innerBounds
             
             if let backgroundView = self.backgroundView {
-                backgroundView.update(size: bounds.size, cornerRadius: 0.0, isDark: self.presentationData.theme.overallDarkAppearance, tintColor: .init(kind: .custom, color: self.presentationData.theme.list.plainBackgroundColor), transition: ComponentTransition(transition))
+                backgroundView.update(size: bounds.size, cornerRadius: 0.0, isDark: self.presentationData.theme.overallDarkAppearance, tintColor: .init(kind: .custom(style: .default, color: self.presentationData.theme.list.plainBackgroundColor)), transition: ComponentTransition(transition))
                 transition.updateFrame(view: backgroundView, frame: innerBounds)
             } else {
                 transition.updateFrame(node: self.backgroundNode, frame: innerBounds)
@@ -1848,6 +1863,8 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             }
                         
             if case let .noAccess(cameraAccess) = self.state {
+                self.controller?.titleView.isEnabled = false
+                
                 var hasCamera = cameraAccess == .authorized
                 var story = false
                 if let subject = self.controller?.subject {
@@ -1884,6 +1901,8 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                     placeholderTransition = .immediate
                     
                     self.updateNavigation(transition: .immediate)
+                    
+                    self.updateTopEdgeEffect()
                 }
                 placeholderNode.update(layout: layout, theme: self.presentationData.theme, strings: self.presentationData.strings, hasCamera: hasCamera, transition: placeholderTransition)
                 placeholderTransition.updateFrame(node: placeholderNode, frame: innerBounds)
@@ -2042,26 +2061,26 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             
             if let _ = item as? TGMediaPickerGalleryPhotoItem {
                 if self.bannedSendPhotos != nil {
-                    self.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: nil, text: self.presentationData.strings.Chat_SendNotAllowedPhoto, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                    self.present(textAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, title: nil, text: self.presentationData.strings.Chat_SendNotAllowedPhoto, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                     
                     return false
                 }
             } else if let _ = item as? TGMediaPickerGalleryVideoItem {
                 if self.bannedSendVideos != nil {
-                    self.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: nil, text: self.presentationData.strings.Chat_SendNotAllowedVideo, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                    self.present(textAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, title: nil, text: self.presentationData.strings.Chat_SendNotAllowedVideo, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                     
                     return false
                 }
             } else if let asset = item as? TGMediaAsset {
                 if asset.isVideo {
                     if self.bannedSendVideos != nil {
-                        self.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: nil, text: self.presentationData.strings.Chat_SendNotAllowedVideo, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                        self.present(textAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, title: nil, text: self.presentationData.strings.Chat_SendNotAllowedVideo, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                         
                         return false
                     }
                 } else {
                     if self.bannedSendPhotos != nil {
-                        self.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: nil, text: self.presentationData.strings.Chat_SendNotAllowedPhoto, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                        self.present(textAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, title: nil, text: self.presentationData.strings.Chat_SendNotAllowedPhoto, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                         
                         return false
                     }
@@ -2112,6 +2131,10 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             }
         }
                 
+        self.selectedButtonNode.action = { [weak self] in
+            self?.selectedPressed()
+        }
+        
         self.navigationItem.titleView = self.titleView
         
         if case let .assets(collection, mode) = self.subject, mode != .default {
@@ -2184,8 +2207,6 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
 //            }
 //        }
         
-        self.selectedButtonNode.addTarget(self, action: #selector(self.selectedPressed), forControlEvents: .touchUpInside)
-        
         self.scrollToTop = { [weak self] in
             if let strongSelf = self {
                 if let webSearchController = strongSelf.webSearchController {
@@ -2220,26 +2241,26 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             if let self = self, let selectionState = self.interaction?.selectionState {
                 if let _ = item as? TGMediaPickerGalleryPhotoItem {
                     if self.bannedSendPhotos != nil {
-                        self.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: nil, text: self.presentationData.strings.Chat_SendNotAllowedPhoto, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                        self.present(textAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, title: nil, text: self.presentationData.strings.Chat_SendNotAllowedPhoto, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                         
                         return false
                     }
                 } else if let _ = item as? TGMediaPickerGalleryVideoItem {
                     if self.bannedSendVideos != nil {
-                        self.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: nil, text: self.presentationData.strings.Chat_SendNotAllowedVideo, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                        self.present(textAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, title: nil, text: self.presentationData.strings.Chat_SendNotAllowedVideo, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                         
                         return false
                     }
                 } else if let asset = item as? TGMediaAsset {
                     if asset.isVideo {
                         if self.bannedSendVideos != nil {
-                            self.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: nil, text: self.presentationData.strings.Chat_SendNotAllowedVideo, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                            self.present(textAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, title: nil, text: self.presentationData.strings.Chat_SendNotAllowedVideo, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                             
                             return false
                         }
                     } else {
                         if self.bannedSendPhotos != nil {
-                            self.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: self.presentationData), title: nil, text: self.presentationData.strings.Chat_SendNotAllowedPhoto, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                            self.present(textAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, title: nil, text: self.presentationData.strings.Chat_SendNotAllowedPhoto, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                             
                             return false
                         }
@@ -2385,7 +2406,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             )
             
             self.titleView.isHighlighted = true
-            let contextController = ContextController(
+            let contextController = makeContextController(
                 presentationData: self.presentationData,
                 source: .reference(MediaPickerContextReferenceContentSource(controller: self, sourceView: self.titleView)),
                 items: .single(ContextController.Items(content: .custom(content))),
@@ -2511,7 +2532,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             moreIsVisible = true
         } else {
             let title: String
-            let isEnabled: Bool
+            var isEnabled: Bool
             if self.controllerNode.currentDisplayMode == .selected {
                 title = "" // self.presentationData.strings.Attachment_SelectedMedia(count)
                 isEnabled = false
@@ -2519,7 +2540,12 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 title = self.selectedCollectionValue?.localizedTitle ?? self.presentationData.strings.MediaPicker_Recents
                 isEnabled = true
             }
-            self.titleView.updateTitle(title: title, isEnabled: isEnabled, animated: true)
+            var titleIsEnabled = isEnabled
+            if self.controllerNode.placeholderNode != nil {
+                titleIsEnabled = false
+            }
+            
+            self.titleView.updateTitle(title: title, isEnabled: titleIsEnabled, animated: true)
             self.cancelButtonNode.setState(isEnabled ? .cancel : .back, animated: true)
             isBack = !isEnabled
             
@@ -2548,7 +2574,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
         let useGlassButtons = (isBack || !self.controllerNode.scrolledToTop) && !self.controllerNode.isSwitchingAssetGroup
         
         let barButtonSideInset: CGFloat = 16.0
-        let barButtonSize = CGSize(width: 40.0, height: 40.0)
+        let barButtonSize = CGSize(width: 44.0, height: 44.0)
         
         var buttonTransition = ComponentTransition.easeInOut(duration: 0.25)
         if case let .animated(duration, _) = transition, duration > 0.25 {
@@ -2580,13 +2606,13 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 transition: buttonTransition,
                 component: AnyComponent(GlassBarButtonComponent(
                     size: barButtonSize,
-                    backgroundColor: self.presentationData.theme.rootController.navigationBar.glassBarButtonBackgroundColor,
+                    backgroundColor: nil,
                     isDark: self.presentationData.theme.overallDarkAppearance,
-                    state: useGlassButtons ? .glass : .generic,
+                    state: .glass,
                     component: AnyComponentWithIdentity(id: isBack ? "back" : "close", component: AnyComponent(
                         BundleIconComponent(
                             name: isBack ? "Navigation/Back" : "Navigation/Close",
-                            tintColor: self.presentationData.theme.rootController.navigationBar.glassBarButtonForegroundColor
+                            tintColor: self.presentationData.theme.chat.inputPanel.panelControlColor
                         )
                     )),
                     action: { [weak self] _ in
@@ -2606,20 +2632,27 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             }
         }
         
-        if let moreButton = self.rightButton {
+        if moreIsVisible, case .glass = self.style {
+            let moreButton: ComponentView<Empty>
+            if let current = self.rightButton {
+                moreButton = current
+            } else {
+                moreButton = ComponentView<Empty>()
+                self.rightButton = moreButton
+            }
             let moreButtonSize = moreButton.update(
                 transition: buttonTransition,
                 component: AnyComponent(GlassBarButtonComponent(
                     size: barButtonSize,
-                    backgroundColor: self.presentationData.theme.rootController.navigationBar.glassBarButtonBackgroundColor,
+                    backgroundColor: nil,
                     isDark: self.presentationData.theme.overallDarkAppearance,
-                    state: useGlassButtons ? .glass : .generic,
+                    state: .glass,
                     component: AnyComponentWithIdentity(id: "more", component: AnyComponent(
                         LottieComponent(
                             content: LottieComponent.AppBundleContent(
                                 name: "anim_morewide"
                             ),
-                            color: self.presentationData.theme.rootController.navigationBar.glassBarButtonForegroundColor,
+                            color: self.presentationData.theme.chat.inputPanel.panelControlColor,
                             size: CGSize(width: 34.0, height: 34.0),
                             playOnce: self.moreButtonPlayOnce
                         )
@@ -2635,18 +2668,28 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             if let view = moreButton.view {
                 if view.superview == nil {
                     self.view.addSubview(view)
+                    if transition.isAnimated {
+                        let transition = ComponentTransition(transition)
+                        transition.animateAlpha(view: view, from: 0.0, to: 1.0)
+                        transition.animateScale(view: view, from: 0.1, to: 1.0)
+                    }
                 }
                 view.bounds = CGRect(origin: .zero, size: moreButtonFrame.size)
                 view.center = moreButtonFrame.center
             }
-        }
-        
-        if let moreButtonView = self.rightButton?.view {
-            transition.updateAlpha(layer: moreButtonView.layer, alpha: moreIsVisible ? 1.0 : 0.0)
-            transition.updateTransformScale(layer: moreButtonView.layer, scale: moreIsVisible ? 1.0 : 0.1)
-        } else {
-            transition.updateAlpha(node: self.moreButtonNode.iconNode, alpha: moreIsVisible ? 1.0 : 0.0)
-            transition.updateTransformScale(node: self.moreButtonNode.iconNode, scale: moreIsVisible ? 1.0 : 0.1)
+        } else if let moreButton = self.rightButton {
+            self.rightButton = nil
+            if let view = moreButton.view {
+                if transition.isAnimated {
+                    let transition = ComponentTransition(transition)
+                    view.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25, removeOnCompletion: false, completion: { _ in
+                        view.removeFromSuperview()
+                    })
+                    transition.animateScale(view: view, from: 1.0, to: 0.1)
+                } else {
+                    view.removeFromSuperview()
+                }
+            }
         }
         
         if case .assets(_, .story) = self.subject {
@@ -2673,7 +2716,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
         } else {
             navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData)
         }
-        self.navigationBar?.updatePresentationData(navigationBarPresentationData)
+        self.navigationBar?.updatePresentationData(navigationBarPresentationData, transition: .immediate)
         self.titleView.theme = self.presentationData.theme
         self.cancelButtonNode.theme = self.presentationData.theme
         self.moreButtonNode.theme = self.presentationData.theme
@@ -2717,16 +2760,22 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             } else {
                 text = self.presentationData.strings.Attachment_CancelSelectionAlertText
             }
-            
-            let controller = textAlertController(context: self.context, title: nil, text: text, actions: [TextAlertAction(type: .genericAction, title: self.presentationData.strings.Attachment_CancelSelectionAlertNo, action: {
-            }), TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Attachment_CancelSelectionAlertYes, action: { [weak self] in
-                self?.dismissAllTooltips()
-                completion()
-            })])
-            controller.dismissed = { [weak self] _ in
+            let alertController = AlertScreen(
+                context: self.context,
+                title: nil,
+                text: text,
+                actions: [
+                    .init(title: self.presentationData.strings.Attachment_CancelSelectionAlertNo),
+                    .init(title: self.presentationData.strings.Attachment_CancelSelectionAlertYes, type: .default, action: { [weak self] in
+                        self?.dismissAllTooltips()
+                        completion()
+                    }),
+                ]
+            )
+            alertController.dismissed = { [weak self] _ in
                 self?.isDismissing = false
             }
-            self.present(controller, in: .window(.root))
+            self.present(alertController, in: .window(.root))
         } else {
             completion()
         }
@@ -2914,7 +2963,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 self?.presentFilePicker()
             })))
             
-            let contextController = ContextController(presentationData: self.presentationData, source: .reference(MediaPickerContextReferenceContentSource(controller: self, sourceView: view)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+            let contextController = makeContextController(presentationData: self.presentationData, source: .reference(MediaPickerContextReferenceContentSource(controller: self, sourceView: view)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
             self.presentInGlobalOverlay(contextController)
             
             return
@@ -3075,7 +3124,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                     return ContextController.Items(content: .list(items))
                 }
             
-                let contextController = ContextController(presentationData: self.presentationData, source: .reference(MediaPickerContextReferenceContentSource(controller: self, sourceView: view)), items: items, gesture: gesture)
+                let contextController = makeContextController(presentationData: self.presentationData, source: .reference(MediaPickerContextReferenceContentSource(controller: self, sourceView: view)), items: items, gesture: gesture)
                 self.presentInGlobalOverlay(contextController)
         }
     }
@@ -3777,126 +3826,188 @@ public func avatarMediaPickerController(
     performDelete: @escaping () -> Void,
     completion: @escaping (Any?, UIView?, CGRect, UIImage?, Bool, @escaping (Bool?) -> (UIView, CGRect)?, @escaping () -> Void) -> Void,
     dismissed: @escaping () -> Void
-) -> ViewController {
-    let presentationData = context.sharedContext.currentPresentationData.with({ $0 })
-    let updatedPresentationData: (PresentationData, Signal<PresentationData, NoError>) = (presentationData, .single(presentationData))
-    let controller = AttachmentController(
-        context: context,
-        updatedPresentationData: updatedPresentationData,
-        style: .glass,
-        chatLocation: nil,
-        buttons: [.standalone],
-        initialButton: .standalone,
-        fromMenu: false,
-        hasTextInput: false,
-        makeEntityInputView: {
-        return nil
-    })
-    controller.forceSourceRect = true
-    controller.getSourceRect = getSourceRect
-    controller.requestController = { [weak controller] _, present in
-        var mainButtonState: AttachmentMainButtonState?
-        
-        if canDelete {
-            mainButtonState = AttachmentMainButtonState(text: presentationData.strings.MediaPicker_RemovePhoto, font: .regular, background: .color(.clear), textColor: presentationData.theme.actionSheet.destructiveActionTextColor, isVisible: true, progress: .none, isEnabled: true, hasShimmer: false)
+) -> (controller: ViewController?, holder: Any?) {
+    if #available(iOS 14.0, *), PHPhotoLibrary.authorizationStatus(for: .readWrite) != .authorized {
+        final class PickerDelegate: NSObject, PHPickerViewControllerDelegate {
+            var completion: ((Any?, UIView?, CGRect, UIImage?, Bool, @escaping (Bool?) -> (UIView, CGRect)?, @escaping () -> Void) -> Void)?
+            
+            func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+                picker.dismiss(animated: true)
+
+                for item in results {
+                    if item.itemProvider.canLoadObject(ofClass: UIImage.self) {
+                        item.itemProvider.loadObject(ofClass: UIImage.self) { image, error in
+                            if let uiImage = image as? UIImage {
+                                Queue.mainQueue().async {
+                                    self.completion?(uiImage, nil, CGRect(), nil, false, { _ in return nil }, {})
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         
-        let mediaPickerController = MediaPickerScreenImpl(
+        let holder = PickerDelegate()
+        holder.completion = completion
+        
+        let openMediaPicker = {
+            var configuration = PHPickerConfiguration(photoLibrary: .shared())
+            configuration.filter = .images
+            configuration.selectionLimit = 1
+            
+            let picker = PHPickerViewController(configuration: configuration)
+            picker.delegate = holder
+            (context.sharedContext.mainWindow?.viewController as? NavigationController)?.topViewController?.present(picker, animated: true, completion: nil)
+        }
+        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        let controller = ActionSheetController(presentationData: presentationData)
+        let dismissAction: () -> Void = { [weak controller] in
+            controller?.dismissAnimated()
+        }
+        
+        var items: [ActionSheetButtonItem] = [
+            ActionSheetButtonItem(title: presentationData.strings.Settings_SetNewProfilePhotoOrVideo, color: .accent, action: {
+                dismissAction()
+                openMediaPicker()
+            }),
+            ActionSheetButtonItem(title: presentationData.strings.ProfilePhoto_SetEmoji, color: .accent, action: {
+                dismissAction()
+                completion(nil, nil, CGRect(), nil, false, { _ in return nil }, {})
+            })
+        ]
+        if canDelete {
+            items.append(ActionSheetButtonItem(title: presentationData.strings.MediaPicker_RemovePhoto, color: .destructive, action: {
+                dismissAction()
+                performDelete()
+            }))
+        }
+        controller.setItemGroups([
+            ActionSheetItemGroup(items: items),
+            ActionSheetItemGroup(items: [ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, action: { dismissAction() })])
+        ])
+        return (controller, holder)
+    } else {
+        let presentationData = context.sharedContext.currentPresentationData.with({ $0 })
+        let updatedPresentationData: (PresentationData, Signal<PresentationData, NoError>) = (presentationData, .single(presentationData))
+        let controller = AttachmentController(
             context: context,
             updatedPresentationData: updatedPresentationData,
             style: .glass,
-            peer: nil,
-            threadTitle: nil,
             chatLocation: nil,
-            bannedSendPhotos: nil,
-            bannedSendVideos: nil,
-            subject: .assets(nil, .createAvatar),
-            mainButtonState: mainButtonState,
-            mainButtonAction: { [weak controller] in
-                controller?.dismiss(animated: true)
-                performDelete()
-            }
-        )
-        mediaPickerController.customSelection = { controller, result in
-            if let result = result as? PHAsset {
-                controller.updateHiddenMediaId(result.localIdentifier)
-                if let transitionView = controller.transitionView(for: result.localIdentifier, snapshot: false) {
-                    let transitionOut: (Bool?) -> (UIView, CGRect)? = { isNew in
-                        if let isNew {
-                            if isNew {
-                                controller.updateHiddenMediaId(nil)
-                                if let transitionView = controller.defaultTransitionView() {
-                                    return (transitionView, transitionView.bounds)
-                                }
-                            } else if let transitionView = controller.transitionView(for: result.localIdentifier, snapshot: false) {
-                                return (transitionView, transitionView.bounds)
-                            }
-                        }
-                        return nil
-                    }
-                    completion(result, transitionView, transitionView.bounds, controller.transitionImage(for: result.localIdentifier), false, transitionOut, { [weak controller] in
-                        controller?.updateHiddenMediaId(nil)
-                    })
-                }
-            }
-        }
-        mediaPickerController.openAvatarEditor = { [weak controller] in
-            completion(nil, nil, .zero, nil, false, { _ in return nil }, {
+            buttons: [.standalone],
+            initialButton: .standalone,
+            fromMenu: false,
+            hasTextInput: false,
+            makeEntityInputView: {
+                return nil
             })
-            controller?.dismiss(animated: true)
-        }
-        mediaPickerController.openCamera = { [weak controller] cameraHolder in
-            let _ = controller
-            guard let cameraHolder = cameraHolder as? CameraHolder else {
-                return
+        controller.forceSourceRect = true
+        controller.getSourceRect = getSourceRect
+        controller.requestController = { [weak controller] _, present in
+            var mainButtonState: AttachmentMainButtonState?
+            
+            if canDelete {
+                mainButtonState = AttachmentMainButtonState(text: presentationData.strings.MediaPicker_RemovePhoto, font: .regular, background: .color(.clear), textColor: presentationData.theme.actionSheet.destructiveActionTextColor, isVisible: true, progress: .none, isEnabled: true, hasShimmer: false)
             }
             
-            var returnToCameraImpl: (() -> Void)?
-
-            let cameraScreen = context.sharedContext.makeCameraScreen(
+            let mediaPickerController = MediaPickerScreenImpl(
                 context: context,
-                mode: .avatar,
-                cameraHolder: cameraHolder,
-                transitionIn: CameraScreenTransitionIn(
-                    sourceView: cameraHolder.parentView,
-                    sourceRect: cameraHolder.parentView.bounds,
-                    sourceCornerRadius: 0.0,
-                    useFillAnimation: false
-                ),
-                transitionOut: { _ in
-                    return CameraScreenTransitionOut(
-                        destinationView: cameraHolder.parentView,
-                        destinationRect: cameraHolder.parentView.bounds,
-                        destinationCornerRadius: 0.0
-                    )
-                },
-                completion: { result, commit in
-                    completion(result, nil, .zero, nil, true, { _ in return nil }, {
-                        returnToCameraImpl?()
-                    })
-                },
-                transitionedOut: { [weak cameraHolder] in
-                    if let cameraHolder {
-                        cameraHolder.restore()
-                    }
+                updatedPresentationData: updatedPresentationData,
+                style: .glass,
+                peer: nil,
+                threadTitle: nil,
+                chatLocation: nil,
+                bannedSendPhotos: nil,
+                bannedSendVideos: nil,
+                subject: .assets(nil, .createAvatar),
+                mainButtonState: mainButtonState,
+                mainButtonAction: { [weak controller] in
+                    controller?.dismiss(animated: true)
+                    performDelete()
                 }
             )
-            controller?.push(cameraScreen)
-            
-            returnToCameraImpl = { [weak cameraScreen] in
-                if let cameraScreen = cameraScreen as? CameraScreen {
-                    cameraScreen.returnFromEditor()
+            mediaPickerController.customSelection = { controller, result in
+                if let result = result as? PHAsset {
+                    controller.updateHiddenMediaId(result.localIdentifier)
+                    if let transitionView = controller.transitionView(for: result.localIdentifier, snapshot: false) {
+                        let transitionOut: (Bool?) -> (UIView, CGRect)? = { isNew in
+                            if let isNew {
+                                if isNew {
+                                    controller.updateHiddenMediaId(nil)
+                                    if let transitionView = controller.defaultTransitionView() {
+                                        return (transitionView, transitionView.bounds)
+                                    }
+                                } else if let transitionView = controller.transitionView(for: result.localIdentifier, snapshot: false) {
+                                    return (transitionView, transitionView.bounds)
+                                }
+                            }
+                            return nil
+                        }
+                        completion(result, transitionView, transitionView.bounds, controller.transitionImage(for: result.localIdentifier), false, transitionOut, { [weak controller] in
+                            controller?.updateHiddenMediaId(nil)
+                        })
+                    }
                 }
             }
+            mediaPickerController.openAvatarEditor = { [weak controller] in
+                completion(nil, nil, .zero, nil, false, { _ in return nil }, {
+                })
+                controller?.dismiss(animated: true)
+            }
+            mediaPickerController.openCamera = { [weak controller] cameraHolder in
+                let _ = controller
+                guard let cameraHolder = cameraHolder as? CameraHolder else {
+                    return
+                }
+                
+                var returnToCameraImpl: (() -> Void)?
+                
+                let cameraScreen = context.sharedContext.makeCameraScreen(
+                    context: context,
+                    mode: .avatar,
+                    cameraHolder: cameraHolder,
+                    transitionIn: CameraScreenTransitionIn(
+                        sourceView: cameraHolder.parentView,
+                        sourceRect: cameraHolder.parentView.bounds,
+                        sourceCornerRadius: 0.0,
+                        useFillAnimation: false
+                    ),
+                    transitionOut: { _ in
+                        return CameraScreenTransitionOut(
+                            destinationView: cameraHolder.parentView,
+                            destinationRect: cameraHolder.parentView.bounds,
+                            destinationCornerRadius: 0.0
+                        )
+                    },
+                    completion: { result, commit in
+                        completion(result, nil, .zero, nil, true, { _ in return nil }, {
+                            returnToCameraImpl?()
+                        })
+                    },
+                    transitionedOut: { [weak cameraHolder] in
+                        if let cameraHolder {
+                            cameraHolder.restore()
+                        }
+                    }
+                )
+                controller?.push(cameraScreen)
+                
+                returnToCameraImpl = { [weak cameraScreen] in
+                    if let cameraScreen = cameraScreen as? CameraScreen {
+                        cameraScreen.returnFromEditor()
+                    }
+                }
+            }
+            present(mediaPickerController, mediaPickerController.mediaPickerContext)
         }
-        present(mediaPickerController, mediaPickerController.mediaPickerContext)
+        controller.willDismiss = {
+            dismissed()
+        }
+        controller.navigationPresentation = .flatModal
+        controller.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .all, compactSize: .portrait)
+        return (controller, nil)
     }
-    controller.willDismiss = {
-        dismissed()
-    }
-    controller.navigationPresentation = .flatModal
-    controller.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .all, compactSize: .portrait)
-    return controller
 }
 
 
@@ -3961,12 +4072,13 @@ public func coverMediaPickerController(
     return controller
 }
 
-private class SelectedButtonNode: HighlightTrackingButtonNode {
+private class SelectedButtonNode: ASDisplayNode {
     private let containerView: UIView
     private let backgroundView: GlassBackgroundView?
     private let background: ASImageNode?
     private let icon = ASImageNode()
     private let label = ImmediateAnimatedCountLabelNode()
+    private let button = HighlightTrackingButton()
     
     private let glass: Bool
     
@@ -3981,6 +4093,8 @@ private class SelectedButtonNode: HighlightTrackingButtonNode {
     }
     
     private var count: Int32 = 0
+    
+    var action: () -> Void = {}
     
     init(theme: PresentationTheme, glass: Bool) {
         self.theme = theme
@@ -4007,6 +4121,9 @@ private class SelectedButtonNode: HighlightTrackingButtonNode {
         
         self.view.addSubview(self.containerView)
         if let backgroundView = self.backgroundView {
+            backgroundView.contentView.addSubnode(self.icon)
+            backgroundView.contentView.addSubnode(self.label)
+            backgroundView.contentView.addSubview(self.button)
             self.containerView.addSubview(backgroundView)
         }
         if let background = self.background {
@@ -4014,35 +4131,19 @@ private class SelectedButtonNode: HighlightTrackingButtonNode {
             self.containerView.addSubnode(background)
         }
         
-        self.containerView.addSubnode(self.icon)
-        self.containerView.addSubnode(self.label)
+   
         
-        self.highligthedChanged = { [weak self] highlighted in
-            if let self {
-                if glass {
-                    let transition = ComponentTransition(animation: .curve(duration: highlighted ? 0.25 : 0.35, curve: .spring))
-                    if highlighted {
-                        transition.setScale(view: self.containerView, scale: 1.2)
-                    } else {
-                        transition.setScale(view: self.containerView, scale: 1.0)
-                    }
-                } else {
-                    if highlighted {
-                        self.containerView.layer.removeAnimation(forKey: "opacity")
-                        self.containerView.alpha = 0.4
-                    } else {
-                        self.containerView.alpha = 1.0
-                        self.containerView.layer.animateAlpha(from: 0.4, to: 1.0, duration: 0.2)
-                    }
-                }
-            }
-        }
+        self.button.addTarget(self, action: #selector(self.tapped), for: .touchUpInside)
+    }
+    
+    @objc private func tapped() {
+        self.action()
     }
     
     func update(count: Int32) -> CGSize {
         self.count = count
         
-        let diameter: CGFloat = self.glass ? 40.0 : 21.0
+        let diameter: CGFloat = self.glass ? 44.0 : 21.0
         let font = self.glass ? Font.with(size: 17.0, weight: .medium, traits: [.monospacedNumbers]) : Font.with(size: 15.0, design: .round, weight: .semibold, traits: [.monospacedNumbers])
         
         let stringValue = "\(max(1, count))"
@@ -4078,11 +4179,13 @@ private class SelectedButtonNode: HighlightTrackingButtonNode {
         self.containerView.frame = backgroundFrame
         if let backgroundView = self.backgroundView {
             backgroundView.frame = backgroundFrame
-            backgroundView.update(size: backgroundFrame.size, cornerRadius: backgroundFrame.size.height * 0.5, isDark: false, tintColor: .init(kind: .custom, color: self.theme.list.itemCheckColors.fillColor), transition: .immediate)
+            backgroundView.update(size: backgroundFrame.size, cornerRadius: backgroundFrame.size.height * 0.5, isDark: false, tintColor: .init(kind: .custom(style: .default, color: self.theme.list.itemCheckColors.fillColor)), isInteractive: true, transition: .immediate)
         }
         if let background = self.background {
             background.frame = backgroundFrame
         }
+        
+        self.button.frame = CGRect(origin: .zero, size: size)
 
         return size
     }

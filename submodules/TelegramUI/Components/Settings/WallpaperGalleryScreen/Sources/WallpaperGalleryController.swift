@@ -396,7 +396,7 @@ public class WallpaperGalleryController: ViewController {
             self.title = self.presentationData.strings.WallpaperPreview_Title
         }
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-        self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData))
+        self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData), transition: .immediate)
         self.toolbarNode?.updateThemeAndStrings(theme: self.presentationData.theme, strings: self.presentationData.strings)
         self.patternPanelNode?.updateTheme(self.presentationData.theme)
 
@@ -445,8 +445,10 @@ public class WallpaperGalleryController: ViewController {
         }, editMedia: { _ in
         }, controller: { [weak self] in
             return self
+        }, currentItemNode: { [weak self] in
+            return self?.galleryNode.pager.centralItemNode()
         })
-        self.displayNode = WallpaperGalleryControllerNode(context: self.context, controllerInteraction: controllerInteraction, pageGap: 0.0, disableTapNavigation: true)
+        self.displayNode = WallpaperGalleryControllerNode(context: self.context, controllerInteraction: controllerInteraction, titleView: nil, pageGap: 0.0, disableTapNavigation: true)
         self.displayNodeDidLoad()
 
         (self.displayNode as? WallpaperGalleryControllerNode)?.nativeStatusBar = self.statusBar

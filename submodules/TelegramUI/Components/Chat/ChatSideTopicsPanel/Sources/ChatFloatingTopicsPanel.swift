@@ -12,6 +12,7 @@ public final class ChatFloatingTopicsPanel: Component {
     
     public let context: AccountContext
     public let theme: PresentationTheme
+    public let preferClearGlass: Bool
     public let strings: PresentationStrings
     public let location: ChatSideTopicsPanel.Location
     public let peerId: EnginePeer.Id
@@ -25,6 +26,7 @@ public final class ChatFloatingTopicsPanel: Component {
     public init(
         context: AccountContext,
         theme: PresentationTheme,
+        preferClearGlass: Bool,
         strings: PresentationStrings,
         location: ChatSideTopicsPanel.Location,
         peerId: EnginePeer.Id,
@@ -37,6 +39,7 @@ public final class ChatFloatingTopicsPanel: Component {
     ) {
         self.context = context
         self.theme = theme
+        self.preferClearGlass = preferClearGlass
         self.strings = strings
         self.location = location
         self.peerId = peerId
@@ -53,6 +56,9 @@ public final class ChatFloatingTopicsPanel: Component {
             return false
         }
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.preferClearGlass != rhs.preferClearGlass {
             return false
         }
         if lhs.strings !== rhs.strings {
@@ -151,8 +157,8 @@ public final class ChatFloatingTopicsPanel: Component {
                     },
                     containerSize: CGSize(width: 72.0 + 8.0, height: availableSize.height)
                 )
-                let sidePanelFrame = CGRect(origin: CGPoint(), size: CGSize(width: 8.0 + 80.0, height: availableSize.height - 8.0 - environment.insets.bottom))
-                let sidePanelBackgroundFrame = CGRect(origin: CGPoint(x: 8.0, y: 8.0), size: CGSize(width: 80.0, height: availableSize.height - 8.0 - 8.0 - environment.insets.bottom))
+                let sidePanelFrame = CGRect(origin: CGPoint(x: 8.0, y: 0.0), size: CGSize(width: 16.0 + 80.0, height: availableSize.height - 8.0 - environment.insets.bottom))
+                let sidePanelBackgroundFrame = CGRect(origin: CGPoint(x: 16.0, y: 8.0), size: CGSize(width: 80.0, height: availableSize.height - 8.0 - 8.0 - environment.insets.bottom))
                 currentPanelBackgroundFrame = sidePanelBackgroundFrame
                 if let sidePanelView = sidePanel.view as? ChatSideTopicsPanel.View {
                     if sidePanelView.superview == nil {
@@ -160,7 +166,7 @@ public final class ChatFloatingTopicsPanel: Component {
                         sidePanelView.clipsToBounds = true
                         self.addSubview(sidePanelView)
                         
-                        sidePanelView.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: sidePanelSize.height, height: 8.0 + 40.0))
+                        sidePanelView.frame = CGRect(origin: CGPoint(x: 8.0, y: 0.0), size: CGSize(width: sidePanelSize.height, height: 8.0 + 40.0))
                     }
                     transition.setFrame(view: sidePanelView, frame: sidePanelFrame)
                 }
@@ -168,7 +174,7 @@ public final class ChatFloatingTopicsPanel: Component {
                 self.sidePanel = nil
                 if let sidePanelView = sidePanel.view as? ChatSideTopicsPanel.View {
                     sidePanelView.clipsToBounds = true
-                    transition.setFrame(view: sidePanelView, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: sidePanelView.bounds.width, height: 8.0 + 40.0)), completion: { [weak sidePanelView] _ in
+                    transition.setFrame(view: sidePanelView, frame: CGRect(origin: CGPoint(x: 8.0, y: 0.0), size: CGSize(width: sidePanelView.bounds.width, height: 8.0 + 40.0)), completion: { [weak sidePanelView] _ in
                         sidePanelView?.removeFromSuperview()
                     })
                 }
@@ -212,17 +218,17 @@ public final class ChatFloatingTopicsPanel: Component {
                             right: 0.0
                         ))
                     },
-                    containerSize: CGSize(width: availableSize.width, height: 8.0 + 40.0)
+                    containerSize: CGSize(width: availableSize.width - 16.0, height: 8.0 + 40.0)
                 )
-                let topPanelFrame = CGRect(origin: CGPoint(), size: CGSize(width: availableSize.width - 8.0, height: 8.0 + 40.0))
-                let topPanelBackgroundFrame = CGRect(origin: CGPoint(x: 8.0, y: 8.0), size: CGSize(width: availableSize.width - 8.0 - 8.0, height: 40.0))
+                let topPanelFrame = CGRect(origin: CGPoint(x: 8.0, y: 0.0), size: CGSize(width: availableSize.width - 16.0, height: 8.0 + 40.0))
+                let topPanelBackgroundFrame = CGRect(origin: CGPoint(x: 16.0, y: 8.0), size: CGSize(width: availableSize.width - 16.0 - 16.0, height: 40.0))
                 currentPanelBackgroundFrame = topPanelBackgroundFrame
                 if let topPanelView = topPanel.view as? ChatSideTopicsPanel.View {
                     if topPanelView.superview == nil {
                         topPanelView.clipsToBounds = true
                         topPanelView.layer.cornerRadius = 20.0
                         self.addSubview(topPanelView)
-                        topPanelView.frame = CGRect(origin: CGPoint(), size: CGSize(width: 80.0 + 8.0, height: topPanelFrame.height))
+                        topPanelView.frame = CGRect(origin: CGPoint(x: 8.0, y: 0.0), size: CGSize(width: 80.0 + 16.0, height: topPanelFrame.height))
                     }
                     transition.setFrame(view: topPanelView, frame: topPanelFrame)
                 }
@@ -230,7 +236,7 @@ public final class ChatFloatingTopicsPanel: Component {
                 self.topPanel = nil
                 if let topPanelView = topPanel.view as? ChatSideTopicsPanel.View {
                     topPanelView.clipsToBounds = true
-                    transition.setFrame(view: topPanelView, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: 8.0 + 72.0, height: topPanelView.bounds.height)), completion: { [weak topPanelView] _ in
+                    transition.setFrame(view: topPanelView, frame: CGRect(origin: CGPoint(x: 8.0, y: 0.0), size: CGSize(width: 16.0 + 72.0, height: topPanelView.bounds.height)), completion: { [weak topPanelView] _ in
                         topPanelView?.removeFromSuperview()
                     })
                 }
@@ -247,7 +253,15 @@ public final class ChatFloatingTopicsPanel: Component {
                 }
                 
                 transition.setFrame(view: sharedPanelBackgroundView, frame: currentPanelBackgroundFrame)
-                sharedPanelBackgroundView.update(size: currentPanelBackgroundFrame.size, cornerRadius: 20.0, isDark: component.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: component.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), transition: transition)
+                
+                let defaultGlassTintColor: GlassBackgroundView.TintColor
+                if component.preferClearGlass {
+                    defaultGlassTintColor = .init(kind: .clear)
+                } else {
+                    defaultGlassTintColor = .init(kind: .panel)
+                }
+                
+                sharedPanelBackgroundView.update(size: currentPanelBackgroundFrame.size, cornerRadius: 20.0, isDark: component.theme.overallDarkAppearance, tintColor: defaultGlassTintColor, transition: transition)
             }
             
             transition.setFrame(view: self.containerView, frame: CGRect(origin: CGPoint(), size: availableSize))

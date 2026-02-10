@@ -8,8 +8,13 @@ load("@build_bazel_rules_apple//apple:ios.bzl",
     "ios_application",
     "ios_extension",
     "ios_framework",
-    "ios_unit_test",
     "ios_ui_test",
+    "ios_ui_test_suite",
+)
+
+load(
+    "@build_bazel_rules_apple//apple/testing/default_runner:ios_test_runner.bzl",
+    "ios_test_runner",
 )
 
 load("@build_bazel_rules_apple//apple:resources.bzl",
@@ -22,8 +27,8 @@ load("@build_bazel_rules_swift//swift:swift.bzl",
 
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",
-    "top_level_target",
     "top_level_targets",
+    "top_level_target",
     "xcodeproj",
     "xcode_provisioning_profile",
 )
@@ -336,6 +341,7 @@ filegroup(
 
 objc_library(
     name = "Main",
+    module_name = "Main",
     srcs = [
         "Telegram-iOS/main.m"
     ],
@@ -343,6 +349,7 @@ objc_library(
 
 swift_library(
     name = "Lib",
+    module_name = "Lib",
     srcs = glob([
         "Telegram-iOS/Application.swift",
     ]),
@@ -1882,12 +1889,10 @@ xcodeproj(
     bazel_path = telegram_bazel_path,
     project_name = "Telegram",
     tags = ["manual"],
-    top_level_targets = top_level_targets(
-        labels = [
-            ":Telegram",
-        ],
-        target_environments = ["simulator"] if telegram_aps_environment == "" and not telegram_use_xcode_managed_codesigning else ["device", "simulator"],
-    ),
+    top_level_targets = [
+        top_level_target(":Telegram", target_environments = ["simulator"] if telegram_aps_environment == "" and not telegram_use_xcode_managed_codesigning else ["device", "simulator"]),
+        ":iOSAppUITestSuite",
+    ],
     xcode_configurations = {
         "Debug": {
             "//command_line_option:compilation_mode": "dbg",
@@ -1897,6 +1902,39 @@ xcodeproj(
         },
     },
     default_xcode_configuration = "Debug"
+)
+
+filegroup(
+    name = "TestSources",
+    srcs = glob(["Tests/Sources/**/*.swift"]),
+)
+
+ios_test_runner(
+    name = "iPhone-17__26.2",
+    device_type = "iPhone 17",
+    os_version = "26.2",
+)
+
+
+swift_library(
+    name = "iOSAppUITestSuite.library",
+    testonly = True,
+    srcs = [":TestSources"],
+    module_name = "iOSAppUITestSuite",
+    tags = ["manual"],
+)
+
+ios_ui_test_suite(
+    name = "iOSAppUITestSuite",
+    bundle_id = "org.telegram.Telegram-iOS-uitests",
+    minimum_os_version = "13.0",
+    runners = [
+        ":iPhone-17__26.2",
+    ],
+    tags = ["manual"],
+    test_host = "//Telegram",
+    visibility = ["@rules_xcodeproj//xcodeproj:generated"],
+    deps = [":iOSAppUITestSuite.library"],
 )
 
 # Temporary targets used to simplify build tests

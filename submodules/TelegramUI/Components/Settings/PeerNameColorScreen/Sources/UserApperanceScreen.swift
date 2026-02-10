@@ -40,6 +40,17 @@ import GiftViewScreen
 import BalanceNeededScreen
 
 private let giftListTag = GenericComponentViewTag()
+private let addIconsTag = GenericComponentViewTag()
+private let useGiftTag = GenericComponentViewTag()
+
+public enum UserAppearanceEntryTag {
+    case profile
+    case profileAddIcons
+    case profileUseGift
+    case name
+    case nameAddIcons
+    case nameUseGift
+}
 
 final class UserAppearanceScreenComponent: Component {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
@@ -55,17 +66,17 @@ final class UserAppearanceScreenComponent: Component {
     }
     
     let context: AccountContext
+    let overNavigationContainer: UIView
 
     init(
-        context: AccountContext
+        context: AccountContext,
+        overNavigationContainer: UIView
     ) {
         self.context = context
+        self.overNavigationContainer = overNavigationContainer
     }
 
     static func ==(lhs: UserAppearanceScreenComponent, rhs: UserAppearanceScreenComponent) -> Bool {
-        if lhs.context !== rhs.context {
-            return false
-        }
         return true
     }
     
@@ -166,8 +177,6 @@ final class UserAppearanceScreenComponent: Component {
         private let actionButton = ComponentView<Empty>()
         private let edgeEffectView: EdgeEffectView
         
-        private let backButton = PeerInfoHeaderNavigationButton()
-        
         private let tabSelector = ComponentView<Empty>()
         enum Section: Int32 {
             case profile
@@ -263,12 +272,6 @@ final class UserAppearanceScreenComponent: Component {
             self.containerView.addSubview(self.previewShadowView)
             
             self.addSubview(self.edgeEffectView)
-                        
-            self.backButton.action = { [weak self] _, _ in
-                if let self, let controller = self.environment?.controller() as? UserAppearanceScreen {
-                    controller.backPressed()
-                }
-            }
         }
         
         required init?(coder: NSCoder) {
@@ -298,21 +301,28 @@ final class UserAppearanceScreenComponent: Component {
             
             if !resolvedState.changes.isEmpty {
                 let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
-                self.environment?.controller()?.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: presentationData.strings.Channel_Appearance_UnsavedChangesAlertTitle, text: presentationData.strings.Channel_Appearance_UnsavedChangesAlertText, actions: [
-                    TextAlertAction(type: .genericAction, title: presentationData.strings.Channel_Appearance_UnsavedChangesAlertDiscard, action: { [weak self] in
-                        guard let self else {
-                            return
-                        }
-                        self.environment?.controller()?.dismiss()
-                    }),
-                    TextAlertAction(type: .defaultAction, title: presentationData.strings.Channel_Appearance_UnsavedChangesAlertApply, action: { [weak self] in
-                        guard let self else {
-                            return
-                        }
-                        self.applySettings()
-                    })
-                ]), in: .window(.root))
                 
+                let alertController = textAlertController(
+                    context: component.context,
+                    title: presentationData.strings.Channel_Appearance_UnsavedChangesAlertTitle,
+                    text: presentationData.strings.Channel_Appearance_UnsavedChangesAlertText,
+                    actions: [
+                        TextAlertAction(type: .genericAction, title: presentationData.strings.Channel_Appearance_UnsavedChangesAlertDiscard, action: { [weak self] in
+                            guard let self else {
+                                return
+                            }
+                            self.environment?.controller()?.dismiss()
+                        }),
+                        TextAlertAction(type: .defaultAction, title: presentationData.strings.Channel_Appearance_UnsavedChangesAlertApply, action: { [weak self] in
+                            guard let self else {
+                                return
+                            }
+                            self.applySettings()
+                        })
+                    ]
+                )
+                self.environment?.controller()?.present(alertController, in: .window(.root))
+
                 return false
             }
             
@@ -564,7 +574,7 @@ final class UserAppearanceScreenComponent: Component {
                         self.isApplyingSettings = false
                         self.applySettings()
                         
-                        Queue.mainQueue().after(0.5) {
+                        Queue.mainQueue().after(2.5) {
                             switch finalPrice.currency {
                             case .stars:
                                 component.context.starsContext?.load(force: true)
@@ -657,6 +667,7 @@ final class UserAppearanceScreenComponent: Component {
                     let alertController = giftPurchaseAlertController(
                         context: component.context,
                         gift: uniqueGift,
+                        showAttributes: true,
                         peer: peer,
                         animateBalanceOverlay: true,
                         navigationController: controller.navigationController as? NavigationController,
@@ -763,9 +774,9 @@ final class UserAppearanceScreenComponent: Component {
                                 slug: slug,
                                 owner: .peerId(component.context.account.peerId),
                                 attributes: [
-                                    .model(name: "", file: file, rarity: 0),
-                                    .pattern(name: "", file: patternFile, rarity: 0),
-                                    .backdrop(name: "", id: 0, innerColor: innerColor, outerColor: outerColor, patternColor: patternColor, textColor: textColor, rarity: 0)
+                                    .model(name: "", file: file, rarity: .rare, crafted: false),
+                                    .pattern(name: "", file: patternFile, rarity: .rare),
+                                    .backdrop(name: "", id: 0, innerColor: innerColor, outerColor: outerColor, patternColor: patternColor, textColor: textColor, rarity: .rare)
                                 ],
                                 availability: StarGift.UniqueGift.Availability(issued: 0, total: 0),
                                 giftAddress: nil,
@@ -779,7 +790,8 @@ final class UserAppearanceScreenComponent: Component {
                                 themePeerId: nil,
                                 peerColor: nil,
                                 hostPeerId: nil,
-                                minOfferStars: nil
+                                minOfferStars: nil,
+                                craftChancePermille: nil
                             )
                             signal = component.context.engine.accountData.setStarGiftStatus(starGift: gift, expirationDate: emojiStatus.expirationDate)
                         } else {
@@ -800,7 +812,16 @@ final class UserAppearanceScreenComponent: Component {
                 }
                 
                 let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
-                self.environment?.controller()?.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: nil, text: presentationData.strings.Login_UnknownError, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                
+                let alertController = textAlertController(
+                    context: component.context,
+                    title: nil,
+                    text: presentationData.strings.Login_UnknownError,
+                    actions: [
+                        TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})
+                    ]
+                )
+                self.environment?.controller()?.present(alertController, in: .window(.root))
                 
                 self.isApplyingSettings = false
                 self.state?.updated(transition: .immediate)
@@ -950,6 +971,32 @@ final class UserAppearanceScreenComponent: Component {
             return false
         }
         
+        func openEmojiSetup() {
+            guard let component = self.component, let environment = self.environment, let resolvedState = self.resolveState() else {
+                return
+            }
+            
+            switch self.currentSection {
+            case .profile:
+                if let view = self.profileColorSection.findTaggedView(tag: addIconsTag) as? ListActionItemComponent.View, let iconView = view.iconView {
+                    self.openEmojiSetup(sourceView: iconView, currentFileId: resolvedState.backgroundFileId, color: resolvedState.profileColor.flatMap {
+                        component.context.peerNameColors.getProfile($0, dark: environment.theme.overallDarkAppearance, subject: .palette).main
+                    } ?? environment.theme.list.itemAccentColor, subject: .profile)
+                }
+            case .name:
+                var replyColor: UIColor
+                switch resolvedState.nameColor {
+                case let .preset(nameColor):
+                    replyColor = component.context.peerNameColors.get(nameColor, dark: environment.theme.overallDarkAppearance).main
+                case let .collectible(collectibleColor):
+                    replyColor = collectibleColor.mainColor(dark: environment.theme.overallDarkAppearance)
+                }
+                if let view = self.nameColorSection.findTaggedView(tag: addIconsTag) as? ListActionItemComponent.View, let iconView = view.iconView {
+                    self.openEmojiSetup(sourceView: iconView, currentFileId: resolvedState.replyFileId, color: replyColor, subject: .reply)
+                }
+            }
+        }
+        
         func update(component: UserAppearanceScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
             self.isUpdating = true
             defer {
@@ -959,9 +1006,36 @@ final class UserAppearanceScreenComponent: Component {
             let environment = environment[EnvironmentType.self].value
             let themeUpdated = self.environment?.theme !== environment.theme
             self.environment = environment
-                        
+                       
+            if self.component == nil {
+                if let controller = environment.controller() as? UserAppearanceScreen, let focusOnItemTag = controller.focusOnItemTag {
+                    switch focusOnItemTag {
+                    case .profile:
+                        self.currentSection = .profile
+                    case .profileAddIcons:
+                        self.currentSection = .profile
+                        Queue.mainQueue().after(0.1) {
+                            self.openEmojiSetup()
+                        }
+                    case .profileUseGift:
+                        self.currentSection = .profile
+                    case .name:
+                        self.currentSection = .name
+                    case .nameAddIcons:
+                        self.currentSection = .name
+                        Queue.mainQueue().after(0.1) {
+                            self.openEmojiSetup()
+                        }
+                    case .nameUseGift:
+                        self.currentSection = .name
+                    }
+                }
+            }
+            
             self.component = component
             self.state = state
+            
+            transition.setFrame(view: component.overNavigationContainer, frame: CGRect(origin: CGPoint(), size: CGSize(width: availableSize.width, height: environment.navigationHeight)))
             
             let theme = environment.theme
             
@@ -1072,16 +1146,6 @@ final class UserAppearanceScreenComponent: Component {
                     .withUpdatedProfileBackgroundEmojiId(resolvedState.backgroundFileId)
                 )
             }
-                                                
-            let backSize = self.backButton.update(key: .back, presentationData: component.context.sharedContext.currentPresentationData.with { $0 }, height: 44.0)
-
-            self.backButton.updateContentsColor(backgroundColor: .clear, contentsColor: environment.theme.rootController.navigationBar.accentTextColor, canBeExpanded: true, transition: .animated(duration: 0.2, curve: .easeInOut))
-            self.backButton.frame = CGRect(origin: CGPoint(x: environment.safeInsets.left + 16.0, y: environment.navigationHeight - 44.0), size: backSize)
-            if self.backButton.view.superview == nil {
-                if let controller = self.environment?.controller(), let navigationBar = controller.navigationBar {
-                    navigationBar.view.addSubview(self.backButton.view)
-                }
-            }
             
             var previewTransition = transition
             let transitionScale = (availableSize.height - 3.0) / availableSize.height
@@ -1148,10 +1212,10 @@ final class UserAppearanceScreenComponent: Component {
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 44.0)
             )
-            let tabSelectorFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - tabSelectorSize.width) / 2.0), y: environment.statusBarHeight + floorToScreenPixels((environment.navigationHeight - environment.statusBarHeight - tabSelectorSize.height) / 2.0)), size: tabSelectorSize)
+            let tabSelectorFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - tabSelectorSize.width) / 2.0), y: environment.statusBarHeight + 2.0 + floorToScreenPixels((environment.navigationHeight - environment.statusBarHeight - tabSelectorSize.height) / 2.0)), size: tabSelectorSize)
             if let tabSelectorView = self.tabSelector.view {
                 if tabSelectorView.superview == nil {
-                    self.addSubview(tabSelectorView)
+                    component.overNavigationContainer.addSubview(tabSelectorView)
                 }
                 transition.setFrame(view: tabSelectorView, frame: tabSelectorFrame)
             }
@@ -1319,7 +1383,8 @@ final class UserAppearanceScreenComponent: Component {
                                     self.openEmojiSetup(sourceView: iconView, currentFileId: resolvedState.backgroundFileId, color: resolvedState.profileColor.flatMap {
                                         component.context.peerNameColors.getProfile($0, dark: environment.theme.overallDarkAppearance, subject: .palette).main
                                     } ?? environment.theme.list.itemAccentColor, subject: .profile)
-                                }
+                                },
+                                tag: addIconsTag
                             )))
                         ],
                         displaySeparators: true,
@@ -1442,7 +1507,7 @@ final class UserAppearanceScreenComponent: Component {
                                         var textColor: Int32?
                                         for attribute in gift.attributes {
                                             switch attribute {
-                                            case let .model(_, file, _):
+                                            case let .model(_, file, _, _):
                                                 fileId = file.fileId.id
                                                 self.cachedIconFiles[file.fileId.id] = file
                                             case let .pattern(_, file, _):
@@ -1648,7 +1713,8 @@ final class UserAppearanceScreenComponent: Component {
                                     }
                                     
                                     self.openEmojiSetup(sourceView: iconView, currentFileId: resolvedState.replyFileId, color: replyColor, subject: .reply)
-                                }
+                                },
+                                tag: addIconsTag
                             )))
                         ],
                         displaySeparators: true,
@@ -1931,17 +1997,25 @@ final class UserAppearanceScreenComponent: Component {
 
 public class UserAppearanceScreen: ViewControllerComponentContainer {
     private let context: AccountContext
+    fileprivate let focusOnItemTag: UserAppearanceEntryTag?
+    
+    private let overNavigationContainer: UIView
     
     private var didSetReady: Bool = false
     
     public init(
         context: AccountContext,
-        updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil
+        updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil,
+        focusOnItemTag: UserAppearanceEntryTag? = nil
     ) {
         self.context = context
+        self.focusOnItemTag = focusOnItemTag
+        
+        self.overNavigationContainer = SparseContainerView()
         
         super.init(context: context, component: UserAppearanceScreenComponent(
-            context: context
+            context: context,
+            overNavigationContainer: self.overNavigationContainer
         ), navigationBarAppearance: .default, theme: .default, updatedPresentationData: updatedPresentationData)
         
         self.automaticallyControlPresentationContextLayout = false
@@ -1951,7 +2025,6 @@ public class UserAppearanceScreen: ViewControllerComponentContainer {
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.title = ""
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
-        self.navigationItem.leftBarButtonItem = UIBarButtonItem(customView: UIView())
         
         self.ready.set(.never())
         
@@ -1968,6 +2041,10 @@ public class UserAppearanceScreen: ViewControllerComponentContainer {
             }
             
             return componentView.attemptNavigation(complete: complete)
+        }
+        
+        if let navigationBar = self.navigationBar {
+            navigationBar.customOverBackgroundContentView.insertSubview(self.overNavigationContainer, at: 0)
         }
     }
     

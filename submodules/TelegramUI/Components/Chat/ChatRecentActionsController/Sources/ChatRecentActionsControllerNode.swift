@@ -130,7 +130,6 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
         self.panelInfoButtonNode = HighlightableButtonNode()
         
         self.listNode = ListView()
-        self.listNode.dynamicBounceEnabled = false
         self.listNode.transform = CATransform3DMakeRotation(CGFloat(Double.pi), 0.0, 0.0, 1.0)
         self.listNode.accessibilityPageScrolledString = { row, count in
             return presentationData.strings.VoiceOver_ScrollStatus(row, count).string
@@ -1164,7 +1163,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
             return
         }
         
-        let contextController = ContextController(presentationData: self.presentationData, source: source, items: .single(ContextController.Items(content: .list(actions))), recognizer: recognizer, gesture: gesture)
+        let contextController = makeContextController(presentationData: self.presentationData, source: source, items: .single(ContextController.Items(content: .list(actions))), recognizer: recognizer, gesture: gesture)
         controller.window?.presentInGlobalOverlay(contextController)
     }
     
@@ -1429,8 +1428,6 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
                         break
                     case .theme:
                         break
-                    case .settings:
-                        break
                     case .premiumOffer:
                         break
                     case .starsTopup:
@@ -1465,6 +1462,8 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
                     case .auction:
                         break
                     case .sendGift:
+                        break
+                    case .chats, .contacts, .compose, .postStory, .settings, .unknownDeepLink, .oauth:
                         break
                 }
             }

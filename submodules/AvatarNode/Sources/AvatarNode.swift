@@ -1149,7 +1149,7 @@ public final class AvatarNode: ASDisplayNode {
             if let parameters = parameters as? AvatarNodeParameters, let cutoutRect = parameters.cutoutRect {
                 context.setBlendMode(.copy)
                 context.setFillColor(UIColor.clear.cgColor)
-                context.fillEllipse(in: cutoutRect.offsetBy(dx: 0.0, dy: bounds.height - cutoutRect.maxY - cutoutRect.height))
+                context.fillEllipse(in: cutoutRect)
             }
         }
     }

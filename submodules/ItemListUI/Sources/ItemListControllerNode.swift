@@ -370,7 +370,7 @@ open class ItemListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             }
         }
         
-        self.listNode.visibleContentOffsetChanged = { [weak self] offset in
+        self.listNode.visibleContentOffsetChanged = { [weak self] offset, _ in
             guard let strongSelf = self else {
                 return
             }
@@ -910,11 +910,7 @@ open class ItemListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                         if let validLayout = self.validLayout {
                             updatedNode.updateLayout(layout: validLayout.0, navigationBarHeight: validLayout.1, transition: .immediate)
                         }
-                        if updatedNode.addedUnderNavigationBar {
-                            self.insertSubnode(updatedNode, belowSubnode: self.navigationBar)
-                        } else {
-                            self.addSubnode(updatedNode)
-                        }
+                        self.insertSubnode(updatedNode, belowSubnode: self.navigationBar)
                         updatedNode.activate()
                     }
                 } else {

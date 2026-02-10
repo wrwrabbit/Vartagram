@@ -26,6 +26,7 @@ import GiftAnimationComponent
 import GlassBarButtonComponent
 import GiftRemainingCountComponent
 import AnimatedTextComponent
+import AvatarComponent
 
 private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
@@ -199,7 +200,7 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
         return { context in
             let environment = context.environment[ViewControllerComponentContainer.Environment.self].value
             let component = context.component
-            let theme = environment.theme
+            let theme = environment.theme.withModalBlocksBackground()
             let strings = environment.strings
             let nameDisplayOrder = component.context.sharedContext.currentPresentationData.with { $0 }.nameDisplayOrder
             let controller = environment.controller
@@ -293,14 +294,14 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
                 } else {
                     return false
                 }
-            }), case let .backdrop(_, _, innerColor, _, _, _, _) = backdropAttribute {
-                buttonColor = UIColor(rgb: UInt32(bitPattern: innerColor)).withMultipliedBrightnessBy(1.05)
+            }), case let .backdrop(_, _, innerColor, outerColor, _, _, _) = backdropAttribute {
+                buttonColor = UIColor(rgb: UInt32(bitPattern: outerColor)).mixedWith(.white, alpha: 0.2)
                 secondaryTextColor = UIColor(rgb: UInt32(bitPattern: innerColor)).withMultiplied(hue: 1.0, saturation: 1.02, brightness: 1.25).mixedWith(UIColor.white, alpha: 0.3)
             }
             
             let closeButton = closeButton.update(
                 component: GlassBarButtonComponent(
-                    size: CGSize(width: 40.0, height: 40.0),
+                    size: CGSize(width: 44.0, height: 44.0),
                     backgroundColor: buttonColor,
                     isDark: false,
                     state: .tintedGlass,
@@ -314,7 +315,7 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
                         (controller() as? GiftAuctionWearPreviewScreen)?.dismissAnimated()
                     }
                 ),
-                availableSize: CGSize(width: 40.0, height: 40.0),
+                availableSize: CGSize(width: 44.0, height: 44.0),
                 transition: .immediate
             )
             context.add(closeButton
@@ -386,7 +387,7 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
                     context: component.context,
                     theme: theme,
                     strings: strings,
-                    subject: .preview(attributes: attributes, rarity: 0),
+                    subject: .preview(attributes: attributes, rarity: nil),
                     ribbon: GiftItemComponent.Ribbon(text: strings.Gift_WearPreview_Upgraded, color: ribbonColor),
                     animateChanges: true,
                     mode: .thumbnail
@@ -686,6 +687,8 @@ final class GiftAuctionWearPreviewSheetComponent: CombinedComponent {
                 environment: {
                     environment
                     SheetComponentEnvironment(
+                        metrics: environment.metrics,
+                        deviceMetrics: environment.deviceMetrics,
                         isDisplaying: environment.value.isVisible,
                         isCentered: environment.metrics.widthClass == .regular,
                         hasInputHeight: !environment.inputHeight.isZero,

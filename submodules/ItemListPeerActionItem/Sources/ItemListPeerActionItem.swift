@@ -35,8 +35,9 @@ public class ItemListPeerActionItem: ListViewItem, ItemListItem {
     let noInsets: Bool
     public let sectionId: ItemListSectionId
     public let action: (() -> Void)?
+    public let tag: Any?
     
-    public init(presentationData: ItemListPresentationData, style: ItemListStyle = .blocks, systemStyle: ItemListSystemStyle = .legacy, icon: UIImage?, iconSignal: Signal<UIImage?, NoError>? = nil, title: String, additionalBadgeIcon: UIImage? = nil, alwaysPlain: Bool = false, hasSeparator: Bool = true, sectionId: ItemListSectionId, height: ItemListPeerActionItemHeight = .peerList, color: ItemListPeerActionItemColor = .accent, noInsets: Bool = false, editing: Bool = false, action: (() -> Void)?) {
+    public init(presentationData: ItemListPresentationData, style: ItemListStyle = .blocks, systemStyle: ItemListSystemStyle = .legacy, icon: UIImage?, iconSignal: Signal<UIImage?, NoError>? = nil, title: String, additionalBadgeIcon: UIImage? = nil, alwaysPlain: Bool = false, hasSeparator: Bool = true, sectionId: ItemListSectionId, height: ItemListPeerActionItemHeight = .peerList, color: ItemListPeerActionItemColor = .accent, noInsets: Bool = false, editing: Bool = false, action: (() -> Void)?, tag: Any? = nil) {
         self.presentationData = presentationData
         self.style = style
         self.systemStyle = systemStyle
@@ -52,6 +53,7 @@ public class ItemListPeerActionItem: ListViewItem, ItemListItem {
         self.color = color
         self.sectionId = sectionId
         self.action = action
+        self.tag = tag
     }
     
     public func nodeConfiguredForParams(async: @escaping (@escaping () -> Void) -> Void, params: ListViewItemLayoutParams, synchronousLoads: Bool, previousItem: ListViewItem?, nextItem: ListViewItem?, completion: @escaping (ListViewItemNode, @escaping () -> (Signal<Void, NoError>?, (ListViewItemApply) -> Void)) -> Void) {
@@ -133,6 +135,10 @@ public final class ItemListPeerActionItemNode: ListViewItemNode {
     
     private let iconDisposable = MetaDisposable()
     
+    public var tag: ItemListItemTag? {
+        return self.item?.tag as? ItemListItemTag
+    }
+    
     public init() {
         self.backgroundNode = ASDisplayNode()
         self.backgroundNode.isLayerBacked = true
@@ -160,7 +166,7 @@ public final class ItemListPeerActionItemNode: ListViewItemNode {
         
         self.activateArea = AccessibilityAreaNode()
         
-        super.init(layerBacked: false, dynamicBounce: false)
+        super.init(layerBacked: false)
         
         self.addSubnode(self.iconNode)
         self.addSubnode(self.titleNode)
@@ -257,12 +263,16 @@ public final class ItemListPeerActionItemNode: ListViewItemNode {
                         case .blocks:
                             strongSelf.topStripeNode.backgroundColor = item.presentationData.theme.list.itemBlocksSeparatorColor
                             strongSelf.bottomStripeNode.backgroundColor = item.presentationData.theme.list.itemBlocksSeparatorColor
-                            strongSelf.backgroundNode.backgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
+                            if !item.alwaysPlain {
+                                strongSelf.backgroundNode.backgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
+                            }
                             strongSelf.highlightedBackgroundNode.backgroundColor = item.presentationData.theme.list.itemHighlightedBackgroundColor
                         case .plain:
                             strongSelf.topStripeNode.backgroundColor = item.presentationData.theme.list.itemPlainSeparatorColor
                             strongSelf.bottomStripeNode.backgroundColor = item.presentationData.theme.list.itemPlainSeparatorColor
-                            strongSelf.backgroundNode.backgroundColor = item.presentationData.theme.list.plainBackgroundColor
+                            if !item.alwaysPlain {
+                                strongSelf.backgroundNode.backgroundColor = item.presentationData.theme.list.plainBackgroundColor
+                            }
                             strongSelf.highlightedBackgroundNode.backgroundColor = item.presentationData.theme.list.itemHighlightedBackgroundColor
                         }
                     }

@@ -424,7 +424,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         
         self.phoneAndCountryNode = PhoneAndCountryNode(strings: strings, theme: theme)
         
-        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: self.theme), height: 50.0, cornerRadius: 11.0)
+        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: self.theme), glass: false, height: 50.0, cornerRadius: 50 * 0.5)
         self.proceedNode.progressType = .embedded
         self.proceedNode.isEnabled = false
         
@@ -848,7 +848,7 @@ final class PhoneConfirmationController: ViewController {
             
             self.backgroundNode = ASDisplayNode()
             self.backgroundNode.backgroundColor = theme.list.itemBlocksBackgroundColor
-            self.backgroundNode.cornerRadius = 24.0
+            self.backgroundNode.cornerRadius = 42.0
             
             self.textNode = ImmediateTextNode()
             self.textNode.displaysAsynchronously = false
@@ -863,7 +863,7 @@ final class PhoneConfirmationController: ViewController {
             self.cancelButton.accessibilityTraits = [.button]
             self.cancelButton.accessibilityLabel = strings.Login_Edit
             
-            self.proceedNode = SolidRoundedButtonNode(title: strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: theme), height: 50.0, cornerRadius: 11.0)
+            self.proceedNode = SolidRoundedButtonNode(title: strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: theme), glass: false, height: 50.0, cornerRadius: 50.0 * 0.5)
             self.proceedNode.progressType = .embedded
             
             let font = Font.with(size: 20.0, design: .regular, traits: [.monospacedNumbers])
@@ -1116,7 +1116,7 @@ final class PhoneConfirmationController: ViewController {
             self.textActivateAreaNode.frame = self.textNode.frame
             self.textActivateAreaNode.accessibilityLabel = "\(self.code) \(self.number). \(self.strings.Login_PhoneNumberConfirmation)"
             
-            let proceedWidth = backgroundSize.width - 16.0 * 2.0
+            let proceedWidth = backgroundSize.width - innerInset * 2.0
             let proceedHeight = self.proceedNode.updateLayout(width: proceedWidth, transition: transition)
             transition.updateFrame(node: self.proceedNode, frame: CGRect(origin: CGPoint(x: innerInset, y: backgroundSize.height - proceedHeight - innerInset), size: CGSize(width: proceedWidth, height: proceedHeight)).offsetBy(dx: backgroundFrame.minX, dy: backgroundFrame.minY))
             

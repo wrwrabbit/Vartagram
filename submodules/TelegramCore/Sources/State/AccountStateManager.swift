@@ -374,6 +374,7 @@ public final class AccountStateManager {
         private let appliedQtsPromise = Promise<Int32?>(nil)
         private let appliedQtsDisposable = MetaDisposable()
         private let reportMessageDeliveryDisposable = DisposableSet()
+        private let updateEmojiGameInfoDisposable = MetaDisposable()
         
         let updateConfigRequested: (() -> Void)?
         let isPremiumUpdated: (() -> Void)?
@@ -414,6 +415,7 @@ public final class AccountStateManager {
             self.appliedMaxMessageIdDisposable.dispose()
             self.appliedQtsDisposable.dispose()
             self.reportMessageDeliveryDisposable.dispose()
+            self.updateEmojiGameInfoDisposable.dispose()
         }
         
         public func reset() {
@@ -923,7 +925,8 @@ public final class AccountStateManager {
                             return postbox.transaction { transaction -> (difference: Api.updates.Difference?, finalStatte: AccountReplayedFinalState?, skipBecauseOfError: Bool, resetState: Bool) in
                                 if let currentState = transaction.getState() as? AuthorizedAccountState {
                                     switch state {
-                                    case let .state(pts, qts, date, seq, _):
+                                    case let .state(stateData):
+                                        let (pts, qts, date, seq) = (stateData.pts, stateData.qts, stateData.date, stateData.seq)
                                         transaction.setState(currentState.changedState(AuthorizedAccountState.State(pts: pts, qts: qts, date: date, seq: seq)))
                                     }
                                 }
@@ -1136,6 +1139,11 @@ public final class AccountStateManager {
                             }
                             if !events.updatedStarGiftAuctionMyState.isEmpty {
                                 strongSelf.notifyUpdatedStarGiftAuctionMyState(events.updatedStarGiftAuctionMyState)
+                            }
+                            if let updatedEmojiGameInfo = events.updatedEmojiGameInfo {
+                                strongSelf.updateEmojiGameInfoDisposable.set(strongSelf.postbox.transaction({ transaction in
+                                    updateEmojiGameInfo(transaction: transaction, { _ in return updatedEmojiGameInfo })
+                                }).start())
                             }
                             if !events.updatedCalls.isEmpty {
                                 for call in events.updatedCalls {
@@ -1876,10 +1884,12 @@ public final class AccountStateManager {
             
             if let updates = Api.parse(Buffer(data: rawData)) as? Api.Updates {
                 switch updates {
-                case let .updates(updates, _, _, _, _):
+                case let .updates(updatesData):
+                    let updates = updatesData.updates
                     for update in updates {
                         switch update {
-                        case let .updatePhoneCall(phoneCall):
+                        case let .updatePhoneCall(updatePhoneCallData):
+                            let phoneCall = updatePhoneCallData.phoneCall
                             if let callSessionManager = self.callSessionManager {
                                 callSessionManager.updateSession(phoneCall, completion: { result in
                                     completion(result)
@@ -2290,17 +2300,20 @@ public final class AccountStateManager {
             return nil
         }
         switch updates {
-        case let .updates(updates, users, _, _, _):
+        case let .updates(updatesData):
+            let (updates, users) = (updatesData.updates, updatesData.users)
             var peers: [Peer] = []
             for user in users {
                 peers.append(TelegramUser(user: user))
             }
-            
+
             for update in updates {
                 switch update {
-                case let .updatePhoneCall(phoneCall):
+                case let .updatePhoneCall(updatePhoneCallData):
+                    let phoneCall = updatePhoneCallData.phoneCall
                     switch phoneCall {
-                    case let .phoneCallRequested(flags, id, accessHash, date, adminId, _, _, _):
+                    case let .phoneCallRequested(phoneCallRequestedData):
+                        let (flags, id, accessHash, date, adminId) = (phoneCallRequestedData.flags, phoneCallRequestedData.id, phoneCallRequestedData.accessHash, phoneCallRequestedData.date, phoneCallRequestedData.adminId)
                         guard let peer = peers.first(where: { $0.id == PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(adminId)) }) else {
                             return nil
                         }

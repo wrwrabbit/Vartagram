@@ -240,6 +240,7 @@ private var declaredEncodables: Void = {
     declareEncodable(PublishedSuggestedPostMessageAttribute.self, f: { PublishedSuggestedPostMessageAttribute(decoder: $0) })
     declareEncodable(TelegramMediaLiveStream.self, f: { TelegramMediaLiveStream(decoder: $0) })
     declareEncodable(ScheduledRepeatAttribute.self, f: { ScheduledRepeatAttribute(decoder: $0) })
+    declareEncodable(SummarizationMessageAttribute.self, f: { SummarizationMessageAttribute(decoder: $0) })
     return
 }()
 
@@ -524,7 +525,8 @@ private func cleanupAccount(networkArguments: NetworkInitializationArguments, ac
                 }
                 |> mapToSignal { result -> Signal<Void, NoError> in
                     switch result {
-                    case let .loggedOut(_, futureAuthToken):
+                    case let .loggedOut(loggedOutData):
+                        let futureAuthToken = loggedOutData.futureAuthToken
                         if let futureAuthToken = futureAuthToken {
                             storeFutureLoginToken(accountManager: accountManager, token: futureAuthToken.makeData())
                         }

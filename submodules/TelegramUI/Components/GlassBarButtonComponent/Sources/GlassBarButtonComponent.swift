@@ -13,29 +13,38 @@ public final class GlassBarButtonComponent: Component {
     }
     
     public let size: CGSize?
-    public let backgroundColor: UIColor
+    public let backgroundColor: UIColor?
     public let isDark: Bool
     public let state: DisplayState?
     public let isEnabled: Bool
+    public let isVisible: Bool
+    public let animateScale: Bool
     public let component: AnyComponentWithIdentity<Empty>
     public let action: ((UIView) -> Void)?
+    public let tag: AnyObject?
 
     public init(
         size: CGSize?,
-        backgroundColor: UIColor,
+        backgroundColor: UIColor?,
         isDark: Bool,
         state: DisplayState? = nil,
         isEnabled: Bool = true,
+        isVisible: Bool = true,
+        animateScale: Bool = true,
         component: AnyComponentWithIdentity<Empty>,
-        action: ((UIView) -> Void)?
+        action: ((UIView) -> Void)?,
+        tag: AnyObject? = nil
     ) {
         self.size = size
         self.backgroundColor = backgroundColor
         self.isDark = isDark
         self.state = state
         self.isEnabled = isEnabled
+        self.isVisible = isVisible
+        self.animateScale = animateScale
         self.component = component
         self.action = action
+        self.tag = tag
     }
 
     public static func ==(lhs: GlassBarButtonComponent, rhs: GlassBarButtonComponent) -> Bool {
@@ -54,14 +63,33 @@ public final class GlassBarButtonComponent: Component {
         if lhs.isEnabled != rhs.isEnabled {
             return false
         }
+        if lhs.isVisible != rhs.isVisible {
+            return false
+        }
+        if lhs.animateScale != rhs.animateScale {
+            return false
+        }
         if lhs.component != rhs.component {
+            return false
+        }
+        if lhs.tag !== rhs.tag {
             return false
         }
         return true
     }
 
-    public final class View: HighlightTrackingButton {
-        private let containerView: UIView
+    public final class View: UIView, ComponentTaggedView {
+        public func matches(tag: Any) -> Bool {
+            if let component = self.component, let componentTag = component.tag {
+                let tag = tag as AnyObject
+                if componentTag === tag {
+                    return true
+                }
+            }
+            return false
+        }
+        
+        private let containerView: HighlightTrackingButton
         private let genericContainerView: UIView
         private let genericBackgroundView: SimpleGlassView
         private let glassContainerView: UIView
@@ -71,28 +99,30 @@ public final class GlassBarButtonComponent: Component {
         private var component: GlassBarButtonComponent?
         
         public override init(frame: CGRect) {
-            self.containerView = UIView()
+            self.containerView = HighlightTrackingButton()
             self.genericContainerView = UIView()
             self.genericBackgroundView = SimpleGlassView()
             self.glassContainerView = UIView()
             
             super.init(frame: frame)
             
-            self.containerView.isUserInteractionEnabled = false
             self.containerView.layer.rasterizationScale = UIScreenScale
             
-            self.addSubview(self.containerView)
-            self.containerView.addSubview(self.genericContainerView)
-            self.containerView.addSubview(self.glassContainerView)
+            self.addSubview(self.genericContainerView)
+            self.addSubview(self.glassContainerView)
             
             self.genericContainerView.addSubview(self.genericBackgroundView)
                         
-            self.addTarget(self, action: #selector(self.pressed), for: .touchUpInside)
+            self.containerView.addTarget(self, action: #selector(self.pressed), for: .touchUpInside)
             
-            self.highligthedChanged = { [weak self] highlighted in
-                guard let self else {
+            self.containerView.highligthedChanged = { [weak self] highlighted in
+                guard let self, let component = self.component, component.animateScale else {
                     return
                 }
+                if [.glass, .tintedGlass].contains(component.state) {
+                    return
+                }
+                
                 if highlighted {
                     self.containerView.layer.animateSpring(from: CGFloat((self.containerView.layer.presentation()?.value(forKeyPath: "transform.scale.y") as? NSNumber)?.floatValue ?? 1.0) as NSNumber, to: 1.3636 as NSNumber, keyPath: "transform.scale", duration: 0.5, removeOnCompletion: false)
                 } else {
@@ -112,11 +142,30 @@ public final class GlassBarButtonComponent: Component {
             action(self)
         }
         
+        @objc private func onTapGesture(_ recognizer: UITapGestureRecognizer) {
+            if case .ended = recognizer.state {
+                guard let component = self.component, let action = component.action else {
+                    return
+                }
+                action(self)
+            }
+        }
+        
+        override public func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+            guard let result = super.hitTest(point, with: event) else {
+                return nil
+            }
+            if result === self.glassContainerView || result === self.genericContainerView {
+                return self.containerView
+            }
+            return result
+        }
+        
         func update(component: GlassBarButtonComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             let previousComponent = self.component
             self.component = component
             
-            self.isEnabled = component.isEnabled
+            self.containerView.isEnabled = component.isEnabled
             
             var componentView: ComponentView<Empty>
             var animateAppearance = false
@@ -159,6 +208,7 @@ public final class GlassBarButtonComponent: Component {
             let componentFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((containerSize.width - componentSize.width) / 2.0), y: floorToScreenPixels((containerSize.height - componentSize.height) / 2.0)), size: componentSize)
             if let view = componentView.view {
                 if view.superview == nil {
+                    view.isUserInteractionEnabled = false
                     self.containerView.addSubview(view)
                     if animateAppearance {
                         transition.animateScale(view: view, from: 0.01, to: 1.0)
@@ -168,7 +218,11 @@ public final class GlassBarButtonComponent: Component {
                 componentTransition.setFrame(view: view, frame: componentFrame)
             }
             
-            let effectiveState = component.state ?? .glass
+            let effectiveState: DisplayState = component.state ?? .glass
+            /*if "".isEmpty {
+                effectiveState = .glass
+            }*/
+            
             var genericAlpha: CGFloat = 1.0
             var glassAlpha: CGFloat = 1.0
             switch effectiveState {
@@ -181,8 +235,9 @@ public final class GlassBarButtonComponent: Component {
             }
             
             let cornerRadius = containerSize.height * 0.5
-            self.genericBackgroundView.update(size: containerSize, cornerRadius: cornerRadius, isDark: component.isDark, tintColor: .init(kind: .custom, color: component.backgroundColor), transition: transition)
-            
+            if let backgroundColor = component.backgroundColor {
+                self.genericBackgroundView.update(size: containerSize, cornerRadius: cornerRadius, isDark: component.isDark, tintColor: .init(kind: .custom(style: .default, color: backgroundColor)), transition: transition)
+            }
                         
             let bounds = CGRect(origin: .zero, size: containerSize)
             transition.setFrame(view: self.containerView, frame: bounds)
@@ -196,7 +251,7 @@ public final class GlassBarButtonComponent: Component {
             
             transition.setFrame(view: self.genericBackgroundView, frame: bounds)
             
-            if glassAlpha == 1.0 {
+            if glassAlpha == 1.0, let backgroundColor = component.backgroundColor {
                 let glassBackgroundView: GlassBackgroundView
                 var glassBackgroundTransition = transition
                 if let current = self.glassBackgroundView {
@@ -204,19 +259,45 @@ public final class GlassBarButtonComponent: Component {
                 } else {
                     glassBackgroundTransition = .immediate
                     glassBackgroundView = GlassBackgroundView()
-                    glassBackgroundView.isUserInteractionEnabled = false
                     self.glassContainerView.addSubview(glassBackgroundView)
                     self.glassBackgroundView = glassBackgroundView
                     
+                    glassBackgroundView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.onTapGesture(_:))))
+                    
                     transition.animateAlpha(view: glassBackgroundView, from: 0.0, to: 1.0)
                 }
-                glassBackgroundView.update(size: containerSize, cornerRadius: cornerRadius, isDark: component.isDark, tintColor: .init(kind: effectiveState == .tintedGlass ? .custom : .panel , color: component.backgroundColor.withMultipliedAlpha(effectiveState == .tintedGlass ? 1.0 : 0.7)), transition: glassBackgroundTransition)
+                glassBackgroundView.update(size: containerSize, cornerRadius: cornerRadius, isDark: component.isDark, tintColor: .init(kind: effectiveState == .tintedGlass ? .custom(style: .default, color: backgroundColor.withMultipliedAlpha(effectiveState == .tintedGlass ? 1.0 : 0.7)) : .panel), isInteractive: true, isVisible: component.isVisible, transition: glassBackgroundTransition)
+                glassBackgroundTransition.setFrame(view: glassBackgroundView, frame: bounds)
+            } else if case .glass = component.state {
+                let glassBackgroundView: GlassBackgroundView
+                var glassBackgroundTransition = transition
+                if let current = self.glassBackgroundView {
+                    glassBackgroundView = current
+                } else {
+                    glassBackgroundTransition = .immediate
+                    glassBackgroundView = GlassBackgroundView()
+                    self.glassContainerView.addSubview(glassBackgroundView)
+                    self.glassBackgroundView = glassBackgroundView
+                    
+                    glassBackgroundView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.onTapGesture(_:))))
+                    
+                    transition.animateAlpha(view: glassBackgroundView, from: 0.0, to: 1.0)
+                }
+                glassBackgroundView.update(size: containerSize, cornerRadius: cornerRadius, isDark: component.isDark, tintColor: .init(kind: .panel), isInteractive: true, isVisible: component.isVisible, transition: glassBackgroundTransition)
                 glassBackgroundTransition.setFrame(view: glassBackgroundView, frame: bounds)
             } else if let glassBackgroundView = self.glassBackgroundView {
                 self.glassBackgroundView = nil
                 transition.setAlpha(view: glassBackgroundView, alpha: 0.0, completion: { _ in
                     glassBackgroundView.removeFromSuperview()
                 })
+            }
+            
+            if let glassBackgroundView = self.glassBackgroundView {
+                if self.containerView.superview !== glassBackgroundView.contentView {
+                    glassBackgroundView.contentView.addSubview(self.containerView)
+                }
+            } else if self.containerView.superview !== self {
+                self.addSubview(self.containerView)
             }
             
             return containerSize
@@ -310,7 +391,7 @@ public final class BarComponentHostNode: ASDisplayNode {
                         transition.animateScale(view: view, from: 0.01, to: 1.0)
                     }
                 }
-                view.frame = CGRect(origin: CGPoint(x: 0.0, y: 3.0), size: self.size)
+                view.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: self.size)
             }
         }
     }
@@ -359,7 +440,18 @@ private class SimpleGlassView: UIView {
     }
     
     public func update(size: CGSize, cornerRadius: CGFloat, isDark: Bool, tintColor: GlassBackgroundView.TintColor, isInteractive: Bool = false, transition: ComponentTransition) {
-        self.backgroundNode.updateColor(color: tintColor.color, forceKeepBlur: tintColor.color.alpha != 1.0, transition: transition.containedViewLayoutTransition)
+        let colorValue: UIColor
+        switch tintColor.kind {
+        case .clear, .panel:
+            if isDark {
+                colorValue = UIColor(white: 1.0, alpha: 0.025)
+            } else {
+                colorValue = UIColor(white: 1.0, alpha: 0.1)
+            }
+        case let .custom(_, color):
+            colorValue = color
+        }
+        self.backgroundNode.updateColor(color: colorValue, forceKeepBlur: colorValue.alpha != 1.0, transition: transition.containedViewLayoutTransition)
         self.backgroundNode.update(size: size, cornerRadius: cornerRadius, transition: transition.containedViewLayoutTransition)
         transition.setFrame(view: self.backgroundNode.view, frame: CGRect(origin: CGPoint(), size: size))
                 

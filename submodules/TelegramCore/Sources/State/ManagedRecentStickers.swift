@@ -127,7 +127,8 @@ func managedRecentStickers(postbox: Postbox, network: Network, forceFetch: Bool 
                 case .recentStickersNotModified:
                     return .single(nil)
                     |> map { ($0, 0) }
-                case let .recentStickers(hash, _, stickers, _):
+                case let .recentStickers(recentStickersData):
+                    let stickers = recentStickersData.stickers
                     var items: [OrderedItemListEntry] = []
                     for sticker in stickers {
                         if let file = telegramMediaFileFromApiDocument(sticker, altDocuments: []), let id = file.id {
@@ -156,7 +157,8 @@ func managedRecentGifs(postbox: Postbox, network: Network, forceFetch: Bool = fa
                     case .savedGifsNotModified:
                         return .single(nil)
                         |> map { ($0, 0) }
-                    case let .savedGifs(hash, gifs):
+                    case let .savedGifs(savedGifsData):
+                        let gifs = savedGifsData.gifs
                         var items: [OrderedItemListEntry] = []
                         for gif in gifs {
                             if let file = telegramMediaFileFromApiDocument(gif, altDocuments: []), let id = file.id {
@@ -185,11 +187,13 @@ func managedSavedStickers(postbox: Postbox, network: Network, forceFetch: Bool =
                     case .favedStickersNotModified:
                         return .single(nil)
                         |> map { ($0, 0) }
-                    case let .favedStickers(hash, packs, stickers):
+                    case let .favedStickers(favedStickersData):
+                        let (packs, stickers) = (favedStickersData.packs, favedStickersData.stickers)
                         var fileStringRepresentations: [MediaId: [String]] = [:]
                         for pack in packs {
                             switch pack {
-                                case let .stickerPack(text, fileIds):
+                                case let .stickerPack(stickerPackData):
+                                    let (text, fileIds) = (stickerPackData.emoticon, stickerPackData.documents)
                                     for fileId in fileIds {
                                         let mediaId = MediaId(namespace: Namespaces.Media.CloudFile, id: fileId)
                                         if fileStringRepresentations[mediaId] == nil {
@@ -233,7 +237,8 @@ func managedGreetingStickers(postbox: Postbox, network: Network) -> Signal<Void,
                 case .stickersNotModified:
                     return .single(nil)
                     |> map { ($0, 0) }
-                case let .stickers(hash, stickers):
+                case let .stickers(stickersData):
+                    let stickers = stickersData.stickers
                     var items: [OrderedItemListEntry] = []
                     for sticker in stickers {
                         if let file = telegramMediaFileFromApiDocument(sticker, altDocuments: []), let id = file.id {
@@ -263,7 +268,8 @@ func managedPremiumStickers(postbox: Postbox, network: Network) -> Signal<Void, 
                 case .stickersNotModified:
                     return .single(nil)
                     |> map { ($0, 0) }
-                case let .stickers(hash, stickers):
+                case let .stickers(stickersData):
+                    let stickers = stickersData.stickers
                     var items: [OrderedItemListEntry] = []
                     for sticker in stickers {
                         if let file = telegramMediaFileFromApiDocument(sticker, altDocuments: []), let id = file.id {
@@ -293,7 +299,8 @@ func managedAllPremiumStickers(postbox: Postbox, network: Network) -> Signal<Voi
                 case .stickersNotModified:
                     return .single(nil)
                     |> map { ($0, 0) }
-                case let .stickers(hash, stickers):
+                case let .stickers(stickersData):
+                    let stickers = stickersData.stickers
                     var items: [OrderedItemListEntry] = []
                     for sticker in stickers {
                         if let file = telegramMediaFileFromApiDocument(sticker, altDocuments: []), let id = file.id {
@@ -323,9 +330,10 @@ func managedRecentStatusEmoji(postbox: Postbox, network: Network) -> Signal<Void
             case .emojiStatusesNotModified:
                 return .single(nil)
                 |> map { ($0, 0) }
-            case let .emojiStatuses(hash, statuses):
+            case let .emojiStatuses(emojiStatusesData):
+                let statuses = emojiStatusesData.statuses
                 let parsedStatuses = statuses.compactMap(PeerEmojiStatus.init(apiStatus:))
-                
+
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: parsedStatuses.compactMap(\.emojiFileId))
                 |> map { files -> [OrderedItemListEntry] in
                     var items: [OrderedItemListEntry] = []
@@ -359,9 +367,10 @@ func managedFeaturedStatusEmoji(postbox: Postbox, network: Network) -> Signal<Vo
             case .emojiStatusesNotModified:
                 return .single(nil)
                 |> map { ($0, 0) }
-            case let .emojiStatuses(hash, statuses):
+            case let .emojiStatuses(emojiStatusesData):
+                let statuses = emojiStatusesData.statuses
                 let parsedStatuses = statuses.compactMap(PeerEmojiStatus.init(apiStatus:))
-                
+
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: parsedStatuses.compactMap(\.emojiFileId))
                 |> map { files -> [OrderedItemListEntry] in
                     var items: [OrderedItemListEntry] = []
@@ -395,9 +404,10 @@ func managedFeaturedChannelStatusEmoji(postbox: Postbox, network: Network) -> Si
             case .emojiStatusesNotModified:
                 return .single(nil)
                 |> map { ($0, 0) }
-            case let .emojiStatuses(hash, statuses):
+            case let .emojiStatuses(emojiStatusesData):
+                let statuses = emojiStatusesData.statuses
                 let parsedStatuses = statuses.compactMap(PeerEmojiStatus.init(apiStatus:))
-                
+
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: parsedStatuses.compactMap(\.emojiFileId))
                 |> map { files -> [OrderedItemListEntry] in
                     var items: [OrderedItemListEntry] = []
@@ -431,9 +441,10 @@ func managedUniqueStarGifts(accountPeerId: PeerId, postbox: Postbox, network: Ne
             case .emojiStatusesNotModified:
                 return .single(nil)
                 |> map { ($0, 0) }
-            case let .emojiStatuses(hash, statuses):
+            case let .emojiStatuses(emojiStatusesData):
+                let statuses = emojiStatusesData.statuses
                 let parsedStatuses = statuses.compactMap(PeerEmojiStatus.init(apiStatus:))
-                
+
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: parsedStatuses.flatMap(\.associatedFileIds))
                 |> map { files -> [OrderedItemListEntry] in
                     var items: [OrderedItemListEntry] = []
@@ -450,9 +461,9 @@ func managedUniqueStarGifts(accountPeerId: PeerId, postbox: Postbox, network: Ne
                                     slug: slug,
                                     owner: .peerId(accountPeerId),
                                     attributes: [
-                                        .model(name: "", file: file, rarity: 0),
-                                        .pattern(name: "", file: patternFile, rarity: 0),
-                                        .backdrop(name: "", id: 0, innerColor: innerColor, outerColor: outerColor, patternColor: patternColor, textColor: textColor, rarity: 0)
+                                        .model(name: "", file: file, rarity: .rare, crafted: true),
+                                        .pattern(name: "", file: patternFile, rarity: .rare),
+                                        .backdrop(name: "", id: 0, innerColor: innerColor, outerColor: outerColor, patternColor: patternColor, textColor: textColor, rarity: .rare)
                                     ],
                                     availability: StarGift.UniqueGift.Availability(issued: 0, total: 0),
                                     giftAddress: nil,
@@ -466,7 +477,8 @@ func managedUniqueStarGifts(accountPeerId: PeerId, postbox: Postbox, network: Ne
                                     themePeerId: nil,
                                     peerColor: nil,
                                     hostPeerId: nil,
-                                    minOfferStars: nil
+                                    minOfferStars: nil,
+                                    craftChancePermille: nil
                                 )
                                 if let entry = CodableEntry(RecentStarGiftItem(gift)) {
                                     items.append(OrderedItemListEntry(id: RecentStarGiftItemId(id).rawValue, contents: entry))
@@ -499,7 +511,8 @@ func managedProfilePhotoEmoji(postbox: Postbox, network: Network) -> Signal<Void
             case .emojiListNotModified:
                 return .single(nil)
                 |> map { ($0, 0) }
-            case let .emojiList(hash, documentIds):
+            case let .emojiList(emojiListData):
+                let documentIds = emojiListData.documentId
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: documentIds)
                 |> map { files -> [OrderedItemListEntry] in
                     var items: [OrderedItemListEntry] = []
@@ -533,7 +546,8 @@ func managedGroupPhotoEmoji(postbox: Postbox, network: Network) -> Signal<Void, 
             case .emojiListNotModified:
                 return .single(nil)
                 |> map { ($0, 0) }
-            case let .emojiList(hash, documentIds):
+            case let .emojiList(emojiListData):
+                let documentIds = emojiListData.documentId
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: documentIds)
                 |> map { files -> [OrderedItemListEntry] in
                     var items: [OrderedItemListEntry] = []
@@ -567,7 +581,8 @@ func managedBackgroundIconEmoji(postbox: Postbox, network: Network) -> Signal<Vo
             case .emojiListNotModified:
                 return .single(nil)
                 |> map { ($0, 0) }
-            case let .emojiList(hash, documentIds):
+            case let .emojiList(emojiListData):
+                let documentIds = emojiListData.documentId
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: documentIds)
                 |> map { files -> [OrderedItemListEntry] in
                     var items: [OrderedItemListEntry] = []
@@ -601,7 +616,8 @@ func managedDisabledChannelStatusIconEmoji(postbox: Postbox, network: Network) -
             case .emojiListNotModified:
                 return .single(nil)
                 |> map { ($0, 0) }
-            case let .emojiList(hash, documentIds):
+            case let .emojiList(emojiListData):
+                let documentIds = emojiListData.documentId
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: documentIds)
                 |> map { files -> [OrderedItemListEntry] in
                     var items: [OrderedItemListEntry] = []
@@ -644,9 +660,10 @@ func managedRecentReactions(postbox: Postbox, network: Network) -> Signal<Void, 
             case .reactionsNotModified:
                 return .single(nil)
                 |> map { ($0, 0) }
-            case let .reactions(hash, reactions):
+            case let .reactions(reactionsData):
+                let reactions = reactionsData.reactions
                 let parsedReactions = reactions.compactMap(MessageReaction.Reaction.init(apiReaction:))
-                
+
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: parsedReactions.compactMap { reaction -> Int64? in
                     switch reaction {
                     case .builtin:
@@ -707,9 +724,10 @@ func managedTopReactions(postbox: Postbox, network: Network) -> Signal<Void, NoE
             case .reactionsNotModified:
                 return .single(nil)
                 |> map { ($0, 0) }
-            case let .reactions(hash, reactions):
+            case let .reactions(reactionsData):
+                let reactions = reactionsData.reactions
                 let parsedReactions = reactions.compactMap(MessageReaction.Reaction.init(apiReaction:))
-                
+
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: parsedReactions.compactMap { reaction -> Int64? in
                     switch reaction {
                     case .builtin:
@@ -770,9 +788,10 @@ func managedDefaultTagReactions(postbox: Postbox, network: Network) -> Signal<Vo
             case .reactionsNotModified:
                 return .single(nil)
                 |> map { ($0, hash) }
-            case let .reactions(_, reactions):
+            case let .reactions(reactionsData):
+                let reactions = reactionsData.reactions
                 let parsedReactions = reactions.compactMap(MessageReaction.Reaction.init(apiReaction:))
-                
+
                 return _internal_resolveInlineStickers(postbox: postbox, network: network, fileIds: parsedReactions.compactMap { reaction -> Int64? in
                     switch reaction {
                     case .builtin:

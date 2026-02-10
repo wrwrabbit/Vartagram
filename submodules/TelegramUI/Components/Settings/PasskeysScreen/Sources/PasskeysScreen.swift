@@ -21,6 +21,7 @@ final class PasskeysScreenComponent: Component {
     let context: AccountContext
     let displaySkip: Bool
     let initialPasskeysData: [TelegramPasskey]?
+    let forceCreate: Bool
     let passkeysDataUpdated: ([TelegramPasskey]) -> Void
     let completion: () -> Void
     let cancel: () -> Void
@@ -29,6 +30,7 @@ final class PasskeysScreenComponent: Component {
         context: AccountContext,
         displaySkip: Bool,
         initialPasskeysData: [TelegramPasskey]?,
+        forceCreate: Bool,
         passkeysDataUpdated: @escaping ([TelegramPasskey]) -> Void,
         completion: @escaping () -> Void,
         cancel: @escaping () -> Void
@@ -36,6 +38,7 @@ final class PasskeysScreenComponent: Component {
         self.context = context
         self.displaySkip = displaySkip
         self.initialPasskeysData = initialPasskeysData
+        self.forceCreate = forceCreate
         self.passkeysDataUpdated = passkeysDataUpdated
         self.completion = completion
         self.cancel = cancel
@@ -179,14 +182,21 @@ final class PasskeysScreenComponent: Component {
             guard let component = self.component, let environment = self.environment, let controller = environment.controller() else {
                 return
             }
-            let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
-            controller.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: environment.strings.Passkeys_DeleteAlert_Title, text: environment.strings.Passkeys_DeleteAlert_Text, actions: [TextAlertAction(type: .genericAction, title: environment.strings.Common_Cancel, action: {
-            }), TextAlertAction(type: .destructiveAction, title: environment.strings.Passkeys_DeleteAlert_Action, action: { [weak self] in
-                guard let self else {
-                    return
-                }
-                self.deletePasskey(id: id)
-            })]), in: .window(.root))
+            let alertController = textAlertController(
+                context: component.context,
+                title: environment.strings.Passkeys_DeleteAlert_Title,
+                text: environment.strings.Passkeys_DeleteAlert_Text,
+                actions: [
+                    TextAlertAction(type: .genericAction, title: environment.strings.Common_Cancel, action: {}),
+                    TextAlertAction(type: .destructiveAction, title: environment.strings.Passkeys_DeleteAlert_Action, action: { [weak self] in
+                        guard let self else {
+                            return
+                        }
+                        self.deletePasskey(id: id)
+                    })
+                ]
+            )
+            controller.present(alertController, in: .window(.root))
         }
         
         private func deletePasskey(id: String) {
@@ -240,6 +250,12 @@ final class PasskeysScreenComponent: Component {
                         component.passkeysDataUpdated(data)
                         self.state?.updated(transition: .easeInOut(duration: 0.25))
                     })
+                }
+                
+                if component.forceCreate {
+                    Queue.mainQueue().justDispatch {
+                        self.createPasskey()
+                    }
                 }
             }
 
@@ -394,10 +410,18 @@ final class PasskeysScreenComponent: Component {
 public final class PasskeysScreen: ViewControllerComponentContainer {
     private let context: AccountContext
     
-    public init(context: AccountContext, displaySkip: Bool, initialPasskeysData: [TelegramPasskey]?, passkeysDataUpdated: @escaping ([TelegramPasskey]) -> Void, completion: @escaping () -> Void, cancel: @escaping () -> Void) {
+    public init(
+        context: AccountContext,
+        displaySkip: Bool,
+        initialPasskeysData: [TelegramPasskey]?,
+        forceCreate: Bool = false,
+        passkeysDataUpdated: @escaping ([TelegramPasskey]) -> Void,
+        completion: @escaping () -> Void,
+        cancel: @escaping () -> Void
+    ) {
         self.context = context
         
-        super.init(context: context, component: PasskeysScreenComponent(context: context, displaySkip: displaySkip, initialPasskeysData: initialPasskeysData, passkeysDataUpdated: passkeysDataUpdated, completion: completion, cancel: cancel), navigationBarAppearance: .transparent)
+        super.init(context: context, component: PasskeysScreenComponent(context: context, displaySkip: displaySkip, initialPasskeysData: initialPasskeysData, forceCreate: forceCreate, passkeysDataUpdated: passkeysDataUpdated, completion: completion, cancel: cancel), navigationBarAppearance: .transparent)
     }
     
     required public init(coder aDecoder: NSCoder) {

@@ -791,7 +791,7 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                         if case let .unique(uniqueGift) = starGift {
                             giftTitle = "\(uniqueGift.title) #\(formatCollectibleNumber(uniqueGift.number, dateTimeFormat: dateTimeFormat))"
                             for attribute in uniqueGift.attributes {
-                                if case let .model(_, fileValue, _) = attribute {
+                                if case let .model(_, fileValue, _, _) = attribute {
                                     file = fileValue
                                     break
                                 }
@@ -1262,7 +1262,7 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                         attributedString = addAttributesToStringWithRanges(strings.Notification_StarsGift_Sent(authorName, starsPrice)._tuple, body: bodyAttributes, argumentAttributes: attributes)
                     }
                 }
-            case let .starGiftUnique(gift, isUpgrade, _, _, _, _, _, isPrepaidUpgrade, peerId, senderId, _, resaleStars, _, _, _, assigned, fromOffer):
+            case let .starGiftUnique(gift, isUpgrade, _, _, _, _, _, isPrepaidUpgrade, peerId, senderId, _, resaleStars, _, _, _, assigned, fromOffer, _, isCrafted):
                 if case let .unique(gift) = gift {
                     if !forAdditionalServiceMessage && !"".isEmpty {
                         attributedString = NSAttributedString(string: "\(gift.title) #\(presentationStringsFormattedNumber(gift.number, dateTimeFormat.groupingSeparator))", font: titleFont, textColor: primaryTextColor)
@@ -1338,7 +1338,11 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                                         attributedString = addAttributesToStringWithRanges(strings.Notification_StarsGift_BoughtYou(giftTitle, starsString)._tuple, body: bodyAttributes, argumentAttributes: [0: boldAttributes, 1: boldAttributes])
                                     }
                                 } else {
-                                    attributedString = NSAttributedString(string: strings.Notification_StarsGift_TransferYou, font: titleFont, textColor: primaryTextColor)
+                                    if isCrafted {
+                                        attributedString = NSAttributedString(string: strings.Notification_StarsGift_Crafted, font: titleFont, textColor: primaryTextColor)
+                                    } else {
+                                        attributedString = NSAttributedString(string: strings.Notification_StarsGift_TransferYou, font: titleFont, textColor: primaryTextColor)
+                                    }
                                 }
                             } else if let senderId, let peer = message.peers[senderId] {
                                 if let peerId, let targetPeer = message.peers[peerId] {
@@ -1663,7 +1667,7 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                     case .stars:
                         priceString = strings.Notification_StarsGiftOffer_OfferYou_Stars(Int32(clamping: amount.amount.value))
                     case .ton:
-                        priceString = "\(amount.amount) TON"
+                        priceString = formatTonAmountText(amount.amount.value, dateTimeFormat: dateTimeFormat) + " TON"
                     }
                     
                     attributedString = addAttributesToStringWithRanges(strings.Notification_StarsGiftOffer_OfferYou(peerName, priceString, giftTitle)._tuple, body: bodyAttributes, argumentAttributes: attributes)
@@ -1673,7 +1677,7 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                     case .stars:
                         priceString = strings.Notification_StarsGiftOffer_Offer_Stars(Int32(clamping: amount.amount.value))
                     case .ton:
-                        priceString = "\(amount.amount) TON"
+                        priceString = formatTonAmountText(amount.amount.value, dateTimeFormat: dateTimeFormat) + " TON"
                     }
                     
                     attributedString = addAttributesToStringWithRanges(strings.Notification_StarsGiftOffer_Offer(peerName, priceString, giftTitle)._tuple, body: bodyAttributes, argumentAttributes: attributes)
@@ -1696,7 +1700,7 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                         case .stars:
                             priceString = strings.Notification_StarsGiftOffer_ExpiredYou_Stars(Int32(clamping: amount.amount.value))
                         case .ton:
-                            priceString = "\(amount.amount) TON"
+                            priceString = formatTonAmountText(amount.amount.value, dateTimeFormat: dateTimeFormat) + " TON"
                         }
                         
                         var attributes = peerMentionsAttributes(primaryTextColor: primaryTextColor, peerIds: peerIds)
@@ -1709,7 +1713,7 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                         case .stars:
                             priceString = strings.Notification_StarsGiftOffer_Expired_Stars(Int32(clamping: amount.amount.value))
                         case .ton:
-                            priceString = "\(amount.amount) TON"
+                            priceString = formatTonAmountText(amount.amount.value, dateTimeFormat: dateTimeFormat) + " TON"
                         }
                         
                         let timeString = "[TODO]"
@@ -1730,7 +1734,7 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                         case .stars:
                             priceString = strings.Notification_StarsGiftOffer_Rejected_Stars(Int32(clamping: amount.amount.value))
                         case .ton:
-                            priceString = "\(amount.amount) TON"
+                            priceString = formatTonAmountText(amount.amount.value, dateTimeFormat: dateTimeFormat) + " TON"
                         }
                         
                         var attributes = peerMentionsAttributes(primaryTextColor: primaryTextColor, peerIds: peerIds)
@@ -1738,6 +1742,17 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                         attributes[2] = boldAttributes
                         attributedString = addAttributesToStringWithRanges(strings.Notification_StarsGiftOffer_Rejected(peerName, giftTitle, priceString)._tuple, body: bodyAttributes, argumentAttributes: attributes)
                     }
+                }
+            case let .groupCreatorChange(groupCreatorChange):
+                var targetName = ""
+                if let peer = message.peers[groupCreatorChange.targetPeerId] {
+                    targetName = EnginePeer(peer).displayTitle(strings: strings, displayOrder: nameDisplayOrder)
+                }
+                switch groupCreatorChange.kind {
+                case .pending:
+                    attributedString = addAttributesToStringWithRanges(strings.Notification_GroupCreatorChangePending(authorName, targetName)._tuple, body: bodyAttributes, argumentAttributes: peerMentionsAttributes(primaryTextColor: primaryTextColor, peerIds: [(0, message.author?.id), (1, groupCreatorChange.targetPeerId)]))
+                case .applied:
+                    attributedString = addAttributesToStringWithRanges(strings.Notification_GroupCreatorChangeApplied(authorName, targetName)._tuple, body: bodyAttributes, argumentAttributes: peerMentionsAttributes(primaryTextColor: primaryTextColor, peerIds: [(0, message.author?.id), (1, groupCreatorChange.targetPeerId)]))
                 }
             case .unknown:
                 attributedString = nil
@@ -1764,6 +1779,55 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                 resultTitleString = strings.Conversation_StoryExpiredMentionTextOutgoing(compactPeerName)
             }
             attributedString = addAttributesToStringWithRanges(resultTitleString._tuple, body: bodyAttributes, argumentAttributes: [0: boldAttributes])
+        } else if let dice = media as? TelegramMediaDice, let gameOutcome = dice.gameOutcome {
+            if let value = dice.value {
+                let rawString: String
+                if message.author?.id == accountPeerId {
+                    if value == 1, let tonAmount = dice.tonAmount {
+                        let value = formatTonAmountText(tonAmount, dateTimeFormat: dateTimeFormat)
+                        rawString = strings.Conversation_EmojiStake_LostYou(value).string
+                    } else {
+                        let value = formatTonAmountText(gameOutcome.tonAmount, dateTimeFormat: dateTimeFormat)
+                        rawString = strings.Conversation_EmojiStake_WonYou(value).string
+                    }
+                } else {
+                    var compactPeerName = ""
+                    if let authorSignature = message.forwardInfo?.authorSignature {
+                        compactPeerName = authorSignature
+                    } else if let author = message.forwardInfo?.author {
+                        compactPeerName = EnginePeer(author).compactDisplayTitle
+                    } else if let source = message.forwardInfo?.source {
+                        compactPeerName = EnginePeer(source).compactDisplayTitle
+                    } else {
+                        if let author = message.author, case .user = author {
+                            compactPeerName = author.compactDisplayTitle
+                        } else {
+                            for attribute in message.attributes {
+                                if let attribute = attribute as? AuthorSignatureMessageAttribute {
+                                    compactPeerName = attribute.signature
+                                }
+                            }
+                            if compactPeerName.isEmpty {
+                                compactPeerName = message.peers[message.id.peerId].flatMap(EnginePeer.init)?.compactDisplayTitle ?? ""
+                            }
+                        }
+                    }
+                    if value == 1, let tonAmount = dice.tonAmount {
+                        let value = formatTonAmountText(tonAmount, dateTimeFormat: dateTimeFormat)
+                        rawString = strings.Conversation_EmojiStake_Lost(compactPeerName, value).string
+                    } else {
+                        let value = formatTonAmountText(gameOutcome.tonAmount, dateTimeFormat: dateTimeFormat)
+                        rawString = strings.Conversation_EmojiStake_Won(compactPeerName, value).string
+                    }
+                }
+                
+                let attributedText = NSMutableAttributedString(string: rawString, font: titleFont, textColor: primaryTextColor)
+                if let range = attributedText.string.range(of: "$") {
+                    attributedText.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .ton(tinted: true)), range: NSRange(range, in: attributedText.string))
+                    attributedText.addAttribute(.baselineOffset, value: 1.5, range: NSRange(range, in: attributedText.string))
+                }
+                attributedString = attributedText
+            }
         }
     }
     

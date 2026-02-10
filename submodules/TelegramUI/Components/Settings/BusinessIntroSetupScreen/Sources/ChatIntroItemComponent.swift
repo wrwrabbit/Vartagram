@@ -111,6 +111,7 @@ final class ChatIntroItemComponent: Component {
             let interfaceState = ChatPresentationInterfaceState(
                 chatWallpaper: presentationData.chatWallpaper,
                 theme: component.theme,
+                preferredGlassType: .default,
                 strings: component.strings,
                 dateTimeFormat: presentationData.dateTimeFormat,
                 nameDisplayOrder: presentationData.nameDisplayOrder,
@@ -126,7 +127,6 @@ final class ChatIntroItemComponent: Component {
                 pendingUnpinnedAllMessages: false,
                 activeGroupCallInfo: nil,
                 hasActiveGroupCall: false,
-                importState: nil,
                 threadData: nil,
                 isGeneralThreadClosed: nil,
                 replyMessage: nil,

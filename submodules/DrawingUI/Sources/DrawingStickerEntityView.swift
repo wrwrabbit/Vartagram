@@ -305,7 +305,7 @@ public class DrawingStickerEntityView: DrawingEntityView {
             
             var file: TelegramMediaFile?
             for attribute in gift.attributes {
-                if case let .model(_, fileValue, _) = attribute {
+                if case let .model(_, fileValue, _, _) = attribute {
                     file = fileValue
                     break
                 }
@@ -467,7 +467,7 @@ public class DrawingStickerEntityView: DrawingEntityView {
                 file = fileValue
             } else if case let .gift(gift, _) = self.stickerEntity.content {
                 for attribute in gift.attributes {
-                    if case let .model(_, fileValue, _) = attribute {
+                    if case let .model(_, fileValue, _, _) = attribute {
                         file = fileValue
                         break
                     }
@@ -888,7 +888,7 @@ public class DrawingStickerEntityView: DrawingEntityView {
         } else if case let .gift(gift, _) = self.stickerEntity.content {
             var file: TelegramMediaFile?
             for attribute in gift.attributes {
-                if case let .model(_, fileValue, _) = attribute {
+                if case let .model(_, fileValue, _, _) = attribute {
                     file = fileValue
                     break
                 }

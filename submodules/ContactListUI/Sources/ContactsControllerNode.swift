@@ -55,12 +55,11 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     
     private let context: AccountContext
     private(set) var searchDisplayController: SearchDisplayController?
-    private var isSearchDisplayControllerActive: Bool = false
+    private var isSearchDisplayControllerActive: ChatListNavigationBar.ActiveSearch?
     private var storiesUnlocked: Bool = false
     
     private var containerLayout: (ContainerViewLayout, CGFloat)?
     
-    var navigationBar: NavigationBar?
     let navigationBarView = ComponentView<Empty>()
     
     var requestDeactivateSearch: (() -> Void)?
@@ -362,7 +361,6 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             chatListTitle: NetworkStatusTitle(text: title, activity: false, hasProxy: false, connectsViaProxy: false, isPasscodeSet: false, isManuallyLocked: false, peerStatus: nil),
             leftButton: leftButton,
             rightButtons: rightButtons,
-            backTitle: nil,
             backPressed: nil
         )
         
@@ -374,14 +372,15 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 strings: self.presentationData.strings,
                 statusBarHeight: layout.statusBarHeight ?? 0.0,
                 sideInset: layout.safeInsets.left,
-                isSearchActive: self.isSearchDisplayControllerActive,
-                isSearchEnabled: true,
+                search: ChatListNavigationBar.Search(isEnabled: true),
+                activeSearch: self.isSearchDisplayControllerActive,
                 primaryContent: primaryContent,
                 secondaryContent: nil,
                 secondaryTransition: 0.0,
                 storySubscriptions: nil,
                 storiesIncludeHidden: true,
                 uploadProgress: [:],
+                headerPanels: nil,
                 tabsNode: tabsNode,
                 tabsNodeIsSearch: tabsNodeIsSearch,
                 accessoryPanelContainer: nil,
@@ -428,7 +427,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     
     private func updateNavigationScrolling(transition: ContainedViewLayoutTransition) {
         var offset = self.getEffectiveNavigationScrollingOffset()
-        if self.isSearchDisplayControllerActive {
+        if self.isSearchDisplayControllerActive != nil {
             offset = 0.0
         }
         
@@ -480,25 +479,25 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         let items = contactContextMenuItems(context: self.context, peerId: peer.id, contactsController: contactsController, isStories: isStories) |> map { ContextController.Items(content: .list($0)) }
         
         if isStories, let node = node?.subnodes?.first(where: { $0 is ContextExtractedContentContainingNode }) as? ContextExtractedContentContainingNode {
-            let controller = ContextController(presentationData: self.presentationData, source: .extracted(ContactContextExtractedContentSource(sourceNode: node, shouldBeDismissed: .single(false))), items: items, recognizer: nil, gesture: gesture)
+            let controller = makeContextController(presentationData: self.presentationData, source: .extracted(ContactContextExtractedContentSource(sourceNode: node, shouldBeDismissed: .single(false))), items: items, recognizer: nil, gesture: gesture)
             contactsController.presentInGlobalOverlay(controller)
         } else {
             let chatController = self.context.sharedContext.makeChatController(context: self.context, chatLocation: .peer(id: peer.id), subject: nil, botStart: nil, mode: .standard(.previewing), params: nil)
             chatController.canReadHistory.set(false)
-            let contextController = ContextController(presentationData: self.presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node)), items: items, gesture: gesture)
+            let contextController = makeContextController(presentationData: self.presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node)), items: items, gesture: gesture)
             contactsController.presentInGlobalOverlay(contextController)
         }
     }
     
-    func activateSearch(placeholderNode: SearchBarPlaceholderNode) {
+    func activateSearch(placeholderNode: SearchBarPlaceholderNode?) {
         guard let (containerLayout, navigationBarHeight) = self.containerLayout, self.searchDisplayController == nil else {
             return
         }
         
-        self.isSearchDisplayControllerActive = true
+        self.isSearchDisplayControllerActive = ChatListNavigationBar.ActiveSearch(isExternal: placeholderNode == nil)
         self.storiesUnlocked = false
         
-        self.searchDisplayController = SearchDisplayController(presentationData: self.presentationData, mode: .list, contentNode: ContactsSearchContainerNode(context: self.context, onlyWriteable: false, categories: [.cloudContacts, .global, .deviceContacts], addContact: { [weak self] phoneNumber in
+        self.searchDisplayController = SearchDisplayController(presentationData: self.presentationData, mode: .navigation, contentNode: ContactsSearchContainerNode(context: self.context, glass: true, externalSearchBar: true, onlyWriteable: false, categories: [.cloudContacts, .global, .deviceContacts], addContact: { [weak self] phoneNumber in
             if let requestAddContact = self?.requestAddContact {
                 requestAddContact(phoneNumber)
             }
@@ -516,14 +515,14 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             if let requestDeactivateSearch = self?.requestDeactivateSearch {
                 requestDeactivateSearch()
             }
-        })
+        }, fieldStyle: placeholderNode?.fieldStyle ?? .modern, searchBarIsExternal: placeholderNode == nil)
         
         self.searchDisplayController?.containerLayoutUpdated(containerLayout, navigationBarHeight: navigationBarHeight, transition: .immediate)
         self.searchDisplayController?.activate(insertSubnode: { [weak self] subnode, isSearchBar in
             if let strongSelf = self {
                 if isSearchBar {
                     if let navigationBarComponentView = strongSelf.navigationBarView.view as? ChatListNavigationBar.View {
-                        navigationBarComponentView.addSubnode(subnode)
+                        navigationBarComponentView.searchContentNode?.addSubnode(subnode)
                     }
                 } else {
                     strongSelf.insertSubnode(subnode, aboveSubnode: strongSelf.contactListNode)
@@ -532,16 +531,11 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         }, placeholder: placeholderNode)
     }
     
-    func deactivateSearch(placeholderNode: SearchBarPlaceholderNode, animated: Bool) {
-        self.isSearchDisplayControllerActive = false
+    func deactivateSearch(placeholderNode: SearchBarPlaceholderNode?, animated: Bool) {
+        self.isSearchDisplayControllerActive = nil
         if let searchDisplayController = self.searchDisplayController {
-            let previousFrame = placeholderNode.frame
-            placeholderNode.frame = previousFrame.offsetBy(dx: 0.0, dy: 54.0)
-            
             searchDisplayController.deactivate(placeholder: placeholderNode, animated: animated)
             self.searchDisplayController = nil
-            
-            placeholderNode.frame = previousFrame
         }
     }
 }
@@ -569,7 +563,7 @@ private final class ContactContextExtractedContentSource: ContextExtractedConten
     }
 }
 
-private func presentContactAccessPicker(context: AccountContext) {
+public func presentContactAccessPicker(context: AccountContext) {
     if #available(iOS 18.0, *), let rootViewController = context.sharedContext.mainWindow?.viewController?.view.window?.rootViewController {
         var dismissImpl: (() -> Void)?
         let pickerView = ContactAccessPickerHostingView(completionHandler: { [weak rootViewController] ids in

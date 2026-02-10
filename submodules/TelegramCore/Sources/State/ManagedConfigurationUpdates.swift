@@ -14,11 +14,13 @@ func managedConfigurationUpdates(accountManager: AccountManager<TelegramAccountM
         |> mapToSignal { result, defaultHistoryTtl -> Signal<Void, NoError> in
             return postbox.transaction { transaction -> Signal<Void, NoError> in
                 switch result {
-                case let .config(flags, date, _, _, _, dcOptions, _, chatSizeMax, megagroupSizeMax, forwardedCountMax, onlineUpdatePeriodMs, _, _, _, _, _, _, _, editTimeLimit, revokeTimeLimit, revokePmTimeLimit, _, stickersRecentLimit, _, _, _, _, _, _, _, autoupdateUrlPrefix, gifSearchUsername, venueSearchUsername, imgSearchUsername, _, _, _, webfileDcId, suggestedLangCode, langPackVersion, baseLangPackVersion, reactionsDefault, autologinToken):
+                case let .config(configData):
+                    let (flags, dcOptions, chatSizeMax, megagroupSizeMax, forwardedCountMax, editTimeLimit, revokeTimeLimit, revokePmTimeLimit, stickersRecentLimit, autoupdateUrlPrefix, gifSearchUsername, venueSearchUsername, imgSearchUsername, webfileDcId, suggestedLangCode, langPackVersion, baseLangPackVersion, reactionsDefault, autologinToken) = (configData.flags, configData.dcOptions, configData.chatSizeMax, configData.megagroupSizeMax, configData.forwardedCountMax, configData.editTimeLimit, configData.revokeTimeLimit, configData.revokePmTimeLimit, configData.stickersRecentLimit, configData.autoupdateUrlPrefix, configData.gifSearchUsername, configData.venueSearchUsername, configData.imgSearchUsername, configData.webfileDcId, configData.suggestedLangCode, configData.langPackVersion, configData.baseLangPackVersion, configData.reactionsDefault, configData.autologinToken)
                     var addressList: [Int: [MTDatacenterAddress]] = [:]
                     for option in dcOptions {
                         switch option {
-                            case let .dcOption(flags, id, ipAddress, port, secret):
+                            case let .dcOption(dcOptionData):
+                                let (flags, id, ipAddress, port, secret) = (dcOptionData.flags, dcOptionData.id, dcOptionData.ipAddress, dcOptionData.port, dcOptionData.secret)
                                 let preferForMedia = (flags & (1 << 1)) != 0
                                 if addressList[Int(id)] == nil {
                                     addressList[Int(id)] = []
@@ -36,7 +38,7 @@ func managedConfigurationUpdates(accountManager: AccountManager<TelegramAccountM
                     }
                     
                     network.setTrustedTimestamp(date)
-                    
+
                     let blockedMode = (flags & (1 << 8)) != 0
                     
                     updateNetworkSettingsInteractively(transaction: transaction, network: network, { settings in
@@ -80,7 +82,8 @@ func managedConfigurationUpdates(accountManager: AccountManager<TelegramAccountM
                 
                     let messageAutoremoveSeconds: Int32?
                     switch defaultHistoryTtl {
-                    case let .defaultHistoryTTL(period):
+                    case let .defaultHistoryTTL(defaultHistoryTTLData):
+                        let period = defaultHistoryTTLData.period
                         if period != 0 {
                             messageAutoremoveSeconds = period
                         } else {

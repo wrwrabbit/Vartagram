@@ -11,7 +11,6 @@ import SearchBarNode
 import SearchUI
 import ContactListUI
 import ChatListUI
-import SegmentedControlNode
 import AttachmentTextInputPanelNode
 import ChatPresentationInterfaceState
 import ChatSendMessageActionUI
@@ -25,6 +24,10 @@ import ContextUI
 import TextFormat
 import ForwardAccessoryPanelNode
 import CounterControllerTitleView
+import SegmentControlComponent
+import ComponentFlow
+import ComponentDisplayAdapters
+import EdgeEffect
 
 final class PeerSelectionControllerNode: ASDisplayNode {
     private let context: AccountContext
@@ -58,9 +61,10 @@ final class PeerSelectionControllerNode: ASDisplayNode {
     private let emptyTextNode: ImmediateTextNode
     private let emptyButtonNode: SolidRoundedButtonNode
     
-    private let toolbarBackgroundNode: NavigationBackgroundNode?
-    private let toolbarSeparatorNode: ASDisplayNode?
-    private let segmentedControlNode: SegmentedControlNode?
+    private let bottomEdgeEffectView: EdgeEffectView?
+    private let segmentedControl: ComponentView<Empty>?
+    private var segmentedControlItems: [String]?
+    private var segmentedControlSelectedIndex: Int = 0
     
     private var textInputPanelNode: AttachmentTextInputPanelNode?
     private var forwardAccessoryPanelNode: ForwardAccessoryPanelNode?
@@ -129,7 +133,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
         self.animationCache = context.animationCache
         self.animationRenderer = context.animationRenderer
         
-        self.presentationInterfaceState = ChatPresentationInterfaceState(chatWallpaper: .builtin(WallpaperSettings()), theme: self.presentationData.theme, strings: self.presentationData.strings, dateTimeFormat: self.presentationData.dateTimeFormat, nameDisplayOrder: self.presentationData.nameDisplayOrder, limitsConfiguration: self.context.currentLimitsConfiguration.with { $0 }, fontSize: self.presentationData.chatFontSize, bubbleCorners: self.presentationData.chatBubbleCorners, accountPeerId: self.context.account.peerId, mode: .standard(.default), chatLocation: .peer(id: PeerId(0)), subject: nil, peerNearbyData: nil, greetingData: nil, pendingUnpinnedAllMessages: false, activeGroupCallInfo: nil, hasActiveGroupCall: false, importState: nil, threadData: nil, isGeneralThreadClosed: nil, replyMessage: nil, accountPeerColor: nil, businessIntro: nil)
+        self.presentationInterfaceState = ChatPresentationInterfaceState(chatWallpaper: .builtin(WallpaperSettings()), theme: self.presentationData.theme, preferredGlassType: .default, strings: self.presentationData.strings, dateTimeFormat: self.presentationData.dateTimeFormat, nameDisplayOrder: self.presentationData.nameDisplayOrder, limitsConfiguration: self.context.currentLimitsConfiguration.with { $0 }, fontSize: self.presentationData.chatFontSize, bubbleCorners: self.presentationData.chatBubbleCorners, accountPeerId: self.context.account.peerId, mode: .standard(.default), chatLocation: .peer(id: PeerId(0)), subject: nil, peerNearbyData: nil, greetingData: nil, pendingUnpinnedAllMessages: false, activeGroupCallInfo: nil, hasActiveGroupCall: false, threadData: nil, isGeneralThreadClosed: nil, replyMessage: nil, accountPeerColor: nil, businessIntro: nil)
         
         self.presentationInterfaceState = self.presentationInterfaceState.updatedInterfaceState { $0.withUpdatedForwardMessageIds(forwardedMessageIds) }
         self.presentationInterfaceStatePromise.set(self.presentationInterfaceState)
@@ -172,20 +176,16 @@ final class PeerSelectionControllerNode: ASDisplayNode {
         }
         
         if hasChatListSelector && hasContactSelector {
-            self.toolbarBackgroundNode = NavigationBackgroundNode(color: self.presentationData.theme.rootController.navigationBar.blurredBackgroundColor)
+            self.bottomEdgeEffectView = EdgeEffectView()
             
-            self.toolbarSeparatorNode = ASDisplayNode()
-            self.toolbarSeparatorNode?.backgroundColor = self.presentationData.theme.rootController.navigationBar.separatorColor
-            
-            let items = [
+            self.segmentedControl = ComponentView()
+            self.segmentedControlItems = [
                 self.presentationData.strings.DialogList_TabTitle,
                 self.presentationData.strings.Contacts_TabTitle
             ]
-            self.segmentedControlNode = SegmentedControlNode(theme: SegmentedControlTheme(theme: self.presentationData.theme), items: items.map { SegmentedControlItem(title: $0) }, selectedIndex: 0)
         } else {
-            self.toolbarBackgroundNode = nil
-            self.toolbarSeparatorNode = nil
-            self.segmentedControlNode = nil
+            self.bottomEdgeEffectView = nil
+            self.segmentedControl = nil
         }
         
         var chatListCategories: [ChatListNodeAdditionalCategory] = []
@@ -359,13 +359,9 @@ final class PeerSelectionControllerNode: ASDisplayNode {
         }
                 
         if hasChatListSelector && hasContactSelector {
-            self.segmentedControlNode!.selectedIndexChanged = { [weak self] index in
-                self?.indexChanged(index)
+            if let bottomEdgeEffectView = self.bottomEdgeEffectView {
+                self.view.addSubview(bottomEdgeEffectView)
             }
-            
-            self.addSubnode(self.toolbarBackgroundNode!)
-            self.addSubnode(self.toolbarSeparatorNode!)
-            self.addSubnode(self.segmentedControlNode!)
         }
         
         if let requirementsBackgroundNode = self.requirementsBackgroundNode, let requirementsSeparatorNode = self.requirementsSeparatorNode, let requirementsTextNode = self.requirementsTextNode {
@@ -586,7 +582,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                 return items
             }
 
-            let contextController = ContextController(presentationData: strongSelf.presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceView: sourceNode, passthroughTouches: true)), items: items |> map { ContextController.Items(content: .list($0)) })
+            let contextController = makeContextController(presentationData: strongSelf.presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceView: sourceNode, passthroughTouches: true)), items: items |> map { ContextController.Items(content: .list($0)) })
             contextController.dismissedForCancel = { [weak chatController] in
                 if let selectedMessageIds = chatController?.selectedMessageIds {
                     var forwardMessageIds = strongSelf.presentationInterfaceState.interfaceState.forwardMessageIds ?? []
@@ -704,7 +700,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                     }
                 }
                 
-                let controller = chatTextLinkEditController(sharedContext: strongSelf.context.sharedContext, updatedPresentationData: (presentationData, .never()), account: strongSelf.context.account, text: text?.string ?? "", link: link, apply: { [weak self] link in
+                let controller = chatTextLinkEditController(context: context, updatedPresentationData: (presentationData, .never()), text: text?.string ?? "", link: link, apply: { [weak self] link in
                     if let strongSelf = self, let inputMode = inputMode, let selectionRange = selectionRange {
                         if let link = link {
                             strongSelf.updateChatPresentationInterfaceState(animated: true, { state in
@@ -1024,9 +1020,6 @@ final class PeerSelectionControllerNode: ASDisplayNode {
         self.updateChatPresentationInterfaceState({ $0.updatedTheme(self.presentationData.theme) })
         
         self.requirementsBackgroundNode?.updateColor(color: self.presentationData.theme.rootController.navigationBar.blurredBackgroundColor, transition: .immediate)
-        self.toolbarBackgroundNode?.updateColor(color: self.presentationData.theme.rootController.navigationBar.blurredBackgroundColor, transition: .immediate)
-        self.toolbarSeparatorNode?.backgroundColor = self.presentationData.theme.rootController.navigationBar.separatorColor
-        self.segmentedControlNode?.updateTheme(SegmentedControlTheme(theme: self.presentationData.theme))
         
         if let (layout, navigationBarHeight, actualNavigationBarHeight) = self.containerLayout {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, actualNavigationBarHeight: actualNavigationBarHeight, transition: .immediate)
@@ -1093,19 +1086,51 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                 toolbarHeight = countPanelHeight
                 transition.updateFrame(node: countPanelNode, frame: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - countPanelHeight), size: CGSize(width: layout.size.width, height: countPanelHeight)))
             }
-        } else if let segmentedControlNode = self.segmentedControlNode, let toolbarBackgroundNode = self.toolbarBackgroundNode, let toolbarSeparatorNode = self.toolbarSeparatorNode {
+        } else if let segmentedControl = self.segmentedControl, let segmentedControlItems = self.segmentedControlItems, let bottomEdgeEffectView = self.bottomEdgeEffectView {
             if let textPanelHeight = textPanelHeight {
                 toolbarHeight = textPanelHeight + accessoryHeight
             } else {
                 toolbarHeight += 44.0
             }
-            transition.updateFrame(node: toolbarBackgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - toolbarHeight), size: CGSize(width: layout.size.width, height: toolbarHeight)))
-            toolbarBackgroundNode.update(size: toolbarBackgroundNode.bounds.size, transition: transition)
-            transition.updateFrame(node: toolbarSeparatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - toolbarHeight), size: CGSize(width: layout.size.width, height: UIScreenPixel)))
             
-            let controlSize = segmentedControlNode.updateLayout(.sizeToFit(maximumWidth: layout.size.width, minimumWidth: 200.0, height: 32.0), transition: transition)
+            let edgeEffectFrame = CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - toolbarHeight - 10.0), size: CGSize(width: layout.size.width, height: toolbarHeight + 10.0))
+            transition.updateFrame(view: bottomEdgeEffectView, frame: edgeEffectFrame)
+            bottomEdgeEffectView.update(content: self.presentationData.theme.list.plainBackgroundColor, blur: true, alpha: 0.3, rect: edgeEffectFrame, edge: .bottom, edgeSize: min(30.0, edgeEffectFrame.height), transition: ComponentTransition(transition))
+            
+            let controlSize = segmentedControl.update(
+                transition: ComponentTransition(transition),
+                component: AnyComponent(SegmentControlComponent(
+                    theme: self.presentationData.theme,
+                    items: (0 ..< segmentedControlItems.count).map { index in
+                        return SegmentControlComponent.Item(
+                            id: AnyHashable(index),
+                            title: segmentedControlItems[index]
+                        )
+                    },
+                    selectedId: AnyHashable(self.segmentedControlSelectedIndex),
+                    action: { [weak self] id in
+                        guard let self, let index = id.base as? Int else {
+                            return
+                        }
+                        self.segmentedControlSelectedIndex = max(0, min(segmentedControlItems.count - 1, index))
+                        if let (layout, navigationBarHeight, actualNavigationBarHeight) = self.containerLayout {
+                            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, actualNavigationBarHeight: actualNavigationBarHeight, transition: .animated(duration: 0.4, curve: .spring))
+                        }
+                        
+                        self.indexChanged(index)
+                    }
+                )),
+                environment: {},
+                containerSize: CGSize(width: 200.0, height: 32.0)
+            )
             let controlOrigin = layout.size.height - (textPanelHeight == nil ? toolbarHeight : 0.0) + floor((44.0 - controlSize.height) / 2.0)
-            transition.updateFrame(node: segmentedControlNode, frame: CGRect(origin: CGPoint(x: floor((layout.size.width - controlSize.width) / 2.0), y: controlOrigin), size: controlSize))
+            let segmentedControlFrame = CGRect(origin: CGPoint(x: floor((layout.size.width - controlSize.width) / 2.0), y: controlOrigin), size: controlSize)
+            if let segmentedControlView = segmentedControl.view {
+                if segmentedControlView.superview == nil {
+                    self.view.addSubview(segmentedControlView)
+                }
+                transition.updateFrame(view: segmentedControlView, frame: segmentedControlFrame)
+            }
         }
                 
         insets.top += navigationBarHeight
@@ -1371,7 +1396,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                     if let requestDeactivateSearch = self?.requestDeactivateSearch {
                         requestDeactivateSearch()
                     }
-                }
+                }, fieldStyle: placeholderNode.fieldStyle
             )
             
             self.searchDisplayController?.containerLayoutUpdated(containerLayout, navigationBarHeight: navigationBarHeight, transition: .immediate)
@@ -1446,7 +1471,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                 if let requestDeactivateSearch = self?.requestDeactivateSearch {
                     requestDeactivateSearch()
                 }
-            })
+            }, fieldStyle: placeholderNode.fieldStyle)
             
             self.searchDisplayController?.containerLayoutUpdated(containerLayout, navigationBarHeight: navigationBarHeight, transition: .immediate)
             self.searchDisplayController?.activate(insertSubnode: { [weak self, weak placeholderNode] subnode, isSearchBar in
@@ -1467,7 +1492,9 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                 self.chatListNode?.accessibilityElementsHidden = false
                 self.mainContainerNode?.accessibilityElementsHidden = false
                 
-                self.navigationBar?.setSecondaryContentNode(self.controller?.tabContainerNode, animated: true)
+                if let controller = self.controller, controller.chatListFiltersNonEmpty {
+                    self.navigationBar?.setSecondaryContentNode(self.controller?.tabContainerNode, animated: true)
+                }
                 self.controller?.setDisplayNavigationBar(true, transition: .animated(duration: 0.5, curve: .spring))
                 
                 searchDisplayController.deactivate(placeholder: placeholderNode)
@@ -1595,7 +1622,9 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                     }
                 }
             } else if let contactListNode = self.contactListNode {
-                self.navigationBar?.setSecondaryContentNode(self.controller?.tabContainerNode, animated: false)
+                if let controller = self.controller, controller.chatListFiltersNonEmpty {
+                    self.navigationBar?.setSecondaryContentNode(self.controller?.tabContainerNode, animated: false)
+                }
                 contactListNode.enableUpdates = false
                 
                 if let mainContainerNode = self.mainContainerNode {

@@ -650,7 +650,7 @@ final class ChatSendMessageContextScreenComponent: Component {
             if let current = self.actionsStackNode {
                 actionsStackNode = current
                 
-                actionsStackNode.replace(item: ContextControllerActionsListStackItem(
+                actionsStackNode.replace(item: makeContextControllerActionsListStackItem(
                     id: AnyHashable("items"),
                     items: items,
                     reactionItems: nil,
@@ -660,7 +660,7 @@ final class ChatSendMessageContextScreenComponent: Component {
                     dismissed: nil
                 ), animated: !transition.animation.isImmediate)
             } else {
-                actionsStackNode = ContextControllerActionsStackNode(
+                actionsStackNode = makeContextControllerActionsStackNode(
                     context: component.context,
                     getController: {
                         return nil
@@ -681,7 +681,7 @@ final class ChatSendMessageContextScreenComponent: Component {
                 }
                 
                 actionsStackNode.push(
-                    item: ContextControllerActionsListStackItem(
+                    item: makeContextControllerActionsListStackItem(
                         id: AnyHashable("items"),
                         items: items,
                         reactionItems: nil,

@@ -96,11 +96,11 @@ public extension TelegramEngine {
         }
 
         public func requestMessageActionUrlAuth(subject: MessageActionUrlSubject) -> Signal<MessageActionUrlAuthResult, NoError> {
-            _internal_requestMessageActionUrlAuth(account: self.account, subject: subject)
+            return _internal_requestMessageActionUrlAuth(account: self.account, subject: subject)
         }
 
-        public func acceptMessageActionUrlAuth(subject: MessageActionUrlSubject, allowWriteAccess: Bool) -> Signal<MessageActionUrlAuthResult, NoError> {
-            return _internal_acceptMessageActionUrlAuth(account: self.account, subject: subject, allowWriteAccess: allowWriteAccess)
+        public func acceptMessageActionUrlAuth(subject: MessageActionUrlSubject, allowWriteAccess: Bool, sharePhoneNumber: Bool) -> Signal<MessageActionUrlAuthResult, MessageActionUrlAuthError> {
+            return _internal_acceptMessageActionUrlAuth(account: self.account, subject: subject, allowWriteAccess: allowWriteAccess, sharePhoneNumber: sharePhoneNumber)
         }
 
         public func searchMessages(location: SearchMessagesLocation, query: String, state: SearchMessagesState?, centerId: MessageId? = nil, limit: Int32 = 100, inactiveSecretChatPeerIds: Set<PeerId>) -> Signal<(SearchMessagesResult, SearchMessagesState), NoError> {
@@ -495,8 +495,8 @@ public extension TelegramEngine {
             }
         }
 
-        public func sparseMessageList(peerId: EnginePeer.Id, threadId: Int64?, tag: EngineMessage.Tags) -> SparseMessageList {
-            return SparseMessageList(account: self.account, peerId: peerId, threadId: threadId, messageTag: tag)
+        public func sparseMessageList(peerId: EnginePeer.Id, threadId: Int64?, tag: EngineMessage.Tags, initialMessageIndex: MessageIndex? = nil) -> SparseMessageList {
+            return SparseMessageList(account: self.account, peerId: peerId, threadId: threadId, messageTag: tag, initialMessageIndex: initialMessageIndex)
         }
 
         public func sparseMessageCalendar(peerId: EnginePeer.Id, threadId: Int64?, tag: EngineMessage.Tags, displayMedia: Bool) -> SparseMessageCalendar {
@@ -544,11 +544,14 @@ public extension TelegramEngine {
                     signals.append(self.account.network.request(Api.functions.messages.search(flags: flags, peer: inputPeer, q: "", fromId: nil, savedPeerId: inputSavedPeer, savedReaction: nil, topMsgId: topMsgId, filter: filter, minDate: 0, maxDate: 0, offsetId: 0, addOffset: 0, limit: 1, maxId: 0, minId: 0, hash: 0))
                     |> map { result -> (count: Int32?, topId: Int32?) in
                         switch result {
-                        case let .messagesSlice(_, count, _, _, _, messages, _, _, _):
+                        case let .messagesSlice(messagesSliceData):
+                            let (count, messages) = (messagesSliceData.count, messagesSliceData.messages)
                             return (count, messages.first?.id(namespace: Namespaces.Message.Cloud)?.id)
-                        case let .channelMessages(_, _, count, _, messages, _, _, _):
+                        case let .channelMessages(channelMessagesData):
+                            let (count, messages) = (channelMessagesData.count, channelMessagesData.messages)
                             return (count, messages.first?.id(namespace: Namespaces.Message.Cloud)?.id)
-                        case let .messages(messages, _, _, _):
+                        case let .messages(messagesData):
+                            let messages = messagesData.messages
                             return (Int32(messages.count), messages.first?.id(namespace: Namespaces.Message.Cloud)?.id)
                         case .messagesNotModified:
                             return (nil, nil)
@@ -602,6 +605,10 @@ public extension TelegramEngine {
         
         public func togglePeerMessagesTranslationHidden(peerId: EnginePeer.Id, hidden: Bool) -> Signal<Never, NoError> {
             return _internal_togglePeerMessagesTranslationHidden(account: self.account, peerId: peerId, hidden: hidden)
+        }
+        
+        public func summarizeMessage(messageId: EngineMessage.Id, translateToLang: String?) -> Signal<Never, SummarizeError> {
+            return _internal_summarizeMessage(account: self.account, messageId: messageId, translateToLang: translateToLang)
         }
         
         public func transcribeAudio(messageId: MessageId) -> Signal<EngineAudioTranscriptionResult, NoError> {

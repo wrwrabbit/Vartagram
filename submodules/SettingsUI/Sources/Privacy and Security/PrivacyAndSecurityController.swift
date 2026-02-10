@@ -1406,10 +1406,10 @@ public func privacyAndSecurityController(
             let presentationData = context.sharedContext.currentPresentationData.with { $0 }
             let controller = textAlertController(
                 context: context, title: emailPattern, text: presentationData.strings.PrivacySettings_LoginEmailAlertText, actions: [
-                    TextAlertAction(type: .genericAction, title: presentationData.strings.PrivacySettings_LoginEmailAlertChange, action: {
+                    TextAlertAction(type: .defaultAction, title: presentationData.strings.PrivacySettings_LoginEmailAlertChange, action: {
                         setupEmailImpl?(emailPattern)
                     }),
-                    TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_Cancel, action: {
+                    TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {
                                         
                     })
                 ], actionLayout: .vertical
@@ -1627,6 +1627,20 @@ public func privacyAndSecurityController(
             updatedTwoStepAuthData?()
         }, dismiss: {})
         pushControllerImpl?(controller, true)
+    }
+    
+    if let focusOnItemTag {
+        var didFocusOnItem = false
+        controller.afterTransactionCompleted = { [weak controller] in
+            if !didFocusOnItem, let controller {
+                controller.forEachItemNode { itemNode in
+                    if let itemNode = itemNode as? ItemListItemNode, let tag = itemNode.tag, tag.isEqual(to: focusOnItemTag) {
+                        didFocusOnItem = true
+                        itemNode.displayHighlight()
+                    }
+                }
+            }
+        }
     }
     
     return controller

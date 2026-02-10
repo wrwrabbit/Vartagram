@@ -124,6 +124,9 @@ import AdsInfoScreen
 import PostSuggestionsSettingsScreen
 import ChatSendStarsScreen
 import ChatSendAsContextMenu
+import GlobalControlPanelsContext
+import ComponentFlow
+import ComponentDisplayAdapters
 
 extension ChatControllerImpl {
     func reloadChatLocation(chatLocation: ChatLocation, chatLocationContextHolder: Atomic<ChatLocationContextHolder?>, historyNode: ChatHistoryListNodeImpl, apply: @escaping ((ContainedViewLayoutTransition?) -> Void) -> Void) {
@@ -227,17 +230,6 @@ extension ChatControllerImpl {
             return
         }
         self.navigationBar?.userInfo = contentData.state.navigationUserInfo
-        
-        if self.chatTitleView?.titleContent != contentData.state.chatTitleContent {
-            var animateTitleContents = false
-            if !synchronous,  case let .messageOptions(_, _, info) = self.subject, case .reply = info {
-                animateTitleContents = true
-            }
-            if animateTitleContents && self.chatTitleView?.titleContent != nil {
-                self.chatTitleView?.animateLayoutTransition()
-            }
-            self.chatTitleView?.titleContent = contentData.state.chatTitleContent
-        }
         
         if let infoAvatar = contentData.state.infoAvatar {
             switch infoAvatar {
@@ -381,6 +373,13 @@ extension ChatControllerImpl {
         if previousState.pinnedMessage != contentData.state.pinnedMessage {
             animated = true
         }
+        if previousState.translationState?.isEnabled != contentData.state.translationState?.isEnabled {
+            animated = true
+        }
+        if previousState.chatTitleContent != contentData.state.chatTitleContent {
+            animated = true
+        }
+        
         var transition: ContainedViewLayoutTransition = animated ? .animated(duration: 0.4, curve: .spring) : .immediate
         if let forceAnimationTransition {
             transition = forceAnimationTransition
@@ -389,7 +388,7 @@ extension ChatControllerImpl {
             transition = .immediate
         }
         
-        self.updateChatPresentationInterfaceState(transition: transition, interactive: false, { presentationInterfaceState in
+        self.updateChatPresentationInterfaceState(transition: transition, interactive: false, force: true, { presentationInterfaceState in
             var presentationInterfaceState = presentationInterfaceState
             presentationInterfaceState = presentationInterfaceState.updatedPeer({ _ in
                 return contentData.state.renderedPeer
@@ -677,7 +676,7 @@ extension ChatControllerImpl {
         
         self.displayNode = ChatControllerNode(context: self.context, chatLocation: self.chatLocation, chatLocationContextHolder: self.chatLocationContextHolder, subject: self.subject, controllerInteraction: self.controllerInteraction!, chatPresentationInterfaceState: self.presentationInterfaceState, automaticMediaDownloadSettings: self.automaticMediaDownloadSettings, navigationBar: self.navigationBar, statusBar: self.statusBar, backgroundNode: self.chatBackgroundNode, controller: self)
         
-        if let currentItem = self.tempVoicePlaylistCurrentItem {
+        if let currentItem = self.globalControlPanelsContext?.tempVoicePlaylistCurrentItem {
             self.chatDisplayNode.historyNode.voicePlaylistItemChanged(nil, currentItem)
         }
         
@@ -988,7 +987,15 @@ extension ChatControllerImpl {
                     }
                     
                     if let errorText = errorText {
-                        strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: nil, text: errorText, actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                        let alertController = textAlertController(
+                            context: strongSelf.context,
+                            title: nil,
+                            text: errorText,
+                            actions: [
+                                TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})
+                            ]
+                        )
+                        strongSelf.present(alertController, in: .window(.root))
                         return
                     }
                 }
@@ -1092,10 +1099,15 @@ extension ChatControllerImpl {
                     strongSelf.chatDisplayNode.historyNode.scrollToEndOfHistory()
                 case let .businessLinkSetup(link):
                     if messages.count > 1 {
-                        strongSelf.present(standardTextAlertController(theme: AlertControllerTheme(presentationData: strongSelf.presentationData), title: nil, text: strongSelf.presentationData.strings.BusinessLink_AlertTextLimitText, actions: [
-                            TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})
-                        ]), in: .window(.root))
-                        
+                        let alertController = textAlertController(
+                            context: strongSelf.context,
+                            title: nil,
+                            text: strongSelf.presentationData.strings.BusinessLink_AlertTextLimitText,
+                            actions: [
+                                TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})
+                            ]
+                        )
+                        strongSelf.present(alertController, in: .window(.root))
                         return
                     }
                     
@@ -1384,7 +1396,7 @@ extension ChatControllerImpl {
             )))
             let items = ContextController.Items(content: .list(menuItems))
             
-            let controller = ContextController(presentationData: strongSelf.presentationData, source: .extracted(ChatMessageNavigationButtonContextExtractedContentSource(chatNode: strongSelf.chatDisplayNode, contentNode: strongSelf.chatDisplayNode.navigateButtons.mentionsButton.containerNode)), items: .single(items), recognizer: nil, gesture: gesture)
+            let controller = makeContextController(presentationData: strongSelf.presentationData, source: .extracted(ChatMessageNavigationButtonContextExtractedContentSource(chatNode: strongSelf.chatDisplayNode, contentNode: strongSelf.chatDisplayNode.navigateButtons.mentionsButton.containerNode)), items: .single(items), recognizer: nil, gesture: gesture)
             
             strongSelf.forEachController({ controller in
                 if let controller = controller as? TooltipScreen {
@@ -1552,7 +1564,7 @@ extension ChatControllerImpl {
             )))
             let items = ContextController.Items(content: .list(menuItems))
             
-            let controller = ContextController(presentationData: strongSelf.presentationData, source: .extracted(ChatMessageNavigationButtonContextExtractedContentSource(chatNode: strongSelf.chatDisplayNode, contentNode: strongSelf.chatDisplayNode.navigateButtons.reactionsButton.containerNode)), items: .single(items), recognizer: nil, gesture: gesture)
+            let controller = makeContextController(presentationData: strongSelf.presentationData, source: .extracted(ChatMessageNavigationButtonContextExtractedContentSource(chatNode: strongSelf.chatDisplayNode, contentNode: strongSelf.chatDisplayNode.navigateButtons.reactionsButton.containerNode)), items: .single(items), recognizer: nil, gesture: gesture)
             
             strongSelf.forEachController({ controller in
                 if let controller = controller as? TooltipScreen {
@@ -1872,8 +1884,9 @@ extension ChatControllerImpl {
                             titleString = self.presentationData.strings.Chat_DeletePaidMessageTon_Title
                             textString = self.presentationData.strings.Chat_DeletePaidMessageTon_Text
                         }
-                        self.present(standardTextAlertController(
-                            theme: AlertControllerTheme(presentationData: self.presentationData),
+                        
+                        let alertController = textAlertController(
+                            context: self.context,
                             title: titleString,
                             text: textString,
                             actions: [
@@ -1885,9 +1898,9 @@ extension ChatControllerImpl {
                                 }),
                                 TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_Cancel, action: {})
                             ],
-                            actionLayout: .vertical,
-                            parseMarkdown: true
-                        ), in: .window(.root))
+                            actionLayout: .vertical
+                        )
+                        self.present(alertController, in: .window(.root))
                     }
                     if let contextController {
                         contextController.dismiss(completion: commit)
@@ -3655,7 +3668,7 @@ extension ChatControllerImpl {
                     }
                 }
                 
-                let controller = chatTextLinkEditController(sharedContext: strongSelf.context.sharedContext, updatedPresentationData: strongSelf.updatedPresentationData, account: strongSelf.context.account, text: text?.string ?? "", link: link, allowEmpty: true, apply: { [weak self] link in
+                let controller = chatTextLinkEditController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, text: text?.string ?? "", link: link, apply: { [weak self] link in
                     if let strongSelf = self, let inputMode = inputMode, let selectionRange = selectionRange {
                         if let link {
                             if !link.isEmpty {
@@ -3823,11 +3836,32 @@ extension ChatControllerImpl {
             }
             
             let chatController = strongSelf.context.sharedContext.makeChatController(context: strongSelf.context, chatLocation: chatLocation, subject: .pinnedMessages(id: pinnedMessage.message.id), botStart: nil, mode: .standard(.previewing), params: nil)
+            chatController.customNavigationController = strongSelf.navigationController as? NavigationController
+            var dismissPreviewing: ((Bool) -> (() -> Void))?
+            chatController.dismissPreviewing = { animateIn in
+                return dismissPreviewing?(animateIn) ?? {}
+            }
+            
             chatController.canReadHistory.set(false)
             
             strongSelf.chatDisplayNode.messageTransitionNode.dismissMessageReactionContexts()
             
-            let contextController = ContextController(presentationData: strongSelf.presentationData, source: .controller(ChatContextControllerContentSourceImpl(controller: chatController, sourceNode: node, passthroughTouches: true)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+            let contextController = makeContextController(presentationData: strongSelf.presentationData, source: .controller(ChatContextControllerContentSourceImpl(controller: chatController, sourceNode: node, passthroughTouches: true)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+            dismissPreviewing = { [weak self, weak contextController] animateIn in
+                if let self, let contextController {
+                    if animateIn {
+                        contextController.statusBar.statusBarStyle = .Ignore
+                        contextController.animateDismissalIfNeeded()
+                        self.present(contextController, in: .window(.root))
+                        return {
+                            contextController.dismissNow()
+                        }
+                    } else {
+                        contextController.dismiss()
+                    }
+                }
+                return {}
+            }
             strongSelf.presentInGlobalOverlay(contextController)
         }, joinGroupCall: { [weak self] activeCall in
             guard let strongSelf = self, let peer = strongSelf.presentationInterfaceState.renderedPeer?.peer else {
@@ -3941,7 +3975,7 @@ extension ChatControllerImpl {
             
             strongSelf.chatDisplayNode.messageTransitionNode.dismissMessageReactionContexts()
             
-            let contextController = ContextController(presentationData: strongSelf.presentationData, source: .reference(ChatControllerContextReferenceContentSource(controller: strongSelf, sourceView: node.view, insets: UIEdgeInsets(top: 0.0, left: 0.0, bottom: bottomInset, right: 0.0), contentInsets: UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0))), items: .single(ContextController.Items(content: .list(items))), gesture: gesture, workaroundUseLegacyImplementation: true)
+            let contextController = makeContextController(presentationData: strongSelf.presentationData, source: .reference(ChatControllerContextReferenceContentSource(controller: strongSelf, sourceView: node.view, insets: UIEdgeInsets(top: 0.0, left: 0.0, bottom: bottomInset, right: 0.0), contentInsets: UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0))), items: .single(ContextController.Items(content: .list(items))), gesture: gesture, workaroundUseLegacyImplementation: true)
             contextController.dismissed = { [weak self] in
                 if let strongSelf = self {
                     strongSelf.updateChatPresentationInterfaceState(interactive: true, {
@@ -4607,6 +4641,44 @@ extension ChatControllerImpl {
             })
         }
         
+        var mediaPlayback = false
+        var liveLocationMode: GlobalControlPanelsContext.LiveLocationMode?
+        if case .standard = self.mode {
+            //mediaAccessoryPanelVisibility = .specific(size: .compact)
+            mediaPlayback = true
+            liveLocationMode = self.chatLocation.peerId.flatMap(GlobalControlPanelsContext.LiveLocationMode.peer)
+        }
+        
+        var groupCallPanelSource: EnginePeer.Id?
+        switch self.chatLocation {
+        case let .peer(peerId):
+            switch self.subject {
+            case .message, .none:
+                groupCallPanelSource = peerId
+            default:
+                break
+            }
+        case .replyThread, .customChatContents:
+            break
+        }
+        
+        let globalControlPanelsContext = GlobalControlPanelsContext(
+            context: self.context,
+            mediaPlayback: mediaPlayback,
+            liveLocationMode: liveLocationMode,
+            groupCalls: groupCallPanelSource,
+            chatListNotices: false
+        )
+        self.globalControlPanelsContext = globalControlPanelsContext
+        self.globalControlPanelsContextStateDisposable = (globalControlPanelsContext.state
+        |> deliverOnMainQueue).startStrict(next: { [weak self] state in
+            guard let self else {
+                return
+            }
+            self.globalControlPanelsContextState = state
+            self.requestLayout(transition: .animated(duration: 0.4, curve: .spring))
+        })
+        
         self.displayNodeDidLoad()
     }
     
@@ -4819,7 +4891,18 @@ extension ChatControllerImpl {
                                         return true
                                 }
                             })
-                            strongSelf.chatTitleView?.inputActivities = (peerId, displayActivities)
+                            strongSelf.chatTitleView?.updateActivities(
+                                activities: ChatTitleComponent.Activities(
+                                    peerId: peerId,
+                                    items: displayActivities.map { item -> ChatTitleComponent.Activities.Item in
+                                        return ChatTitleComponent.Activities.Item(
+                                            peer: EnginePeer(item.0),
+                                            activity: item.1
+                                        )
+                                    }
+                                ),
+                                transition: .spring(duration: 0.4)
+                            )
                             
                             strongSelf.peerInputActivitiesPromise.set(.single(activities))
                             

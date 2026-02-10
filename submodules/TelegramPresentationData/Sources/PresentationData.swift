@@ -217,11 +217,12 @@ public final class InitialPresentationDataAndSettings {
     public let mediaInputSettings: MediaInputSettings
     public let mediaDisplaySettings: MediaDisplaySettings
     public let stickerSettings: StickerSettings
+    public let chatSettings: ChatSettings
     public let experimentalUISettings: ExperimentalUISettings
     public let ptgSettings: PtgSettings
     public let ptgSecretPasscodes: PtgSecretPasscodes
-    
-    public init(presentationData: PresentationData, automaticMediaDownloadSettings: MediaAutoDownloadSettings, autodownloadSettings: AutodownloadSettings, callListSettings: CallListSettings, inAppNotificationSettings: InAppNotificationSettings, mediaInputSettings: MediaInputSettings, mediaDisplaySettings: MediaDisplaySettings, stickerSettings: StickerSettings, experimentalUISettings: ExperimentalUISettings, ptgSettings: PtgSettings, ptgSecretPasscodes: PtgSecretPasscodes) {
+
+    public init(presentationData: PresentationData, automaticMediaDownloadSettings: MediaAutoDownloadSettings, autodownloadSettings: AutodownloadSettings, callListSettings: CallListSettings, inAppNotificationSettings: InAppNotificationSettings, mediaInputSettings: MediaInputSettings, mediaDisplaySettings: MediaDisplaySettings, stickerSettings: StickerSettings, chatSettings: ChatSettings, experimentalUISettings: ExperimentalUISettings, ptgSettings: PtgSettings, ptgSecretPasscodes: PtgSecretPasscodes) {
         self.presentationData = presentationData
         self.automaticMediaDownloadSettings = automaticMediaDownloadSettings
         self.autodownloadSettings = autodownloadSettings
@@ -230,11 +231,12 @@ public final class InitialPresentationDataAndSettings {
         self.mediaInputSettings = mediaInputSettings
         self.mediaDisplaySettings = mediaDisplaySettings
         self.stickerSettings = stickerSettings
+        self.chatSettings = chatSettings
         self.experimentalUISettings = experimentalUISettings
         self.ptgSettings = ptgSettings
         self.ptgSecretPasscodes = ptgSecretPasscodes
     }
-    
+
     public func withUpdatedPtgSecretPasscodes(_ ptgSecretPasscodes: PtgSecretPasscodes) -> InitialPresentationDataAndSettings {
         return InitialPresentationDataAndSettings(presentationData: self.presentationData, automaticMediaDownloadSettings: self.automaticMediaDownloadSettings, autodownloadSettings: self.autodownloadSettings, callListSettings: self.callListSettings, inAppNotificationSettings: self.inAppNotificationSettings, mediaInputSettings: self.mediaInputSettings, mediaDisplaySettings: self.mediaDisplaySettings, stickerSettings: self.stickerSettings, experimentalUISettings: self.experimentalUISettings, ptgSettings: self.ptgSettings, ptgSecretPasscodes: ptgSecretPasscodes)
     }
@@ -255,7 +257,8 @@ public func currentPresentationDataAndSettings(accountManager: AccountManager<Te
         var experimentalUISettings: PreferencesEntry?
         var contactSynchronizationSettings: PreferencesEntry?
         var stickerSettings: PreferencesEntry?
-        
+        var chatSettings: PreferencesEntry?
+
         init(
             ptgSettings: PreferencesEntry?,
             ptgSecretPasscodes: PreferencesEntry?,
@@ -269,7 +272,8 @@ public func currentPresentationDataAndSettings(accountManager: AccountManager<Te
             mediaDisplaySettings: PreferencesEntry?,
             experimentalUISettings: PreferencesEntry?,
             contactSynchronizationSettings: PreferencesEntry?,
-            stickerSettings: PreferencesEntry?
+            stickerSettings: PreferencesEntry?,
+            chatSettings: PreferencesEntry?
         ) {
             self.ptgSettings = ptgSettings
             self.ptgSecretPasscodes = ptgSecretPasscodes
@@ -284,6 +288,7 @@ public func currentPresentationDataAndSettings(accountManager: AccountManager<Te
             self.experimentalUISettings = experimentalUISettings
             self.contactSynchronizationSettings = contactSynchronizationSettings
             self.stickerSettings = stickerSettings
+            self.chatSettings = chatSettings
         }
     }
     
@@ -301,7 +306,8 @@ public func currentPresentationDataAndSettings(accountManager: AccountManager<Te
         let experimentalUISettings = transaction.getSharedData(ApplicationSpecificSharedDataKeys.experimentalUISettings)
         let contactSynchronizationSettings = transaction.getSharedData(ApplicationSpecificSharedDataKeys.contactSynchronizationSettings)
         let stickerSettings = transaction.getSharedData(ApplicationSpecificSharedDataKeys.stickerSettings)
-        
+        let chatSettings = transaction.getSharedData(ApplicationSpecificSharedDataKeys.chatSettings)
+
         return InternalData(
             ptgSettings: ptgSettings,
             ptgSecretPasscodes: ptgSecretPasscodes,
@@ -315,7 +321,8 @@ public func currentPresentationDataAndSettings(accountManager: AccountManager<Te
             mediaDisplaySettings: mediaDisplaySettings,
             experimentalUISettings: experimentalUISettings,
             contactSynchronizationSettings: contactSynchronizationSettings,
-            stickerSettings: stickerSettings
+            stickerSettings: stickerSettings,
+            chatSettings: chatSettings
         )
     }
     |> deliverOn(Queue(name: "PresentationData-Load", qos: .userInteractive))
@@ -383,6 +390,13 @@ public func currentPresentationDataAndSettings(accountManager: AccountManager<Te
             stickerSettings = StickerSettings.defaultSettings
         }
         
+        let chatSettings: ChatSettings
+        if let value = internalData.chatSettings?.get(ChatSettings.self) {
+            chatSettings = value
+        } else {
+            chatSettings = ChatSettings.defaultSettings
+        }
+
         let experimentalUISettings: ExperimentalUISettings = internalData.experimentalUISettings?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
         
         let contactSettings: ContactSynchronizationSettings = internalData.contactSynchronizationSettings?.get(ContactSynchronizationSettings.self) ?? ContactSynchronizationSettings.defaultSettings
@@ -431,7 +445,7 @@ public func currentPresentationDataAndSettings(accountManager: AccountManager<Te
         
         let chatBubbleCorners = PresentationChatBubbleCorners(mainRadius: CGFloat(themeSettings.chatBubbleSettings.mainRadius), auxiliaryRadius: CGFloat(themeSettings.chatBubbleSettings.auxiliaryRadius), mergeBubbleCorners: themeSettings.chatBubbleSettings.mergeBubbleCorners)
         
-        return InitialPresentationDataAndSettings(presentationData: PresentationData(strings: stringsValue, theme: theme, autoNightModeTriggered: autoNightModeTriggered, chatWallpaper: effectiveChatWallpaper, chatFontSize: chatFontSize, chatBubbleCorners: chatBubbleCorners, listsFontSize: listsFontSize, dateTimeFormat: dateTimeFormat, nameDisplayOrder: nameDisplayOrder, nameSortOrder: nameSortOrder, reduceMotion: themeSettings.reduceMotion, largeEmoji: themeSettings.largeEmoji), automaticMediaDownloadSettings: automaticMediaDownloadSettings, autodownloadSettings: autodownloadSettings, callListSettings: callListSettings, inAppNotificationSettings: inAppNotificationSettings, mediaInputSettings: mediaInputSettings, mediaDisplaySettings: mediaDisplaySettings, stickerSettings: stickerSettings, experimentalUISettings: experimentalUISettings, ptgSettings: PtgSettings(internalData.ptgSettings), ptgSecretPasscodes: PtgSecretPasscodes(internalData.ptgSecretPasscodes))
+        return InitialPresentationDataAndSettings(presentationData: PresentationData(strings: stringsValue, theme: theme, autoNightModeTriggered: autoNightModeTriggered, chatWallpaper: effectiveChatWallpaper, chatFontSize: chatFontSize, chatBubbleCorners: chatBubbleCorners, listsFontSize: listsFontSize, dateTimeFormat: dateTimeFormat, nameDisplayOrder: nameDisplayOrder, nameSortOrder: nameSortOrder, reduceMotion: themeSettings.reduceMotion, largeEmoji: themeSettings.largeEmoji), automaticMediaDownloadSettings: automaticMediaDownloadSettings, autodownloadSettings: autodownloadSettings, callListSettings: callListSettings, inAppNotificationSettings: inAppNotificationSettings, mediaInputSettings: mediaInputSettings, mediaDisplaySettings: mediaDisplaySettings, stickerSettings: stickerSettings, chatSettings: chatSettings, experimentalUISettings: experimentalUISettings, ptgSettings: PtgSettings(internalData.ptgSettings), ptgSecretPasscodes: PtgSecretPasscodes(internalData.ptgSecretPasscodes))
     }
 }
 
@@ -733,12 +747,12 @@ public func chatServiceBackgroundColor(wallpaper: TelegramWallpaper, mediaBox: M
 
 public func updatedPresentationData(accountManager: AccountManager<TelegramAccountManagerTypes>, applicationInForeground: Signal<Bool, NoError>, systemUserInterfaceStyle: Signal<WindowUserInterfaceStyle, NoError>) -> Signal<PresentationData, NoError> {
     // made adjustments to reduce number of unneeded updates reported by this signal
-    
+
     let systemUserInterfaceStyle = combineLatest(systemUserInterfaceStyle, applicationInForeground)
     |> filter { $0.1 }
     |> map { $0.0 }
     |> distinctUntilChanged
-    
+
     return combineLatest(accountManager.sharedData(keys: [SharedDataKeys.localizationSettings, ApplicationSpecificSharedDataKeys.presentationThemeSettings, ApplicationSpecificSharedDataKeys.contactSynchronizationSettings]), systemUserInterfaceStyle)
     |> mapToSignal { sharedData, systemUserInterfaceStyle -> Signal<PresentationData, NoError> in
         let themeSettings: PresentationThemeSettings

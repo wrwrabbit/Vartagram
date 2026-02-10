@@ -24,6 +24,7 @@ swift_library(
         "//submodules/AccountContext",
         "//submodules/AppBundle",
         "//submodules/ItemListUI",
+        "//submodules/ContextUI",
         "//submodules/TelegramStringFormatting",
         "//submodules/PresentationDataUtils",
         "//submodules/Components/SheetComponent",
@@ -46,6 +47,9 @@ swift_library(
         "//submodules/TelegramUI/Components/LottieComponent",
         "//submodules/TelegramUI/Components/TextFieldComponent",
         "//submodules/TelegramUI/Components/Gifts/GiftLoadingShimmerView",
+        "//submodules/TelegramUI/Components/EdgeEffect",
+        "//submodules/TelegramUI/Components/GlassBackgroundComponent",
+        "//submodules/TelegramUI/Components/ContextControllerImpl",
     ],
     visibility = [
         "//visibility:public",

@@ -979,7 +979,7 @@ final class ShareWithPeersScreenComponent: Component {
                     })))
                 }
                 
-                let contextController = ContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, actionsOnTop: true)), items: .single(ContextController.Items(id: AnyHashable(0), content: .list(items))), gesture: nil)
+                let contextController = makeContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, actionsOnTop: true)), items: .single(ContextController.Items(id: AnyHashable(0), content: .list(items))), gesture: nil)
                 controller.presentInGlobalOverlay(contextController)
             }
         }
@@ -992,7 +992,7 @@ final class ShareWithPeersScreenComponent: Component {
             let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 }).withUpdated(theme: environment.theme)
             
             let promptController = promptController(
-                sharedContext: component.context.sharedContext,
+                context: component.context,
                 updatedPresentationData: (initial: presentationData, signal: .single(presentationData)),
                 text: presentationData.strings.Stories_CreateAlbum_Title,
                 titleFont: .bold,
@@ -2772,7 +2772,7 @@ final class ShareWithPeersScreenComponent: Component {
                     component: AnyComponentWithIdentity(id: "close", component: AnyComponent(
                         BundleIconComponent(
                             name: "Navigation/Close",
-                            tintColor: environment.theme.rootController.navigationBar.glassBarButtonForegroundColor
+                            tintColor: environment.theme.chat.inputPanel.panelControlColor
                         )
                     )),
                     action: { [weak self] _ in
