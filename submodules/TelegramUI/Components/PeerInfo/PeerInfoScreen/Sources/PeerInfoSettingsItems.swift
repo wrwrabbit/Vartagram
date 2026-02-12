@@ -20,6 +20,8 @@ enum SettingsSection: Int, CaseIterable {
     case accounts
     case myProfile
     case proxy
+    case secretPasscodes
+    case ptgSettings
     case apps
     case shortcuts
     case advanced
@@ -37,14 +39,16 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     for section in SettingsSection.allCases {
         items[section] = []
     }
-    
+
+    /*
     let setPhotoTitle: String
     if let peer = data.peer, !peer.profileImageRepresentations.isEmpty {
         setPhotoTitle = presentationData.strings.Settings_ChangeProfilePhoto
     } else {
         setPhotoTitle = presentationData.strings.Settings_SetProfilePhotoOrVideo
     }
-    
+    */
+
     var setStatusTitle: String = ""
     let displaySetStatus: Bool
     var hasEmojiStatus = false
@@ -69,7 +73,8 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
             interaction.openSettings(.profileColor)
         }))
     }
-    
+
+    /*
     items[.edit]!.append(PeerInfoScreenActionItem(id: 2, text: setPhotoTitle, icon: UIImage(bundleImageName: "Settings/SetAvatar"), action: {
         interaction.openSettings(.avatar)
     }))
@@ -79,6 +84,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
             interaction.openSettings(.username)
         }))
     }
+    */
     
     if let settings = data.globalSettings {
         if settings.premiumGracePeriod {
@@ -143,10 +149,12 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
                     interaction.accountContextMenu(peerAccountContext.account.id, node, gesture)
                 }))
             }
-            
+
+            /*
             items[.accounts]!.append(PeerInfoScreenActionItem(id: 100, text: presentationData.strings.Settings_AddAccount, icon: PresentationResourcesItemList.plusIconImage(presentationData.theme), action: {
                 interaction.openSettings(.addAccount)
             }))
+            */
         }
         
         items[.myProfile]!.append(PeerInfoScreenDisclosureItem(id: 0, text: presentationData.strings.Settings_MyProfile, icon: PresentationResourcesSettings.myProfile, action: {
@@ -323,6 +331,25 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     }))
     items[.support]!.append(PeerInfoScreenDisclosureItem(id: 2, text: presentationData.strings.Settings_Tips, icon: PresentationResourcesSettings.tips, action: {
         interaction.openSettings(.tips)
+    }))
+
+    let currentAppIcon: PresentationAppIcon?
+    let appIcons = context.sharedContext.applicationBindings.getAvailableAlternateIcons()
+    if let alternateIconName = context.sharedContext.applicationBindings.getAlternateIconName() {
+        currentAppIcon = appIcons.filter { $0.name == alternateIconName }.first ?? appIcons.filter { $0.isDefault }.first
+    } else {
+        currentAppIcon = appIcons.filter { $0.isDefault }.first
+    }
+
+    items[.ptgSettings]!.append(PeerInfoScreenDisclosureItem(id: 0, text: presentationData.strings.PtgSettings_Title, icon: renderIcon(name: currentAppIcon!.imageName, mask: PresentationResourcesSettings.savedMessages?.cgImage), action: {
+        interaction.openSettings(.ptgSettings)
+    }))
+
+    items[.secretPasscodes]!.append(PeerInfoScreenActionItem(id: 0, text: presentationData.strings.Settings_EnterSecretPasscode, icon: PresentationResourcesItemList.enterSecretPasscodeIcon(presentationData.theme), action: {
+        interaction.openSettings(.enterSecretPasscode)
+    }))
+    items[.secretPasscodes]!.append(PeerInfoScreenActionItem(id: 1, text: presentationData.strings.Settings_ManageSecretPasscodes, icon: PresentationResourcesItemList.manageSecretPasscodesIcon(presentationData.theme), action: {
+        interaction.openSettings(.manageSecretPasscodes)
     }))
     
     var result: [(AnyHashable, [PeerInfoScreenItem])] = []

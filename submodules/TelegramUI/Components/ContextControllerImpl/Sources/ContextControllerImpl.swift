@@ -1103,6 +1103,12 @@ final class ContextControllerNode: ViewControllerTracingNode, ASScrollViewDelega
             }
         }
     }
+
+    func restoreExtractedNodes() {
+        if let sourceContainer = self.sourceContainer {
+            sourceContainer.restoreExtractedNodes()
+        }
+    }
     
     func addRelativeContentOffset(_ offset: CGPoint, transition: ContainedViewLayoutTransition) {
         if let sourceContainer = self.sourceContainer {
@@ -2126,6 +2132,16 @@ public final class ContextControllerImpl: ViewController, ContextController, Sta
     public func dismissNow() {
         self.presentingViewController?.dismiss(animated: false, completion: nil)
         self.dismissed?()
+    }
+
+    public func dismissWithoutAnimation() {
+        if !self.wasDismissed {
+            self.wasDismissed = true
+
+            self.controllerNode.restoreExtractedNodes()
+            self.presentingViewController?.dismiss(animated: false, completion: nil)
+            self.dismissed?()
+        }
     }
     
     public func dismissWithReaction(value: MessageReaction.Reaction, targetView: UIView, hideNode: Bool, animateTargetContainer: UIView?, addStandaloneReactionAnimation: ((StandaloneReactionAnimation) -> Void)?, onHit: (() -> Void)?, completion: (() -> Void)?) {

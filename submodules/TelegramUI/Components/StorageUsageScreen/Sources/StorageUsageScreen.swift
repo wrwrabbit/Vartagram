@@ -965,8 +965,8 @@ final class StorageUsageScreenComponent: Component {
                 
                 headerOffset = min(headerOffset, minOffset)
                 
-                let animatedTransition = ComponentTransition(animation: .curve(duration: 0.18, curve: .easeInOut))
-                let navigationBackgroundAlpha: CGFloat = abs(headerOffset - minOffset) < 4.0 ? 1.0 : 0.0
+                let _ /*animatedTransition*/ = ComponentTransition(animation: .curve(duration: 0.18, curve: .easeInOut))
+                let _ /*navigationBackgroundAlpha*/: CGFloat = abs(headerOffset - minOffset) < 4.0 ? 1.0 : 0.0
 
                 /*
                 var buttonsMasterAlpha: CGFloat = 1.0
@@ -1002,12 +1002,14 @@ final class StorageUsageScreenComponent: Component {
                 if let chartAvatarNode = self.chartAvatarNode {
                     transition.setAlpha(view: chartAvatarNode.view, alpha: headerContentsAlpha)
                 }
+                /*
                 if let pieChartComponentView = self.pieChartView.view {
                     transition.setAlpha(view: pieChartComponentView, alpha: headerContentsAlpha)
                 }
                 if let chartTotalLabelView = self.chartTotalLabel.view {
                     transition.setAlpha(view: chartTotalLabelView, alpha: headerContentsAlpha)
                 }
+                */
             }
             
             /*
@@ -1143,7 +1145,7 @@ final class StorageUsageScreenComponent: Component {
                 component.overNavigationContainer.addSubview(self.navigationRightButtonsBackground)
             }
 
-            var wasLockedAtPanels = false
+            let wasLockedAtPanels = false
             /*
             if let panelContainerView = self.panelContainer.view, let navigationMetrics = self.navigationMetrics {
                 if self.scrollView.bounds.minY > 0.0 && abs(self.scrollView.bounds.minY - (panelContainerView.frame.minY - navigationMetrics.navigationHeight)) <= UIScreenPixel {
@@ -1234,7 +1236,7 @@ final class StorageUsageScreenComponent: Component {
             }
             
             let navigationRightButtonMaxWidth: CGFloat = max(navigationEditButtonSize.width, navigationDoneButtonSize.width)
-            */
+            
             var rightButtonsWidth: CGFloat = 0.0
             let isSelectingPeers = self.aggregatedData?.isSelectingPeers ?? false
             if let navigationEditButtonView = self.navigationEditButton.view {
@@ -1254,6 +1256,7 @@ final class StorageUsageScreenComponent: Component {
             self.navigationRightButtonsBackground.update(size: navigationRightButtonsBackgroundSize, cornerRadius: 44.0 * 0.5, isDark: environment.theme.overallDarkAppearance, tintColor: .init(kind: .panel), isInteractive: true, transition: transition)
             let navigationRightButtonsBackgroundFrame = CGRect(origin: CGPoint(x: availableSize.width - environment.safeInsets.right - 16.0 - navigationRightButtonsBackgroundSize.width, y: environment.statusBarHeight + 2.0 + floor((environment.navigationHeight - environment.statusBarHeight - 44.0) * 0.5)), size: navigationRightButtonsBackgroundSize)
             transition.setFrame(view: self.navigationRightButtonsBackground, frame: navigationRightButtonsBackgroundFrame)
+            */
 
             self.backgroundColor = environment.theme.list.blocksBackgroundColor
             
@@ -1548,6 +1551,7 @@ final class StorageUsageScreenComponent: Component {
                 }
             }
             */
+            let navigationRightButtonMaxWidth: CGFloat = 0.0
 
             contentHeight += 23.0
             

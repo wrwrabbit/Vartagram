@@ -580,7 +580,7 @@ public final class AppLockContextImpl: AppLockContext {
             if self.secretPasscodesTimeoutCheckTimer == nil && self.applicationBindings.isMainApp {
                 // set timer to check for secret passcodes timeout when the app is locked or in background while playing audio or video in picture-in-picture mode
                 
-                weak var weakSelf = self
+                weak let weakSelf = self
                 
                 func resetTimer() {
                     guard let strongSelf = weakSelf else {

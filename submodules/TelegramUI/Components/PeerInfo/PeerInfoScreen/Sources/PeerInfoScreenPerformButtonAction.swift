@@ -560,7 +560,7 @@ extension PeerInfoScreenNode {
                         }
                     }
                     
-                    if strongSelf.peerId.namespace == Namespaces.Peer.CloudUser && user.botInfo == nil && !user.flags.contains(.isSupport) {
+                    if (strongSelf.peerId.namespace == Namespaces.Peer.CloudUser && user.botInfo == nil && !user.flags.contains(.isSupport)) || strongSelf.peerId.namespace == Namespaces.Peer.SecretChat {
                         if let cachedUserData = strongSelf.data?.cachedData as? CachedUserData, let _ = cachedUserData.sendPaidMessageStars {
                             
                         } else {
@@ -569,7 +569,7 @@ extension PeerInfoScreenNode {
                             }, action: { _, f in
                                 f(.dismissWithoutContent)
                                 
-                                self?.openStartSecretChat()
+                                self?.openStartSecretChat(user.id)
                             })))
                         }
                     }
@@ -642,7 +642,8 @@ extension PeerInfoScreenNode {
                             }
                         })))
                     }
-                    
+
+                    /*
                     if strongSelf.peerId.namespace == Namespaces.Peer.CloudUser, !user.isDeleted && user.botInfo == nil && !user.flags.contains(.isSupport) {
                         if let cachedData = data.cachedData as? CachedUserData, cachedData.disallowedGifts == .All {
                         } else {
@@ -657,6 +658,7 @@ extension PeerInfoScreenNode {
                             })))
                         }
                     }
+                    */
                     
                     if let cachedData = data.cachedData as? CachedUserData, canTranslateChats(context: strongSelf.context), cachedData.flags.contains(.translationHidden) {
                         items.append(.action(ContextMenuActionItem(text: presentationData.strings.Conversation_ContextMenuTranslate, icon: { theme in
@@ -789,8 +791,8 @@ extension PeerInfoScreenNode {
                     } else if strongSelf.peerId.namespace == Namespaces.Peer.SecretChat && data.isContact {
                         if let cachedData = data.cachedData as? CachedUserData, cachedData.isBlocked {
                         } else {
-                            items.append(.action(ContextMenuActionItem(text: presentationData.strings.Conversation_BlockUser, icon: { theme in
-                                generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Restrict"), color: theme.contextMenu.primaryColor)
+                            items.append(.action(ContextMenuActionItem(text: presentationData.strings.Conversation_BlockUser, textColor: .destructive, icon: { theme in
+                                generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Restrict"), color: theme.contextMenu.destructiveColor)
                             }, action: { [weak self] _, f in
                                 f(.dismissWithoutContent)
                                 
@@ -798,6 +800,30 @@ extension PeerInfoScreenNode {
                             })))
                         }
                     }
+
+                    items.append(.action(ContextMenuActionItem(text: presentationData.strings.ChatList_DeleteChat, textColor: .destructive, icon: { theme in
+                        generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Delete"), color: theme.contextMenu.destructiveColor)
+                    }, action: { _, f in
+                        f(.dismissWithoutContent)
+
+                        guard let strongSelf = self else {
+                            return
+                        }
+                        guard let controller = strongSelf.controller, let navigationController = controller.navigationController as? NavigationController else {
+                            return
+                        }
+                        guard let tabController = navigationController.viewControllers.first as? TabBarController else {
+                            return
+                        }
+                        for childController in tabController.controllers {
+                            if let chatListController = childController as? ChatListController {
+                                chatListController.deletePeerChat(peerId: strongSelf.peerId, joined: false, suppressClear: true, presentingController: strongSelf.controller, removalStarted: { [weak navigationController] in
+                                    navigationController?.popToRoot(animated: true)
+                                })
+                                break
+                            }
+                        }
+                    })))
                     
                     let finalItemsCount = items.count
                     
@@ -883,9 +909,7 @@ extension PeerInfoScreenNode {
                             generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Report"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] c, f in
                             self?.openReport(type: .default, contextController: c, backAction: { c in
-                                if let mainItemsImpl = mainItemsImpl {
-                                    c.setItems(mainItemsImpl() |> map { ContextController.Items(content: .list($0)) }, minHeight: nil, animated: true)
-                                }
+                                c.popItems()
                             })
                         })))
                     }
@@ -1138,9 +1162,7 @@ extension PeerInfoScreenNode {
                             generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Report"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] c, f in
                             self?.openReport(type: .default, contextController: c, backAction: { c in
-                                if let mainItemsImpl = mainItemsImpl {
-                                    c.setItems(mainItemsImpl() |> map { ContextController.Items(content: .list($0)) }, minHeight: nil, animated: true)
-                                }
+                                c.popItems()
                             })
                         })))
                     }

@@ -3229,7 +3229,8 @@ private func dataSearchableItems(context: AccountContext) -> [SettingsSearchable
     let presentDataSettings: (AccountContext, (SettingsSearchableItemPresentation, ViewController?) -> Void, DataAndStorageEntryTag?) -> Void = { context, present, itemTag in
         present(.push, dataAndStorageController(context: context, focusOnItemTag: itemTag))
     }
-    
+
+    /*
     let presentDataUsage: (AccountContext, @escaping (SettingsSearchableItemPresentation, ViewController?) -> Void, DataUsageEntryTag?) -> Void = { context, present, itemTag in
         let mediaAutoDownloadSettings = context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.automaticMediaDownloadSettings])
         |> map { sharedData -> MediaAutoDownloadSettings in
@@ -3262,6 +3263,7 @@ private func dataSearchableItems(context: AccountContext) -> [SettingsSearchable
             }, focusOnItemTag: itemTag))
         })
     }
+    */
 
     let presentStorageUsage: (AccountContext, @escaping (SettingsSearchableItemPresentation, ViewController?) -> Void, StorageUsageEntryTag?) -> Void = { context, present, itemTag in
         let controller = StorageUsageScreen(context: context, makeStorageUsageExceptionsScreen: { category in
@@ -3337,6 +3339,7 @@ private func dataSearchableItems(context: AccountContext) -> [SettingsSearchable
                 presentStorageUsage(context, present, .maxCache)
             }
         ),
+        /*
         SettingsSearchableItem(
             id: "data/usage",
             title: strings.NetworkUsageSettings_Title,
@@ -3371,6 +3374,7 @@ private func dataSearchableItems(context: AccountContext) -> [SettingsSearchable
                 presentDataUsage(context, present, .reset)
             }
         ),
+        */
         SettingsSearchableItem(
             id: "data/auto-download/mobile",
             title: strings.ChatSettings_AutoDownloadUsingCellular,

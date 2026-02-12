@@ -278,8 +278,6 @@ public enum ContextMenuItem {
     case separator
 }
 
-}
-
 public final class ContextControllerLocationViewInfo {
     public let location: CGPoint
     public let contentAreaInScreenSpace: CGRect
@@ -723,6 +721,7 @@ public protocol ContextController: ViewController, StandalonePresentableControll
     func dismissWithCustomTransition(transition: ContainedViewLayoutTransition, completion: (() -> Void)?)
     func dismissWithoutContent()
     func dismissNow()
+    func dismissWithoutAnimation()
     func dismissWithReaction(value: MessageReaction.Reaction, targetView: UIView, hideNode: Bool, animateTargetContainer: UIView?, addStandaloneReactionAnimation: ((StandaloneReactionAnimation) -> Void)?, onHit: (() -> Void)?, completion: (() -> Void)?)
     func animateDismissalIfNeeded()
     func cancelReactionAnimation()
@@ -877,17 +876,6 @@ public protocol ContextControllerActionsStackNode: ASDisplayNode {
     var topPositionLock: CGFloat? { get }
     var storedScrollingState: CGFloat? { get }
 
-    public func dismissWithoutAnimation() {
-            if !self.wasDismissed {
-                self.wasDismissed = true
-
-                self.controllerNode.restoreExtractedNodes()
-                self.presentingViewController?.dismiss(animated: false, completion: nil)
-                self.dismissed?()
-            }
-        }
-    }
-    
     func replace(item: ContextControllerActionsStackItem, animated: Bool?)
     func push(item: ContextControllerActionsStackItem, currentScrollingState: CGFloat?, positionLock: CGFloat?, animated: Bool)
     func clearStoredScrollingState()

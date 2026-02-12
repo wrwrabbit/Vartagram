@@ -283,6 +283,10 @@ final class ContextSourceContainer: ASDisplayNode {
             self.presentationNode.cancelReactionAnimation()
         }
         
+        func restoreExtractedNodes() {
+            self.presentationNode.restoreExtractedNodes()
+        }
+        
         func animateOutToReaction(value: MessageReaction.Reaction, targetView: UIView, hideNode: Bool, animateTargetContainer: UIView?, addStandaloneReactionAnimation: ((StandaloneReactionAnimation) -> Void)?, reducedCurve: Bool, onHit: (() -> Void)?, completion: @escaping () -> Void) {
             self.presentationNode.animateOutToReaction(value: value, targetView: targetView, hideNode: hideNode, animateTargetContainer: animateTargetContainer, addStandaloneReactionAnimation: addStandaloneReactionAnimation, reducedCurve: reducedCurve, onHit: onHit, completion: completion)
         }
@@ -572,6 +576,12 @@ final class ContextSourceContainer: ASDisplayNode {
     func cancelReactionAnimation() {
         if let activeSource = self.activeSource {
             activeSource.cancelReactionAnimation()
+        }
+    }
+
+    func restoreExtractedNodes() {
+        if let activeSource = self.activeSource {
+            activeSource.restoreExtractedNodes()
         }
     }
     

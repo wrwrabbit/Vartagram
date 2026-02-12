@@ -299,9 +299,10 @@ extension PeerInfoScreenNode {
                 var items: [ContextMenuItem] = []
                 
                 let strings = strongSelf.presentationData.strings
-                
-                var recurseGenerateAction: ((Bool) -> ContextMenuActionItem)?
-                let generateAction: (Bool) -> ContextMenuActionItem = { [weak pane] isZoomIn in
+
+                let weakPane = pane
+                func generateAction(_ isZoomIn: Bool) -> ContextMenuActionItem {
+                    let pane: PeerInfoVisualMediaPaneNode? = weakPane
                     let nextZoomLevel = isZoomIn ? pane?.availableZoomLevels().increment : pane?.availableZoomLevels().decrement
                     let canZoom: Bool = nextZoomLevel != nil
                     
@@ -312,14 +313,9 @@ extension PeerInfoScreenNode {
                             return
                         }
                         pane.updateZoomLevel(level: zoomLevel)
-                        if let recurseGenerateAction = recurseGenerateAction {
-                            action.updateAction(0, recurseGenerateAction(true))
-                            action.updateAction(1, recurseGenerateAction(false))
-                        }
+                        action.updateAction(0, generateAction(true))
+                        action.updateAction(1, generateAction(false))
                     } : nil)
-                }
-                recurseGenerateAction = { isZoomIn in
-                    return generateAction(isZoomIn)
                 }
                 
                 items.append(.action(generateAction(true)))

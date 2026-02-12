@@ -236,7 +236,7 @@ func updatedFeaturedStickerPacks(network: Network, postbox: Postbox, category: F
                         let isPremium = flags & (1 << 0) != 0
 
                         let updatedPackIds = updatedPacks.map { $0.info.id.id }
-                        assert(hashForIdsReverse(updatedPackIds, unreadIds: Array(unreadIds)) == hash)
+                        assert(hashForIdsReverse(updatedPackIds, unreadIds: Array(unreadIds)) == featuredStickersData.hash)
 
                         return .content(FeaturedListContent(
                             unreadIds: unreadIds,

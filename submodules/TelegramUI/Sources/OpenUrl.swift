@@ -993,7 +993,7 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
         )
     }
 
-    if let scheme = parsedUrl.scheme, internetSchemes.contains(scheme?.lowercased()) {
+    if let scheme = parsedUrl.scheme, internetSchemes.contains(scheme.lowercased()) {
         if let host = parsedUrl.host, telegramMeHosts.contains(host) {
             continueHandling()
         } else {

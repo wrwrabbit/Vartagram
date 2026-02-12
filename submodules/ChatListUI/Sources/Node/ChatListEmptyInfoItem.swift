@@ -330,7 +330,7 @@ class ChatListEmptyChatSelectionListItemNode: ListViewItemNode {
     required init() {
         self.textNode = TextNode()
         
-        super.init(layerBacked: false, dynamicBounce: false)
+        super.init(layerBacked: false)
         
         self.addSubnode(self.textNode)
     }

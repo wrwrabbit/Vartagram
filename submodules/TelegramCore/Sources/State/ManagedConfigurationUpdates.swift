@@ -37,7 +37,7 @@ func managedConfigurationUpdates(accountManager: AccountManager<TelegramAccountM
                         }
                     }
                     
-                    network.setTrustedTimestamp(date)
+                    network.setTrustedTimestamp(configData.date)
 
                     let blockedMode = (flags & (1 << 8)) != 0
                     
@@ -45,7 +45,7 @@ func managedConfigurationUpdates(accountManager: AccountManager<TelegramAccountM
                         var settings = settings
                         settings.reducedBackupDiscoveryTimeout = blockedMode
                         settings.applicationUpdateUrlPrefix = autoupdateUrlPrefix
-                        settings.onlineUpdatePeriodMs = onlineUpdatePeriodMs
+                        settings.onlineUpdatePeriodMs = configData.onlineUpdatePeriodMs
                         return settings
                     })
                     

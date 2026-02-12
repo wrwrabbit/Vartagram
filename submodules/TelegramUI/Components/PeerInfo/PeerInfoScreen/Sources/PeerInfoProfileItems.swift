@@ -65,6 +65,17 @@ func infoItems(data: PeerInfoScreenData?, context: AccountContext, presentationD
     let birthdayContextAction: (ASDisplayNode, ContextGesture?, CGPoint?) -> Void = { node, gesture, _ in
         interaction.openBirthdayContextMenu(node, gesture)
     }
+
+    let maybeAppendIdItem: (PeerId) -> Void = { peerId in
+        if context.sharedContext.currentPtgSettings.with({ $0.showPeerId }) {
+            let id = String(peerId.id._internalGetInt64Value())
+            items[.peerInfo]!.append(PeerInfoScreenLabeledValueItem(id: 100, label: presentationData.strings.Profile_Id.lowercased(), text: id, action: nil, longTapAction: { sourceNode in
+                interaction.openPeerInfoContextMenu(.id(id), sourceNode, nil)
+            }, requestLayout: {_ in
+                interaction.requestLayout(false)
+            }))
+        }
+    }
     
     if let user = data.peer as? TelegramUser {
         let ItemCallList = 1000
@@ -171,6 +182,8 @@ func infoItems(data: PeerInfoScreenData?, context: AccountContext, presentationD
                 )
             )
         }
+
+        maybeAppendIdItem(user.id)
         
         if let cachedData = data.cachedData as? CachedUserData {
             if let birthday = cachedData.birthday {
@@ -625,6 +638,15 @@ func infoItems(data: PeerInfoScreenData?, context: AccountContext, presentationD
                     )
                 )
             }
+
+            maybeAppendIdItem(channel.id)
+
+            if context.sharedContext.currentPtgSettings.with({ $0.showChannelCreationDate }), let channelCreationTimestamp = data.channelCreationTimestamp {
+                items[.peerInfo]!.append(PeerInfoScreenLabeledValueItem(id: 101, label: presentationData.strings.Profile_CreationDate.lowercased(), text: stringForDate(timestamp: channelCreationTimestamp, strings: presentationData.strings), action: nil, longTapAction: nil, requestLayout: {_ in
+                    interaction.requestLayout(false)
+                }))
+            }
+
             if let cachedData = data.cachedData as? CachedChannelData {
                 let aboutText: String?
                 if channel.isFake {
@@ -782,6 +804,8 @@ func infoItems(data: PeerInfoScreenData?, context: AccountContext, presentationD
             }
         }
     } else if let group = data.peer as? TelegramGroup {
+        maybeAppendIdItem(group.id)
+
         if let cachedData = data.cachedData as? CachedGroupData {
             let aboutText: String?
             if group.isFake {

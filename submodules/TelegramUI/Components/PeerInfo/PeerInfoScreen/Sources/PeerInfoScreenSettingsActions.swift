@@ -1,3 +1,9 @@
+import PasscodeUI
+import PtgSettingsUI
+import PtgSecretPasscodesUI
+import UndoUI
+import TelegramStringFormatting
+
 import Foundation
 import UIKit
 import Display
@@ -219,16 +225,16 @@ extension PeerInfoScreenNode {
                 guard let strongSelf = self else {
                     return
                 }
-                var maximumAvailableAccounts: Int = 3
-                if accountAndPeer?.1.isPremium == true && !strongSelf.context.account.testingEnvironment {
-                    maximumAvailableAccounts = 4
-                }
+                let maximumAvailableAccounts: Int = 10
+//                if accountAndPeer?.1.isPremium == true && !strongSelf.context.account.testingEnvironment {
+//                    maximumAvailableAccounts = 4
+//                }
                 var count: Int = 1
-                for (accountContext, peer, _) in accountsAndPeers {
+                for (accountContext, _, _) in accountsAndPeers {
                     if !accountContext.account.testingEnvironment {
-                        if peer.isPremium {
-                            maximumAvailableAccounts = 4
-                        }
+//                        if peer.isPremium {
+//                            maximumAvailableAccounts = 4
+//                        }
                         count += 1
                     }
                 }
@@ -273,6 +279,181 @@ extension PeerInfoScreenNode {
             self.interaction.editingOpenNameColorSetup()
         case .powerSaving:
             push(energySavingSettingsScreen(context: self.context))
+        case .ptgSettings:
+            push(ptgSettingsController(context: self.context))
+
+        case .enterSecretPasscode:
+            let _ = (self.context.sharedContext.ptgSecretPasscodes
+            |> take(1)
+            |> deliverOnMainQueue).start(next: { [weak self] ptgSecretPasscodes in
+                guard let strongSelf = self else {
+                    return
+                }
+
+                let controller = PasscodeSetupController(context: strongSelf.context, mode: .secretEntry(modal: true, .digits6))
+
+                controller.check = { [weak controller] passcode in
+                    guard let strongSelf = self else {
+                        return false
+                    }
+
+                    guard let secretCodeAttemptAccounter = strongSelf.context.sharedContext.secretCodeAttemptAccounter else {
+                        return false
+                    }
+
+                    if let waitTime = secretCodeAttemptAccounter.preAttempt() {
+                        controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .banned(text: passcodeAttemptWaitString(strings: strongSelf.presentationData.strings, waitTime: waitTime)), elevatedLayout: false, action: { _ in return false }), in: .current)
+                        return false
+                    }
+
+                    if let sp = ptgSecretPasscodes.secretPasscodes.first(where: { $0.passcode == passcode }) {
+                        strongSelf.context.sharedContext.activateSecretPasscode(sp)
+
+                        controller?.dismiss()
+
+                        strongSelf.controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .succeed(text: strongSelf.presentationData.strings.SecretPasscodeStatus_SomeRevealed, timeout: nil, customUndoText: nil), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
+
+                        return true
+                    }
+
+                    secretCodeAttemptAccounter.attemptMissed()
+
+                    return false
+                }
+
+                controller.navigationPresentation = .modal
+                push(controller)
+            })
+
+        case .manageSecretPasscodes:
+            let actionSheet = ActionSheetController(presentationData: self.presentationData)
+            actionSheet.setItemGroups([ActionSheetItemGroup(items: [
+                ActionSheetButtonItem(title: self.presentationData.strings.SecretPasscodeMenu_Add, action: { [weak self, weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+
+                    guard let strongSelf = self else {
+                        return
+                    }
+
+                    let _ = (strongSelf.context.sharedContext.ptgSecretPasscodes
+                    |> take(1)
+                    |> deliverOnMainQueue).start(next: { [weak self] ptgSecretPasscodes in
+                        guard let strongSelf = self else {
+                            return
+                        }
+
+                        let controller = PasscodeSetupController(context: strongSelf.context, mode: .secretSetup(.digits6))
+
+                        controller.validate = { [weak self, weak controller] newPasscode in
+                            guard let strongSelf = self else {
+                                return ""
+                            }
+
+                            guard let secretCodeAttemptAccounter = strongSelf.context.sharedContext.secretCodeAttemptAccounter else {
+                                return ""
+                            }
+
+                            if let waitTime = secretCodeAttemptAccounter.preAttempt() {
+                                controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .banned(text: passcodeAttemptWaitString(strings: strongSelf.presentationData.strings, waitTime: waitTime)), elevatedLayout: false, action: { _ in return false }), in: .current)
+                                return ""
+                            }
+
+                            if ptgSecretPasscodes.secretPasscodes.contains(where: { $0.passcode == newPasscode }) {
+                                return strongSelf.presentationData.strings.PasscodeSettings_PasscodeInUse
+                            }
+
+                            secretCodeAttemptAccounter.attemptMissed()
+
+                            return nil
+                        }
+
+                        controller.complete = { [weak self, weak controller] newPasscode, numerical in
+                            guard let strongSelf = self else {
+                                return
+                            }
+
+                            let _ = (updatePtgSecretPasscodes(strongSelf.context.sharedContext.accountManager, { current in
+                                let newSecretPasscode = PtgSecretPasscode(passcode: newPasscode, active: true)
+                                return PtgSecretPasscodes(secretPasscodes: current.secretPasscodes + [newSecretPasscode], dbCoveringAccounts: current.dbCoveringAccounts, cacheCoveringAccounts: current.cacheCoveringAccounts)
+                            })
+                            |> deliverOnMainQueue).start(completed: { [weak self] in
+                                guard let strongSelf = self else {
+                                    return
+                                }
+
+                                let nextController = secretPasscodeController(context: strongSelf.context, passcode: newPasscode, isNew: true)
+                                (controller?.navigationController as? NavigationController)?.replaceTopController(nextController, animated: true)
+                            })
+                        }
+
+                        push(controller)
+                    })
+                }),
+
+                ActionSheetButtonItem(title: self.presentationData.strings.SecretPasscodeMenu_Edit, action: { [weak self, weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+
+                    guard let strongSelf = self else {
+                        return
+                    }
+
+                    let _ = (strongSelf.context.sharedContext.ptgSecretPasscodes
+                    |> take(1)
+                    |> deliverOnMainQueue).start(next: { [weak self] ptgSecretPasscodes in
+                        guard let strongSelf = self else {
+                            return
+                        }
+
+                        let controller = PasscodeSetupController(context: strongSelf.context, mode: .secretEntry(modal: false, .digits6))
+
+                        controller.check = { [weak controller] passcode in
+                            guard let strongSelf = self else {
+                                return false
+                            }
+
+                            guard let secretCodeAttemptAccounter = strongSelf.context.sharedContext.secretCodeAttemptAccounter else {
+                                return false
+                            }
+
+                            if let waitTime = secretCodeAttemptAccounter.preAttempt() {
+                                controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .banned(text: passcodeAttemptWaitString(strings: strongSelf.presentationData.strings, waitTime: waitTime)), elevatedLayout: false, action: { _ in return false }), in: .current)
+                                return false
+                            }
+
+                            if ptgSecretPasscodes.secretPasscodes.contains(where: { $0.passcode == passcode }) {
+                                let nextController = secretPasscodeController(context: strongSelf.context, passcode: passcode, isNew: false)
+                                (controller?.navigationController as? NavigationController)?.replaceTopController(nextController, animated: true)
+
+                                return true
+                            }
+
+                            secretCodeAttemptAccounter.attemptMissed()
+
+                            return false
+                        }
+
+                        push(controller)
+                    })
+                }),
+
+                ActionSheetButtonItem(title: self.presentationData.strings.SecretPasscodeMenu_HideAllSecrets, font: .bold, action: { [weak self, weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+
+                    guard let strongSelf = self else {
+                        return
+                    }
+
+                    strongSelf.context.sharedContext.hideAllSecrets()
+
+                    strongSelf.controller?.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .succeed(text: strongSelf.presentationData.strings.SecretPasscodeStatus_AllHidden, timeout: nil, customUndoText: nil), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
+                })
+            ]), ActionSheetItemGroup(items: [
+                ActionSheetButtonItem(title: self.presentationData.strings.Common_Cancel, action: { [weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                })
+            ])])
+
+            self.controller?.present(actionSheet, in: .window(.root))
         case .businessSetup:
             guard let controller = self.controller, !controller.presentAccountFrozenInfoIfNeeded() else {
                 return

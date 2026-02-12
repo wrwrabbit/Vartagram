@@ -238,7 +238,7 @@ public final class InitialPresentationDataAndSettings {
     }
 
     public func withUpdatedPtgSecretPasscodes(_ ptgSecretPasscodes: PtgSecretPasscodes) -> InitialPresentationDataAndSettings {
-        return InitialPresentationDataAndSettings(presentationData: self.presentationData, automaticMediaDownloadSettings: self.automaticMediaDownloadSettings, autodownloadSettings: self.autodownloadSettings, callListSettings: self.callListSettings, inAppNotificationSettings: self.inAppNotificationSettings, mediaInputSettings: self.mediaInputSettings, mediaDisplaySettings: self.mediaDisplaySettings, stickerSettings: self.stickerSettings, experimentalUISettings: self.experimentalUISettings, ptgSettings: self.ptgSettings, ptgSecretPasscodes: ptgSecretPasscodes)
+        return InitialPresentationDataAndSettings(presentationData: self.presentationData, automaticMediaDownloadSettings: self.automaticMediaDownloadSettings, autodownloadSettings: self.autodownloadSettings, callListSettings: self.callListSettings, inAppNotificationSettings: self.inAppNotificationSettings, mediaInputSettings: self.mediaInputSettings, mediaDisplaySettings: self.mediaDisplaySettings, stickerSettings: self.stickerSettings, chatSettings: self.chatSettings, experimentalUISettings: self.experimentalUISettings, ptgSettings: self.ptgSettings, ptgSecretPasscodes: ptgSecretPasscodes)
     }
 }
 

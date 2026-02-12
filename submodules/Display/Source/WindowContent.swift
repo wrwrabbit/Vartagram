@@ -1451,7 +1451,7 @@ public class Window1 {
                     let _ = f(controller)
                 }
             }
-            weak var handledTopOverlayController = navigationController.topOverlayController
+            weak let handledTopOverlayController = navigationController.topOverlayController
             if let controller = navigationController.topOverlayController {
                 let _ = f(controller)
             }
